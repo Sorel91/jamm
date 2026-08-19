@@ -221,14 +221,34 @@ function updateDossierCollapse() {
 function documentMatchesRequirement(doc, requirement, links = {}) {
   if (doc.id === links[requirement.label]) return true;
   const requiredType = requirement.document_type || requirement.category;
-  if (!requiredType) return false;
-  if (doc.document_type === requiredType) return true;
-  const fileName = String(doc.display_name || '').toLocaleLowerCase('fr-FR');
-  const nameMatchers = {
-    passport: /passeport/i,
-    identity_card: /(?:cnie|carte[ _-]?d['’ ]?identit[ée])/i
-  };
-  return Boolean(nameMatchers[requiredType] && nameMatchers[requiredType].test(fileName));
+  if (requiredType) {
+    if (doc.document_type === requiredType) return true;
+    const fileName = String(doc.display_name || '').toLocaleLowerCase('fr-FR');
+    const nameMatchers = {
+      passport: /passeport/i,
+      identity_card: /(?:cnie|carte[ _-]?d['’ ]?identit[ée])/i
+    };
+    return Boolean(nameMatchers[requiredType] && nameMatchers[requiredType].test(fileName));
+  }
+  const normalise = (value) => String(value || '').toLocaleLowerCase('fr-FR').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const wanted = normalise(requirement.label);
+  const fileName = normalise(doc.display_name);
+  if (!wanted || !fileName) return false;
+  const typeHints = [
+    { type: 'passport', pattern: /passeport/ },
+    { type: 'identity_card', pattern: /(?:cnie|carte d identite|carte identite)/ },
+    { type: 'birth_certificate', pattern: /acte de naissance|extrait de naissance/ },
+    { type: 'marriage_certificate', pattern: /acte de mariage|certificat de mariage/ },
+    { type: 'proof_of_address', pattern: /justificatif de domicile|preuve de domicile/ },
+    { type: 'residence_permit', pattern: /titre de sejour|carte de sejour/ }
+  ];
+  const hint = typeHints.find((item) => item.pattern.test(wanted));
+  if (hint && doc.document_type === hint.type) return true;
+  const ignored = new Set(['copie', 'document', 'piece', 'justificatif', 'attestation', 'du', 'de', 'des', 'la', 'le', 'les', 'un', 'une', 'et', 'a']);
+  const tokens = wanted.split(' ').filter((token) => token.length > 2 && !ignored.has(token));
+  const fileTokens = new Set(fileName.split(' '));
+  const matched = tokens.filter((token) => fileTokens.has(token));
+  return tokens.length === 1 ? matched.length === 1 : (tokens.length > 1 && matched.length >= 2);
 }
 
 async function openChecklistDocument(id) {
@@ -566,7 +586,7 @@ function showQualification(code, existingJourney = null) {
   const residenceField = '<label>Votre situation pour le renouvellement<select id="journey-residence-route" required><option value="">Choisir une situation</option>' + essonneEntries.map((entry) => '<option value="' + escapeHtml(entry.id) + '">' + escapeHtml(entry.title.replace(/^Renouvellement\s*:\s*/i, '')) + '</option>').join('') + '</select></label><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">' + catalogueNote;
   const homeField = '<label>Type de bien<select id="home-property-type"><option value="apartment">Appartement</option><option value="house">Maison</option><option value="new_build">Logement neuf (VEFA)</option></select></label><label>Achetez-vous seul ou à plusieurs ?<select id="home-purchase-mode"><option value="solo">J’achète seul</option><option value="joint">J’achète à deux ou plus</option></select></label><label>Où en êtes-vous dans votre achat ?<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + homePurchaseSteps.map((step) => '<button class="journey-option" data-category="' + escapeHtml(step.title) + '" type="button"><strong>' + escapeHtml(step.title) + '</strong><small style="font-weight:600;opacity:.78">Préparer les documents de cette étape</small></button>').join('') + '</div><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p></label>';
   const situationField = isCustom
-    ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><label>Liste des documents nécessaires<textarea id="journey-requirements" rows="6" required placeholder="Une pièce par ligne&#10;Ex. Copie du passeport&#10;Procuration légalisée&#10;Attestation bancaire"></textarea></label>'
+    ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><div class="custom-requirements-field"><strong>Documents nécessaires</strong><p>Ajoutez une pièce à la fois. Jamm vérifiera ensuite si elle est déjà dans votre coffre.</p><div id="custom-requirements-list"></div><button class="outline" id="add-custom-requirement" type="button">+ Ajouter une pièce</button></div>'
     : (isPassport ? passportField : (isHome ? homeField : residenceField));
   const authorityLabel = isPassport ? 'Ville ou consulat où vous ferez la démarche' : definition.authorityLabel;
   const authorityPlaceholder = isPassport ? 'Ex. Consulat du Sénégal à Paris' : definition.authorityPlaceholder;
@@ -577,6 +597,27 @@ function showQualification(code, existingJourney = null) {
   const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form">' + formFields + (isCustom || isHome ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label><div class="qualification-submit-bar"><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></div></form>');
   styleModal(node);
   node.querySelectorAll('textarea').forEach((field) => field.style.cssText = 'display:block;box-sizing:border-box;width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial;resize:vertical');
+  const customRequirementsList = node.querySelector('#custom-requirements-list');
+  const addCustomRequirement = (value = '') => {
+    if (!customRequirementsList) return;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px';
+    row.innerHTML = '<input class="custom-requirement-input" aria-label="Document nécessaire" placeholder="Ex. Copie du passeport" value="' + escapeHtml(value) + '"><button type="button" aria-label="Retirer cette pièce" style="border:0;background:transparent;color:#8a6357;font-size:20px;cursor:pointer;padding:4px 7px">×</button>';
+    const input = row.querySelector('input');
+    input.style.cssText = 'display:block;box-sizing:border-box;flex:1;min-width:0;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial';
+    row.querySelector('button').addEventListener('click', () => {
+      if (customRequirementsList.querySelectorAll('.custom-requirement-input').length === 1) { input.value = ''; input.focus(); return; }
+      row.remove();
+    });
+    customRequirementsList.appendChild(row);
+  };
+  if (customRequirementsList) {
+    const existingRequirements = profile?.situation_answers?.required_documents;
+    (Array.isArray(existingRequirements) && existingRequirements.length ? existingRequirements : ['']).forEach(addCustomRequirement);
+    const addButton = node.querySelector('#add-custom-requirement');
+    addButton.style.cssText = 'margin-top:10px;border:1px solid #cdd6cd;border-radius:8px;background:#fff;color:#315d4c;padding:8px 10px;font:700 12px Arial;cursor:pointer';
+    addButton.addEventListener('click', () => { addCustomRequirement(); customRequirementsList.lastElementChild?.querySelector('input')?.focus(); });
+  }
   const category = node.querySelector('#journey-category');
   const catalogId = node.querySelector('#journey-catalog-id');
   const submit = node.querySelector('[type="submit"]');
@@ -706,7 +747,7 @@ function showQualification(code, existingJourney = null) {
       if (homeMode && profile.situation_answers?.home_purchase_mode) homeMode.value = profile.situation_answers.home_purchase_mode;
     }
     if (node.querySelector('#journey-custom-title')) node.querySelector('#journey-custom-title').value = profile.situation_answers?.custom_title || '';
-    if (node.querySelector('#journey-requirements')) node.querySelector('#journey-requirements').value = (profile.situation_answers?.required_documents || []).join('\\n');
+
     if (profile.situation_answers?.note) node.querySelector('#journey-note').value = profile.situation_answers.note;
   }
   node.querySelector('.close').addEventListener('click', () => node.remove());
@@ -715,6 +756,8 @@ function showQualification(code, existingJourney = null) {
     submit.disabled = true;
     const authority = node.querySelector('#journey-department').value.trim();
     if (!isCustom && !category.value) { showError(node, isPassport ? 'Choisissez d’abord le pays puis votre situation.' : 'Choisissez une option pour continuer.'); submit.disabled = false; return; }
+    const customRequirements = isCustom ? Array.from(node.querySelectorAll('.custom-requirement-input')).map((input) => input.value.trim()).filter(Boolean) : [];
+    if (isCustom && !customRequirements.length) { showError(node, 'Ajoutez au moins un document nécessaire pour créer cette démarche.'); submit.disabled = false; return; }
     if (definition.kind === 'residence' && !/(^|\\D)91(\\D|$)|essonne/i.test(authority)) { showError(node, 'Le catalogue pilote couvre actuellement uniquement les démarches auprès de la Préfecture de l’Essonne (91).'); submit.disabled = false; return; }
     let journey = existingJourney;
     if (!journey) {
@@ -728,7 +771,7 @@ function showQualification(code, existingJourney = null) {
     const homeBaseRequirements = homePurchaseSteps.find((step) => step.title === category.value)?.requirements || [];
     const propertyRequirements = propertyType === 'apartment' ? [{ label: 'Règlement de copropriété et derniers procès-verbaux d’assemblée générale', document_type: 'other' }] : (propertyType === 'house' ? [{ label: 'Informations sur le terrain, les limites et les éventuelles servitudes', document_type: 'other' }] : (propertyType === 'new_build' ? [{ label: 'Contrat de réservation et garantie financière du programme', document_type: 'other' }] : []));
     const coBuyerRequirements = purchaseMode === 'joint' ? [{ label: 'Pièce d’identité du ou des co-acquéreurs', document_type: 'identity_card' }, { label: 'Justificatifs de revenus du ou des co-acquéreurs', document_type: 'other' }] : [];
-    const requirements = isHome ? [...homeBaseRequirements, ...propertyRequirements, ...coBuyerRequirements] : (node.querySelector('#journey-requirements')?.value.split('\\n').map((item) => item.trim()).filter(Boolean) || []);
+    const requirements = isHome ? [...homeBaseRequirements, ...propertyRequirements, ...coBuyerRequirements] : (isCustom ? customRequirements : []);
     const previousAnswers = profile?.situation_answers || {};
     const selectedEntry = officialCatalog.find((entry) => entry.id === catalogId?.value);
     const payload = { journey_id: journey.id, owner_id: currentUser.id, department: authority, permit_category: customTitle || category.value, expiry_date: node.querySelector('#journey-expiry')?.value || null, situation_answers: { ...previousAnswers, note: node.querySelector('#journey-note').value.trim(), route: code, catalog_entry_id: selectedEntry?.id || null, custom_title: customTitle || undefined, required_documents: requirements, home_property_type: isHome ? propertyType : previousAnswers.home_property_type, home_purchase_mode: isHome ? purchaseMode : previousAnswers.home_purchase_mode, requirement_links: previousAnswers.requirement_links || {} }, source_status: selectedEntry ? selectedEntry.source_status : 'to_verify', official_source_url: selectedEntry?.source_url || null, source_checked_at: selectedEntry?.source_checked_at || null, updated_at: new Date().toISOString() };
