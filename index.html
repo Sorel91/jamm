@@ -54,6 +54,16 @@
 
     <section class="app-view" id="vault-view">
       <section class="heading" id="coffre"><div><p class="eyebrow">VOTRE COFFRE</p><h2>Vos documents importants</h2><p class="section-description">Ajoutez-les une fois. Jamm les réutilisera dans vos démarches.</p></div><button class="link-button" id="select-all">Tout inclure →</button></section>
+      <section class="vault-overview" aria-label="Organisation du coffre">
+        <button class="vault-filter active" data-vault-filter="all"><span>◫</span><strong>Tous</strong><small>Votre mémoire complète</small></button>
+        <button class="vault-filter" data-vault-filter="identity"><span>◉</span><strong>Identité & voyage</strong><small>Passeports, cartes</small></button>
+        <button class="vault-filter" data-vault-filter="residency"><span>▣</span><strong>Séjour</strong><small>Titres et droits</small></button>
+        <button class="vault-filter" data-vault-filter="home"><span>⌂</span><strong>Logement</strong><small>Justificatifs</small></button>
+        <button class="vault-filter" data-vault-filter="family"><span>✦</span><strong>Famille</strong><small>État civil</small></button>
+        <button class="vault-filter attention-filter" data-vault-filter="attention"><span>!</span><strong>À surveiller</strong><small id="attention-count">Dates à revoir</small></button>
+        <button class="vault-filter archive-filter" data-vault-filter="archive"><span>⌁</span><strong>Archives</strong><small>Anciens documents</small></button>
+      </section>
+      <section class="vault-context" id="vault-context"><strong>Tout votre coffre</strong><span>Les documents restent ici, même lorsqu’ils sont utilisés dans une démarche.</span></section>
       <section class="document-grid" id="documents" aria-label="Documents du coffre"></section>
       <section class="family" id="famille"><div class="people"><span id="person-one">J</span><i></i><b>+</b></div><div><p class="eyebrow">VOTRE FAMILLE</p><h2>Partagez seulement ce qui est utile.</h2><p>Le partage familial à droits limités arrive après la première version du coffre individuel.</p></div><button class="outline" id="invite">Bientôt disponible</button></section>
     </section>
@@ -77,6 +87,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="app.js?v=product-ia-01"></script>
+  <script src="app.js?v=vault-ia-02"></script>
 </body>
 </html>
