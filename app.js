@@ -41,7 +41,7 @@ function modal(content) {
   node.innerHTML = '<div class="jamm-modal-card">' + content + '</div>';
   node.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(27,45,36,.55);padding:24px;display:grid;place-items:center';
   const card = node.firstElementChild;
-  card.style.cssText = 'position:relative;width:min(480px,100%);background:#fbfaf6;border-radius:16px;padding:34px;color:#1e2924;box-shadow:0 20px 70px rgba(0,0,0,.22)';
+  card.style.cssText = 'position:relative;width:min(480px,100%);max-height:calc(100dvh - 32px);overflow-y:auto;background:#fbfaf6;border-radius:16px;padding:34px;color:#1e2924;box-shadow:0 20px 70px rgba(0,0,0,.22)';
   document.body.appendChild(node);
   return node;
 }
@@ -381,14 +381,14 @@ function showQualification(code, existingJourney = null) {
     ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><label>Liste des documents nécessaires<textarea id="journey-requirements" rows="6" required placeholder="Une pièce par ligne&#10;Ex. Copie du passeport&#10;Procuration légalisée&#10;Attestation bancaire"></textarea></label>'
     : '<label>' + categoryLabel + '<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + standardOptions + '</div>' + catalogueNote + '</label>';
   const intro = isCustom ? 'Vous connaissez les pièces demandées ? Ajoutez-les : Jamm vous aidera à rassembler les fichiers de votre coffre.' : (definition.kind === 'residence' ? 'Ce premier catalogue couvre les personnes domiciliées en Essonne (91). Le lien officiel sera conservé dans votre dossier.' : 'Choisissez le pays du passeport puis le lieu de la démarche.');
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form"><label>' + definition.authorityLabel + '<input id="journey-department" required placeholder="' + definition.authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : '') + '"></label>' + situationField + (isCustom ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></form>');
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form"><label>' + definition.authorityLabel + '<input id="journey-department" required placeholder="' + definition.authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : '') + '"></label>' + situationField + (isCustom ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label><div class="qualification-submit-bar"><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></div></form>');
   styleModal(node);
   node.querySelectorAll('textarea').forEach((field) => field.style.cssText = 'display:block;box-sizing:border-box;width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial;resize:vertical');
   const category = node.querySelector('#journey-category');
   const catalogId = node.querySelector('#journey-catalog-id');
   const optionButtons = node.querySelectorAll('[data-category]');
   optionButtons.forEach((button) => {
-    button.style.cssText = 'display:grid;gap:4px;border:1px solid #cdd6cd;border-radius:12px;padding:12px 14px;background:#fff;color:#315d4c;font:600 13px Arial;cursor:pointer;text-align:left';
+    button.style.cssText = 'display:grid;gap:4px;border:1px solid #cdd6cd;border-radius:12px;padding:9px 12px;background:#fff;color:#315d4c;font:600 13px Arial;cursor:pointer;text-align:left';
     button.addEventListener('click', () => {
       if (category) category.value = button.dataset.category;
       if (catalogId) catalogId.value = button.dataset.catalogId || '';
@@ -401,7 +401,9 @@ function showQualification(code, existingJourney = null) {
     });
   });
   const picker = node.querySelector('.journey-option-picker');
-  if (picker) picker.style.cssText = 'display:grid;grid-template-columns:1fr;gap:8px;margin-top:9px';
+  if (picker) picker.style.cssText = 'display:grid;grid-template-columns:1fr;gap:6px;margin-top:9px';
+  const submitBar = node.querySelector('.qualification-submit-bar');
+  if (submitBar) submitBar.style.cssText = 'position:sticky;bottom:-34px;margin:18px -34px -34px;padding:14px 34px 20px;background:#fbfaf6;border-top:1px solid #e0e5df;z-index:2';
   const catalogueNoteNode = node.querySelector('.catalogue-note');
   if (catalogueNoteNode) catalogueNoteNode.style.cssText = 'margin:10px 0 0;color:#69766e;font-size:12px;line-height:1.4';
   if (profile) {
