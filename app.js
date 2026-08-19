@@ -383,6 +383,7 @@ function showQualification(code, existingJourney = null) {
   node.querySelector('#qualification-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const submit = node.querySelector('[type="submit"]'); submit.disabled = true;
+    if (!isCustom && !category.value) { showError(node, 'Choisissez une option pour continuer.'); submit.disabled = false; return; }
     let journey = existingJourney;
     if (!journey) {
       const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
