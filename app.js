@@ -416,7 +416,7 @@ function showQualification(code, existingJourney = null) {
   const isCustom = definition.kind === 'custom';
   const isPassport = definition.kind === 'passport';
   const essonneEntries = officialCatalog.filter((entry) => entry.authority_code === '91' && entry.theme === 'residence_renewal');
-  const passportCountries = ['France', 'Algérie', 'Maroc', 'Tunisie', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'Bénin', 'Gabon', 'Kenya', 'Mauritanie', 'Zimbabwe', 'Burkina Faso', 'République démocratique du Congo', 'République du Congo (Congo-Brazzaville)', 'Guinée', 'Nigeria', 'Éthiopie', 'Autre pays'];
+  const passportCountries = ['France', 'Algérie', 'Maroc', 'Tunisie', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'Bénin', 'Gabon', 'Kenya', 'Mauritanie', 'Zimbabwe', 'Burkina Faso', 'République démocratique du Congo', 'République du Congo (Congo-Brazzaville)', 'Guinée', 'Nigeria', 'Éthiopie', 'Autre pays'];
   const passportEntries = officialCatalog.filter((entry) => entry.theme === 'passport_renewal');
   const officialOption = (entry, fallbackSource) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : ' + escapeHtml(entry.source_label || fallbackSource) + ' ↗</small>' + (entry.theme === 'passport_renewal' && entry.notes ? '<small style="line-height:1.35;opacity:.82">' + escapeHtml(entry.notes) + '</small>' : '') + '</button>';
   const residenceOptions = essonneEntries.map((entry) => officialOption(entry, 'Préfecture de l’Essonne')).join('');
@@ -469,6 +469,7 @@ function showQualification(code, existingJourney = null) {
     if (confirmation) confirmation.hidden = true;
     const countryPrefixes = {
       'France': 'passeport français',
+      'Sénégal': 'passeport sénégalais',
       'Algérie': 'passeport algérien',
       'Maroc': 'passeport marocain',
       'Tunisie': 'passeport tunisien',
@@ -495,7 +496,10 @@ function showQualification(code, existingJourney = null) {
       situation.innerHTML = '<p class="catalogue-note" style="margin:0;color:#69766e;font-size:13px;line-height:1.45">La checklist officielle pour ce pays arrive prochainement. Pour l’instant, utilisez « Faire une autre démarche » si vous avez déjà la liste des pièces.</p>';
       return;
     }
-    situation.innerHTML = '<strong style="font:700 14px Arial">Quelle est votre situation ?</strong><div class="journey-option-picker">' + matches.map((entry) => officialOption(entry, 'Autorité consulaire compétente')).join('') + '</div><p class="catalogue-note" style="margin:0;color:#69766e;font-size:12px;line-height:1.4">Checklist vérifiée le 19 août 2026 auprès de l’autorité consulaire indiquée.</p>';
+    const appointmentWarning = country === 'Sénégal'
+      ? '<div role="status" style="border:1px solid #e1b15b;background:#fff3d9;color:#6c4812;border-radius:10px;padding:11px 12px;font:13px/1.45 Arial"><strong>⚠️ Rendez-vous temporairement suspendus</strong><br>Vous pouvez préparer votre dossier ci-dessous, mais la plateforme officielle du Consulat général du Sénégal à Paris n’accepte pas actuellement de nouveaux créneaux. Consultez ses canaux officiels pour la réouverture.</div>'
+      : '';
+    situation.innerHTML = appointmentWarning + '<strong style="font:700 14px Arial">Quelle est votre situation ?</strong><div class="journey-option-picker">' + matches.map((entry) => officialOption(entry, 'Autorité consulaire compétente')).join('') + '</div><p class="catalogue-note" style="margin:0;color:#69766e;font-size:12px;line-height:1.4">Checklist vérifiée le 19 août 2026 auprès de l’autorité consulaire indiquée.</p>';
     const localPicker = situation.querySelector('.journey-option-picker');
     if (localPicker) localPicker.style.cssText = 'display:grid;grid-template-columns:1fr;gap:6px';
     wireRouteButtons(situation);
