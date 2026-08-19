@@ -275,7 +275,7 @@ function renderChecklist() {
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   const checklist = $('#checklist');
   if (!journey) {
-    checklist.innerHTML = '<div class="journey-empty"><span>→</span><div><strong>Choisissez une démarche au-dessus.</strong><p>Jamm comparera alors les pièces nécessaires avec votre coffre.</p></div></div>';
+    checklist.innerHTML = '<div class="journey-empty"><span>→</span><div><strong>Choisissez une démarche au-dessus.</strong><p>Jamm vous demandera ensuite votre situation, puis préparera le dossier.</p></div></div>';
     $('#progress-value').textContent = '0%';
     $('#complete-journey').hidden = true;
     return;
@@ -284,17 +284,46 @@ function renderChecklist() {
   $('#complete-journey').hidden = currentJourney.status !== 'active';
   if (!profile) {
     $('#progress-value').textContent = '—';
-    checklist.innerHTML = '<div class="journey-empty"><span>!</span><div><strong>Votre situation doit être précisée.</strong><p>Jamm ne propose pas de liste générique : précisez votre situation et votre préfecture avant toute checklist.</p><button class="outline" id="qualify-current-journey" type="button">Préciser ma situation</button></div></div>';
+    checklist.innerHTML = '<div class="journey-empty"><span>!</span><div><strong>Précisez votre situation.</strong><p>Jamm ne propose pas de liste générique : nous avons besoin de comprendre votre démarche.</p><button class="outline" id="qualify-current-journey" type="button">Préciser ma situation</button></div></div>';
     checklist.querySelector('#qualify-current-journey').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
+    return;
+  }
+  const requirements = Array.isArray(profile.situation_answers?.required_documents) ? profile.situation_answers.required_documents : [];
+  const links = profile.situation_answers?.requirement_links || {};
+  if (requirements.length) {
+    const linked = (label) => documents.find((doc) => !doc.archived_at && doc.id === links[label]);
+    const ready = requirements.filter(linked).length;
+    $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
+    checklist.innerHTML = '<div class="custom-list-note"><strong>Votre liste personnelle</strong><span>Ajoutée par vous — Jamm organise les pièces sans en valider le contenu.</span><button class="link-button" id="edit-qualification" type="button">Modifier la liste</button></div>' + requirements.map((label) => {
+      const doc = linked(label);
+      return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<em>Prêt</em>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(label) + '" type="button">Ajouter</button></span>') + '</div>';
+    }).join('');
+    checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
+    checklist.querySelectorAll('.link-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement)));
+    checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload('other')));
     return;
   }
   $('#progress-value').textContent = profile.source_status === 'verified' ? 'Prêt' : 'À vérifier';
   const sourceLine = profile.official_source_url
     ? '<a href="' + escapeHtml(profile.official_source_url) + '" target="_blank" rel="noopener">Ouvrir la source officielle ↗</a>'
-    : 'La source officielle de cette préfecture reste à associer.';
+    : 'La source officielle de l’organisme compétent reste à associer.';
   const checked = profile.source_checked_at ? new Date(profile.source_checked_at).toLocaleDateString('fr-FR') : 'pas encore contrôlée';
-  checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>Checklist personnalisée en cours de vérification.</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Département :</b> ' + escapeHtml(profile.department) + '.</p><p>Avant de lister des pièces, Jamm doit rattacher ce dossier à la publication officielle de la préfecture compétente. Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">Modifier ma situation</button></div></div>';
+  checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>Checklist en cours de vérification.</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Lieu :</b> ' + escapeHtml(profile.department) + '.</p><p>Jamm attend la publication officielle correspondant à votre situation avant de lister des pièces. Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">Modifier ma situation</button></div></div>';
   checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
+}
+
+function showRequirementPicker(requirement) {
+  const available = documents.filter((doc) => !doc.archived_at);
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE</p><h2 style="font:600 29px Georgia,serif;margin:8px 0 10px">Rattacher une pièce</h2><p style="color:#647069;line-height:1.45">Choisissez le document qui correspond à « ' + escapeHtml(requirement) + ' ».</p><div id="requirement-documents">' + (available.length ? available.map((doc) => '<button class="journey-card" data-document-id="' + doc.id + '" type="button"><span class="journey-card-icon">◫</span><span><strong>' + escapeHtml(doc.display_name) + '</strong><em>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + '</em></span><b>→</b></button>').join('') : '<p>Votre coffre est vide. Ajoutez d’abord ce document, puis revenez le rattacher.</p>') + '</div>');
+  styleModal(node);
+  node.querySelector('.close').addEventListener('click', () => node.remove());
+  node.querySelectorAll('[data-document-id]').forEach((button) => button.addEventListener('click', async () => {
+    const profile = journeyProfiles[currentJourney.id];
+    const answers = { ...(profile.situation_answers || {}), requirement_links: { ...(profile.situation_answers?.requirement_links || {}), [requirement]: button.dataset.documentId } };
+    const { error } = await supabaseClient.from('journey_profiles').update({ situation_answers: answers, updated_at: new Date().toISOString() }).eq('journey_id', currentJourney.id).eq('owner_id', currentUser.id);
+    if (error) { showError(node, error.message); return; }
+    node.remove(); await loadData(); showView('journeys');
+  }));
 }
 
 async function chooseJourney(code) {
@@ -308,13 +337,23 @@ async function chooseJourney(code) {
 function showQualification(code, existingJourney = null) {
   const definition = journeys[code];
   const profile = existingJourney ? journeyProfiles[existingJourney.id] : null;
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">AVANT LA CHECKLIST</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">Les pièces dépendent de votre situation et de votre préfecture. Ces informations servent uniquement à préparer ce dossier.</p><form id="qualification-form"><label>Département où vous habitez<input id="journey-department" required placeholder="Ex. 75 — Paris" value="' + escapeHtml(profile ? profile.department : '') + '"></label><label>Votre situation actuelle<select id="journey-category" required><option value="">Choisir</option><option value="Titre de séjour en cours de renouvellement">Titre de séjour en cours de renouvellement</option><option value="Récépissé ou attestation de prolongation">Récépissé ou attestation de prolongation</option><option value="VLS-TS ou visa long séjour">VLS-TS ou visa long séjour</option><option value="Autre situation à préciser">Autre situation à préciser</option></select></label><label>Date d’expiration du titre (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label><label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, enfant français, poursuite d’études…"></textarea></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer ma situation <span>→</span></button></form>');
+  const isCustom = definition.kind === 'custom';
+  const options = definition.kind === 'passport'
+    ? ['Passeport à renouveler', 'Passeport perdu ou volé', 'Premier passeport', 'Autre situation']
+    : ['Titre salarié', 'Titre étudiant', 'Vie privée et familiale', 'Titre visiteur', 'Autre titre ou situation'];
+  const situationField = isCustom
+    ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><label>Liste des documents nécessaires<textarea id="journey-requirements" rows="6" required placeholder="Une pièce par ligne&#10;Ex. Copie du passeport&#10;Procuration légalisée&#10;Attestation bancaire"></textarea></label>'
+    : '<label>Votre situation actuelle<select id="journey-category" required><option value="">Choisir</option>' + options.map((item) => '<option value="' + item + '">' + item + '</option>').join('') + '</select></label>';
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + (isCustom ? 'Vous connaissez les pièces demandées ? Ajoutez-les : Jamm vous aidera à rassembler les fichiers de votre coffre.' : 'Votre situation et le lieu de la démarche permettent ensuite de trouver la source officielle adaptée.') + '</p><form id="qualification-form"><label>' + definition.authorityLabel + '<input id="journey-department" required placeholder="' + definition.authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : '') + '"></label>' + situationField + (isCustom ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></form>');
   styleModal(node);
-  const category = node.querySelector('#journey-category');
-  if (profile) category.value = profile.permit_category;
-  if (profile?.situation_answers?.note) node.querySelector('#journey-note').value = profile.situation_answers.note;
-  const note = node.querySelector('#journey-note');
-  note.style.cssText = 'display:block;box-sizing:border-box;width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial;resize:vertical';
+  node.querySelectorAll('textarea').forEach((field) => field.style.cssText = 'display:block;box-sizing:border-box;width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial;resize:vertical');
+  if (profile) {
+    const category = node.querySelector('#journey-category');
+    if (category) category.value = profile.permit_category;
+    if (node.querySelector('#journey-custom-title')) node.querySelector('#journey-custom-title').value = profile.situation_answers?.custom_title || '';
+    if (node.querySelector('#journey-requirements')) node.querySelector('#journey-requirements').value = (profile.situation_answers?.required_documents || []).join('\n');
+    if (profile.situation_answers?.note) node.querySelector('#journey-note').value = profile.situation_answers.note;
+  }
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelector('#qualification-form').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -325,7 +364,10 @@ function showQualification(code, existingJourney = null) {
       if (error) { showError(node, error.message); submit.disabled = false; return; }
       journey = data;
     }
-    const payload = { journey_id: journey.id, owner_id: currentUser.id, department: node.querySelector('#journey-department').value.trim(), permit_category: category.value, expiry_date: node.querySelector('#journey-expiry').value || null, situation_answers: { note: node.querySelector('#journey-note').value.trim(), route: code }, source_status: 'to_verify', official_source_url: null, source_checked_at: null, updated_at: new Date().toISOString() };
+    const customTitle = node.querySelector('#journey-custom-title')?.value.trim();
+    const requirements = node.querySelector('#journey-requirements')?.value.split('\n').map((item) => item.trim()).filter(Boolean) || [];
+    const previousAnswers = profile?.situation_answers || {};
+    const payload = { journey_id: journey.id, owner_id: currentUser.id, department: node.querySelector('#journey-department').value.trim(), permit_category: customTitle || node.querySelector('#journey-category').value, expiry_date: node.querySelector('#journey-expiry')?.value || null, situation_answers: { ...previousAnswers, note: node.querySelector('#journey-note').value.trim(), route: code, custom_title: customTitle || undefined, required_documents: requirements, requirement_links: previousAnswers.requirement_links || {} }, source_status: 'to_verify', official_source_url: null, source_checked_at: null, updated_at: new Date().toISOString() };
     const { error } = await supabaseClient.from('journey_profiles').upsert(payload, { onConflict: 'journey_id' });
     if (error) { showError(node, error.message); submit.disabled = false; return; }
     node.remove(); currentJourney = journey; await loadData(); showView('journeys'); $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
