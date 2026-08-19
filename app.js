@@ -121,12 +121,12 @@ function render() {
 function renderDocuments() {
   const container = $('#documents');
   if (!documents.length) {
-    container.innerHTML = '<div style="grid-column:1/-1;padding:28px;border:1px dashed #cbd5cd;border-radius:12px;color:#647069">Votre coffre est vide. Ajoutez votre premier document ; il restera privé.</div>';
+    container.innerHTML = '<div class="empty-vault"><span>✦</span><div><strong>Votre coffre est prêt.</strong><p>Ajoutez un premier document pour commencer à préparer vos démarches.</p></div><button class="outline" id="empty-add-document" type="button">Ajouter un document</button></div>';\n    container.querySelector('#empty-add-document').addEventListener('click', () => showUpload());
     return;
   }
   container.innerHTML = documents.map((doc) => {
     const expiry = doc.expires_at ? new Date(doc.expires_at + 'T12:00:00').toLocaleDateString('fr-FR') : 'Sans date d’expiration';
-    return '<article class="document-card ' + (selected.has(doc.id) ? 'selected' : '') + '" data-id="' + doc.id + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + ' · ' + expiry + '</small></span><button class="add delete-document" data-id="' + doc.id + '" type="button">Supprimer</button></article>';
+    return '<article class="document-card ' + (selected.has(doc.id) ? 'selected' : '') + '" data-id="' + doc.id + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + ' · ' + expiry + '</small></span><button class="add delete-document" data-id="' + doc.id + '" type="button">Retirer</button></article>';
   }).join('');
   container.querySelectorAll('.delete-document').forEach((button) => button.addEventListener('click', () => deleteDocument(button.dataset.id)));
 }
