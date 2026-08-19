@@ -344,9 +344,12 @@ function renderChecklist() {
     const ready = requirements.filter(linked).length;
     $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
     const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
+    const logistics = !isPersonal && catalogEntry?.theme === 'passport_renewal' && catalogEntry?.notes
+      ? '<span><b>Modalité :</b> ' + escapeHtml(catalogEntry.notes) + '</span>'
+      : '';
     const heading = isPersonal
       ? '<strong>Votre liste personnelle</strong><span>Ajoutée par vous — Jamm organise les pièces sans en valider le contenu.</span><button class="link-button" id="edit-qualification" type="button">Modifier la liste</button>'
-      : '<strong>Checklist officielle — ' + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>Pièces vérifiées à partir de la source nationale, avec dépôt indiqué par la Préfecture de l’Essonne.</span><span>' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
+      : '<strong>Checklist officielle — ' + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>Pièces vérifiées à partir de la source officielle.</span>' + logistics + '<span>' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     checklist.innerHTML = '<div class="custom-list-note">' + heading + '</div>' + requirements.map((requirement) => {
       const doc = linked(requirement);
       return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<em>Prêt</em>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Ajouter</button></span>') + '</div>';
