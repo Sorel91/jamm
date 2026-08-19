@@ -294,6 +294,9 @@ function renderChecklist() {
     return;
   }
   const profile = journeyProfiles[currentJourney.id];
+  const prepareButton = $('#prepare');
+  prepareButton.disabled = false;
+  prepareButton.innerHTML = 'Préparer et télécharger le dossier <span>→</span>';
   $('#complete-journey').hidden = currentJourney.status !== 'active';
   if (!profile) {
     $('#progress-value').textContent = '—';
@@ -326,12 +329,17 @@ function renderChecklist() {
     return;
   }
   const isVerified = profile.source_status === 'verified';
-  $('#progress-value').textContent = isVerified ? 'Source OK' : 'À vérifier';
+  const isCatalogRouteWithoutChecklist = isVerified && Boolean(catalogEntry);
+  $('#progress-value').textContent = isCatalogRouteWithoutChecklist ? 'En attente' : (isVerified ? 'Source OK' : 'À vérifier');
+  if (isCatalogRouteWithoutChecklist) {
+    prepareButton.disabled = true;
+    prepareButton.textContent = 'Checklist en cours d’intégration';
+  }
   const sourceLine = profile.official_source_url ? '<a href="' + escapeHtml(profile.official_source_url) + '" target="_blank" rel="noopener">Ouvrir la source officielle ↗</a>' : 'La source officielle de l’organisme compétent reste à associer.';
   const checked = profile.source_checked_at ? new Date(profile.source_checked_at).toLocaleDateString('fr-FR') : 'pas encore contrôlée';
-  const statusTitle = isVerified ? 'Parcours officiel identifié.' : 'Checklist en cours de vérification.';
-  const statusCopy = isVerified ? 'Jamm a rattaché ce dossier à la publication compétente. Les pièces détaillées seront ajoutées après revue de cette source.' : 'Jamm attend la publication officielle correspondant à votre situation avant de lister des pièces.';
-  checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>' + statusTitle + '</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Lieu :</b> ' + escapeHtml(profile.department) + '.</p><p>' + statusCopy + ' Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">Modifier ma situation</button></div></div>';
+  const statusTitle = isCatalogRouteWithoutChecklist ? 'Ce parcours est bien identifié, mais sa checklist arrive ensuite.' : (isVerified ? 'Parcours officiel identifié.' : 'Checklist en cours de vérification.');
+  const statusCopy = isCatalogRouteWithoutChecklist ? 'Le catalogue Essonne est prêt ; la première checklist complète disponible dans Jamm concerne le renouvellement étudiant. Choisissez-la pour tester le dossier document par document.' : (isVerified ? 'Jamm a rattaché ce dossier à la publication compétente. Les pièces détaillées seront ajoutées après revue de cette source.' : 'Jamm attend la publication officielle correspondant à votre situation avant de lister des pièces.');
+  checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>' + statusTitle + '</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Lieu :</b> ' + escapeHtml(profile.department) + '.</p><p>' + statusCopy + ' Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">' + (isCatalogRouteWithoutChecklist ? 'Choisir un autre parcours' : 'Modifier ma situation') + '</button></div></div>';
   checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
 }
 
