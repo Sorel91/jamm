@@ -126,7 +126,7 @@ async function loadData() {
     journeyProfiles = Object.fromEntries((profiles || []).map((profile) => [profile.journey_id, profile]));
   }
   const preservedJourney = currentJourney && journeysList.find((journey) => journey.id === currentJourney.id);
-  currentJourney = preservedJourney || journeysList.find((journey) => journey.status === 'active') || null;
+  currentJourney = preservedJourney || null;
   selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
   render();
 }
@@ -171,6 +171,7 @@ function updateDossierCollapse() {
   const dossier = $('#demarche');
   const toggle = $('#collapse-dossier');
   const canCollapse = Boolean(currentJourney);
+  dossier.hidden = !canCollapse;
   if (!canCollapse) {
     dossier.classList.remove('is-collapsed');
     toggle.hidden = true;
@@ -261,8 +262,14 @@ async function restoreDocument(id) {
 
 function journeyProgress(journey) {
   const profile = journeyProfiles[journey.id];
-  if (!profile || profile.source_status !== 'verified') return null;
-  return 0;
+  if (!profile) return null;
+  const catalogEntry = officialCatalog.find((entry) => entry.id === profile.situation_answers?.catalog_entry_id);
+  const personal = Array.isArray(profile.situation_answers?.required_documents) ? profile.situation_answers.required_documents : [];
+  const requirements = personal.length ? personal.map((label) => ({ label, document_type: null })) : (Array.isArray(catalogEntry?.requirements) ? catalogEntry.requirements : []);
+  if (!requirements.length) return null;
+  const links = profile.situation_answers?.requirement_links || {};
+  const ready = requirements.filter((requirement) => documents.some((doc) => !doc.archived_at && (doc.id === links[requirement.label] || (requirement.document_type && doc.document_type === requirement.document_type)))).length;
+  return { ready, total: requirements.length };
 }
 
 function journeyStatusLabel(journey) {
@@ -278,26 +285,29 @@ function renderJourneys() {
   const activeJourneys = journeysList.filter((journey) => journey.status === 'active');
   const completedJourneys = journeysList.filter((journey) => journey.status === 'completed');
   const activeCodes = new Set(activeJourneys.map((journey) => journey.code));
-  const journeyCard = (journey) => {
-    const definition = journeys[journey.code] || { title: 'Démarche' };
-    const selectedClass = currentJourney && currentJourney.id === journey.id ? ' selected' : '';
-    return '<button class="journey-card' + selectedClass + '" data-journey-id="' + journey.id + '" type="button"><span class="journey-card-icon">' + (journey.status === 'completed' ? '✓' : '→') + '</span><span><small>' + (journey.status === 'completed' ? 'TERMINÉE' : 'EN COURS') + '</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + journeyStatusLabel(journey) + '</em></span><b>→</b></button>';
+  const activeCard = (journey) => {
+    const profile = journeyProfiles[journey.id];
+    const progress = journeyProgress(journey);
+    const situation = profile?.permit_category ? escapeHtml(profile.permit_category) : 'Situation à préciser';
+    const progressText = progress ? progress.ready + '/' + progress.total + ' pièces prêtes' : journeyStatusLabel(journey);
+    return '<button class="resume-journey" data-resume-id="' + journey.id + '" type="button"><span class="resume-icon">→</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + ' · ' + progressText + '</em></span><span class="resume-action">Reprendre <b>→</b></span></button>';
   };
-  const suggestions = Object.entries(journeys).filter(([code, definition]) => !definition.legacy && !activeCodes.has(code)).map(([code, definition]) => '<button class="journey-card suggestion" data-start-journey="' + code + '" type="button"><span class="journey-card-icon">+</span><span><small>NOUVELLE DÉMARCHE</small><strong>' + definition.title + '</strong><em>Commencer la préparation</em></span><b>→</b></button>').join('');
-  const active = activeJourneys.map(journeyCard).join('');
-  const completed = completedJourneys.map(journeyCard).join('');
+  const completedCard = (journey) => '<button class="journey-card completed-card" data-resume-id="' + journey.id + '" type="button"><span class="journey-card-icon">✓</span><span><small>TERMINÉE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + journeyStatusLabel(journey) + '</em></span><b>→</b></button>';
+  const suggestions = Object.entries(journeys)
+    .filter(([code, definition]) => !definition.legacy && !activeCodes.has(code))
+    .map(([code, definition]) => '<button class="start-journey" data-start-journey="' + code + '" type="button"><span class="start-journey-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Choisir votre situation' : definition.kind === 'passport' ? 'Choisir le pays du passeport' : 'Créer votre liste de pièces') + '</em></span><b>→</b></button>').join('');
   board.innerHTML =
-    (active ? '<section class="journey-group"><p class="journey-group-title">EN COURS</p><div class="journey-group-grid">' + active + '</div></section>' : '') +
-    '<section class="journey-group journey-new"><p class="journey-group-title">COMMENCER UNE NOUVELLE DÉMARCHE</p><div class="journey-group-grid">' + suggestions + '</div></section>' +
-    (completed ? '<details class="completed-journeys"><summary>Voir mes démarches terminées <span>' + completedJourneys.length + '</span></summary><div class="journey-group-grid">' + completed + '</div></details>' : '');
-  board.querySelectorAll('[data-journey-id]').forEach((button) => button.addEventListener('click', () => {
-    currentJourney = journeysList.find((journey) => journey.id === button.dataset.journeyId) || null;
+    (activeJourneys.length ? '<section class="journey-group resume-group"><p class="journey-group-title">À REPRENDRE</p><div class="resume-list">' + activeJourneys.map(activeCard).join('') + '</div></section>' : '<section class="journey-group resume-group empty-resume"><p class="journey-group-title">À REPRENDRE</p><p>Vous n’avez pas encore de dossier en cours.</p></section>') +
+    '<section class="journey-group journey-new"><p class="journey-group-title">COMMENCER</p><div class="start-journey-grid">' + suggestions + '</div></section>' +
+    (completedJourneys.length ? '<details class="completed-journeys"><summary>Démarches terminées <span>' + completedJourneys.length + '</span></summary><div class="journey-group-grid">' + completedJourneys.map(completedCard).join('') + '</div></details>' : '');
+  board.querySelectorAll('[data-resume-id]').forEach((button) => button.addEventListener('click', () => {
+    currentJourney = journeysList.find((journey) => journey.id === button.dataset.resumeId) || null;
+    dossierCollapsed = false;
     render();
     $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
   board.querySelectorAll('[data-start-journey]').forEach((button) => button.addEventListener('click', () => chooseJourney(button.dataset.startJourney)));
 }
-
 function renderChecklist() {
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   const checklist = $('#checklist');
