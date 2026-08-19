@@ -121,7 +121,8 @@ function render() {
 function renderDocuments() {
   const container = $('#documents');
   if (!documents.length) {
-    container.innerHTML = '<div class="empty-vault"><span>✦</span><div><strong>Votre coffre est prêt.</strong><p>Ajoutez un premier document pour commencer à préparer vos démarches.</p></div><button class="outline" id="empty-add-document" type="button">Ajouter un document</button></div>';\n    container.querySelector('#empty-add-document').addEventListener('click', () => currentUser ? showUpload() : showAuth());
+    container.innerHTML = '<div class="empty-vault"><span>✦</span><div><strong>Votre coffre est prêt.</strong><p>Ajoutez un premier document pour commencer à préparer vos démarches.</p></div><button class="outline" id="empty-add-document" type="button">Ajouter un document</button></div>';
+    container.querySelector('#empty-add-document').addEventListener('click', () => currentUser ? showUpload() : showAuth());
     return;
   }
   container.innerHTML = documents.map((doc) => {
@@ -215,7 +216,8 @@ async function downloadChecklist() {
 
   try {
     const zip = new JSZip();
-    zip.file('checklist-jamm.txt', lines.join('\n'));
+    zip.file('checklist-jamm.txt', lines.join('
+'));
     const errors = [];
 
     for (const doc of relevantDocuments) {
