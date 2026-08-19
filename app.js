@@ -394,6 +394,7 @@ function journeyStatusLabel(journey) {
 
 function renderJourneys() {
   const board = $('#journey-list');
+  const dossier = $('#demarche');
   const activeJourneys = journeysList.filter((journey) => journey.status === 'active');
   const completedJourneys = journeysList.filter((journey) => journey.status === 'completed');
   const activeCodes = new Set(activeJourneys.map((journey) => journey.code));
@@ -402,25 +403,32 @@ function renderJourneys() {
     const progress = journeyProgress(journey);
     const situation = profile?.permit_category ? escapeHtml(profile.permit_category) : 'Situation à préciser';
     const progressText = progress ? progress.ready + '/' + progress.total + ' pièces prêtes' : journeyStatusLabel(journey);
-    return '<button class="resume-journey" data-resume-id="' + journey.id + '" type="button"><span class="resume-icon">→</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + ' · ' + progressText + '</em></span><span class="resume-action">Reprendre <b>→</b></span></button>';
+    const expanded = currentJourney?.id === journey.id;
+    return '<article class="resume-item' + (expanded ? ' is-open' : '') + '"><button class="resume-journey" data-resume-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="resume-icon">' + (expanded ? '⌃' : '→') + '</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + ' · ' + progressText + '</em></span><span class="resume-action">' + (expanded ? 'Réduire' : 'Reprendre') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button>' + (expanded ? '<div class="inline-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + '</article>';
   };
   const completedCard = (journey) => '<button class="journey-card completed-card" data-resume-id="' + journey.id + '" type="button"><span class="journey-card-icon">✓</span><span><small>TERMINÉE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + journeyStatusLabel(journey) + '</em></span><b>→</b></button>';
   const suggestions = Object.entries(journeys)
     .filter(([code, definition]) => !definition.legacy && !activeCodes.has(code))
     .map(([code, definition]) => '<button class="start-journey" data-start-journey="' + code + '" type="button"><span class="start-journey-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Choisir votre situation' : definition.kind === 'passport' ? 'Choisir le pays du passeport' : 'Créer votre liste de pièces') + '</em></span><b>→</b></button>').join('');
-  const dossier = $('#demarche');
   board.innerHTML =
     '<section class="journey-group journey-new"><p class="journey-group-title">COMMENCER</p><div class="start-journey-grid">' + suggestions + '</div></section>' +
     (activeJourneys.length ? '<section class="journey-group resume-group"><p class="journey-group-title">À REPRENDRE</p><div class="resume-list">' + activeJourneys.map(activeCard).join('') + '</div></section>' : '<section class="journey-group resume-group empty-resume"><p class="journey-group-title">À REPRENDRE</p><p>Vous n’avez pas encore de dossier en cours.</p></section>') +
     (completedJourneys.length ? '<details class="completed-journeys"><summary>DÉMARCHES TERMINÉES <span>' + completedJourneys.length + '</span></summary><div class="journey-group-grid">' + completedJourneys.map(completedCard).join('') + '</div></details>' : '');
-  const resumeGroup = board.querySelector('.resume-group');
-  if (currentJourney && resumeGroup) resumeGroup.appendChild(dossier);
-  else board.insertAdjacentElement('afterend', dossier);
+  const slot = currentJourney && board.querySelector('[data-dossier-slot="' + currentJourney.id + '"]');
+  if (slot && dossier) slot.appendChild(dossier);
+  else if (dossier) board.insertAdjacentElement('afterend', dossier);
   board.querySelectorAll('[data-resume-id]').forEach((button) => button.addEventListener('click', () => {
-    currentJourney = journeysList.find((journey) => journey.id === button.dataset.resumeId) || null;
+    const selectedJourney = journeysList.find((journey) => journey.id === button.dataset.resumeId) || null;
+    if (currentJourney?.id === selectedJourney?.id) {
+      currentJourney = null;
+      dossierCollapsed = false;
+      render();
+      return;
+    }
+    currentJourney = selectedJourney;
     dossierCollapsed = false;
     render();
-    $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    requestAnimationFrame(() => $('#demarche')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   }));
   board.querySelectorAll('[data-start-journey]').forEach((button) => button.addEventListener('click', () => chooseJourney(button.dataset.startJourney)));
 }
