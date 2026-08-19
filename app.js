@@ -201,20 +201,49 @@ async function deleteDocument(id) {
   await loadData();
 }
 
-function downloadChecklist() {
+async function downloadChecklist() {
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   if (!journey) { $('#demarche').scrollIntoView({ behavior: 'smooth' }); return; }
+
+  const button = $('#prepare');
+  button.disabled = true;
+  button.textContent = 'Préparation du dossier…';
+  const relevantDocuments = documents.filter((doc) => journey.documents.includes(doc.document_type));
   const lines = ['JAMM — ' + journey.title, '', 'Checklist de préparation', '-------------------------'];
-  journey.documents.forEach((type) => lines.push((documents.some((doc) => doc.document_type === type) ? '[x] ' : '[ ] ') + documentLabels[type]));
-  lines.push('', 'Cette checklist organise vos pièces. Vérifiez les exigences à jour auprès du site administratif officiel correspondant à votre situation.');
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'jamm-checklist.txt';
-  link.click();
-  URL.revokeObjectURL(link.href);
-  $('#success').hidden = false;
-  $('#success').textContent = 'Checklist téléchargée. Aucun document n’a été envoyé à une administration.';
+  journey.documents.forEach((type) => lines.push((relevantDocuments.some((doc) => doc.document_type === type) ? '[x] ' : '[ ] ') + documentLabels[type]));
+  lines.push('', 'Ce dossier rassemble les pièces présentes dans votre coffre. Vérifiez toujours les exigences à jour auprès du site administratif officiel correspondant à votre situation.');
+
+  try {
+    const zip = new JSZip();
+    zip.file('checklist-jamm.txt', lines.join('\n'));
+    const errors = [];
+
+    for (const doc of relevantDocuments) {
+      const { data, error } = await supabaseClient.storage.from('jamm-documents').download(doc.storage_path);
+      if (error) {
+        errors.push(doc.display_name);
+        continue;
+      }
+      const safeName = doc.display_name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      zip.file('documents/' + safeName, data);
+    }
+
+    if (errors.length) zip.file('lire-moi.txt', 'Les fichiers suivants n’ont pas pu être ajoutés : ' + errors.join(', ') + '. Vous pouvez les télécharger depuis votre coffre.');
+    const archive = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(archive);
+    link.download = 'jamm-dossier-' + currentJourney.code + '.zip';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    $('#success').hidden = false;
+    $('#success').textContent = relevantDocuments.length ? 'Votre dossier ZIP a été préparé sur cet appareil.' : 'Checklist téléchargée : ajoutez les documents manquants pour créer un dossier complet.';
+  } catch (error) {
+    $('#success').hidden = false;
+    $('#success').textContent = 'Impossible de préparer le dossier. Vérifiez votre connexion et réessayez.';
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'Préparer et télécharger le dossier <span>→</span>';
+  }
 }
 
 function wireUi() {
