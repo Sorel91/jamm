@@ -1,6 +1,6 @@
-const SUPABASE_URL = 'https://bnkpvyswxdflktpbvxbo.supabase.co';
+const SUPABASE_URL = 'https://bnkpvyswxdflktpbvxbo.supabaseClient.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_xkbi-9JZAp5rGD1rwCf0mQ_1MliAIwY';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const journeys = {
   residence_permit: { title: 'Renouvellement du titre de séjour', documents: ['passport', 'residence_permit', 'proof_of_address'] },
@@ -64,11 +64,11 @@ function showAuth() {
     const button = node.querySelector('#auth-submit');
     button.disabled = true;
     if (loginMode) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) { showError(node, error.message); button.disabled = false; return; }
       node.remove();
     } else {
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.href } });
+      const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { emailRedirectTo: window.location.href } });
       if (error) { showError(node, error.message); button.disabled = false; return; }
       if (!data.session) {
         showError(node, 'Vérifiez votre e-mail pour confirmer votre compte, puis connectez-vous.');
@@ -79,10 +79,10 @@ function showAuth() {
 }
 
 async function ensureVault() {
-  const { data, error } = await supabase.from('vaults').select('*').eq('owner_id', currentUser.id).limit(1);
+  const { data, error } = await supabaseClient.from('vaults').select('*').eq('owner_id', currentUser.id).limit(1);
   if (error) throw error;
   if (data[0]) return data[0];
-  const { data: created, error: createError } = await supabase.from('vaults').insert({ owner_id: currentUser.id, name: 'Mon coffre Jamm' }).select().single();
+  const { data: created, error: createError } = await supabaseClient.from('vaults').insert({ owner_id: currentUser.id, name: 'Mon coffre Jamm' }).select().single();
   if (createError) throw createError;
   return created;
 }
@@ -90,8 +90,8 @@ async function ensureVault() {
 async function loadData() {
   currentVault = await ensureVault();
   const [{ data: docs, error: docsError }, { data: trips, error: tripsError }] = await Promise.all([
-    supabase.from('documents').select('*').eq('owner_id', currentUser.id).order('created_at', { ascending: false }),
-    supabase.from('journeys').select('*').eq('owner_id', currentUser.id).eq('status', 'active').limit(1)
+    supabaseClient.from('documents').select('*').eq('owner_id', currentUser.id).order('created_at', { ascending: false }),
+    supabaseClient.from('journeys').select('*').eq('owner_id', currentUser.id).eq('status', 'active').limit(1)
   ]);
   if (docsError) throw docsError;
   if (tripsError) throw tripsError;
@@ -148,7 +148,7 @@ function renderChecklist() {
 
 async function chooseJourney(code) {
   if (!currentUser) { showAuth(); return; }
-  const { data, error } = await supabase.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
+  const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
   if (error) { alert('Impossible de créer cette démarche : ' + error.message); return; }
   currentJourney = data;
   render();
@@ -169,15 +169,15 @@ function showUpload(preselectedType) {
     const storagePath = currentUser.id + '/' + id + '/' + safeName;
     const submit = node.querySelector('[type="submit"]');
     submit.disabled = true;
-    const { error: uploadError } = await supabase.storage.from('jamm-documents').upload(storagePath, file, { contentType: file.type, upsert: false });
+    const { error: uploadError } = await supabaseClient.storage.from('jamm-documents').upload(storagePath, file, { contentType: file.type, upsert: false });
     if (uploadError) { showError(node, uploadError.message); submit.disabled = false; return; }
-    const { error: insertError } = await supabase.from('documents').insert({
+    const { error: insertError } = await supabaseClient.from('documents').insert({
       id, vault_id: currentVault.id, owner_id: currentUser.id, document_type: node.querySelector('#upload-type').value,
       display_name: file.name, storage_path: storagePath, content_type: file.type, byte_size: file.size,
       expires_at: node.querySelector('#upload-expiry').value || null
     });
     if (insertError) {
-      await supabase.storage.from('jamm-documents').remove([storagePath]);
+      await supabaseClient.storage.from('jamm-documents').remove([storagePath]);
       showError(node, insertError.message);
       submit.disabled = false;
       return;
@@ -190,9 +190,9 @@ function showUpload(preselectedType) {
 async function deleteDocument(id) {
   const documentToDelete = documents.find((doc) => doc.id === id);
   if (!documentToDelete || !confirm('Supprimer ce document du coffre ? Cette action est définitive.')) return;
-  const { error: storageError } = await supabase.storage.from('jamm-documents').remove([documentToDelete.storage_path]);
+  const { error: storageError } = await supabaseClient.storage.from('jamm-documents').remove([documentToDelete.storage_path]);
   if (storageError) { alert('Impossible de supprimer le fichier : ' + storageError.message); return; }
-  const { error } = await supabase.from('documents').delete().eq('id', id).eq('owner_id', currentUser.id);
+  const { error } = await supabaseClient.from('documents').delete().eq('id', id).eq('owner_id', currentUser.id);
   if (error) { alert('Le fichier a été supprimé, mais ses informations doivent encore être retirées : ' + error.message); return; }
   await loadData();
 }
@@ -220,19 +220,19 @@ function wireUi() {
   $('#invite').addEventListener('click', () => alert('Le partage familial sécurisé arrive dans une prochaine version.'));
   $('#profile-button').addEventListener('click', async () => {
     if (!currentUser) { showAuth(); return; }
-    if (confirm('Se déconnecter de Jamm ?')) await supabase.auth.signOut();
+    if (confirm('Se déconnecter de Jamm ?')) await supabaseClient.auth.signOut();
   });
   document.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => $('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' })));
 }
 
 async function boot() {
   wireUi();
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   currentUser = session ? session.user : null;
   if (currentUser) {
     try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
   } else render();
-  supabase.auth.onAuthStateChange(async (_event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
     currentUser = session ? session.user : null;
     if (currentUser) {
       try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
