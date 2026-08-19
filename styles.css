@@ -92,8 +92,8 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 @media(max-width:900px){.journey-board{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.journey-board{grid-template-columns:1fr}.journey-card{min-height:112px}.journey-actions{width:100%;align-items:stretch;flex-direction:column}.journey-actions .outline,.journey-actions .primary{width:100%}}
 
 
-.journey-board { display: grid; gap: 22px; }
-.journey-group { display: grid; gap: 10px; }
+.journey-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.journey-group { display: grid; min-width: 0; gap: 10px; }
 .journey-group-title { margin: 0; color: #78847b; font: 700 11px/1.2 Arial, sans-serif; letter-spacing: .13em; }
 .journey-group-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .journey-new { padding-top: 6px; }
