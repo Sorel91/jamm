@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jamm — vos démarches prêtes</title>
+  <meta name="description" content="Le coffre familial qui prépare vos démarches importantes." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <nav>
+      <a class="brand" href="#top"><span>j</span>amm</a>
+      <div class="nav-links"><a href="#coffre">Mon coffre</a><a href="#demarche">Mes démarches</a><a href="#famille">Ma famille</a></div>
+      <button class="avatar" aria-label="Profil">MD</button>
+    </nav>
+
+    <section class="welcome" id="top">
+      <div><p class="eyebrow">MERCREDI 19 AOÛT</p><h1>Bonjour, Mariam.</h1><p>Votre vie administrative, ici et là-bas, reste prête quand vous en avez besoin.</p></div>
+      <button class="outline" data-scroll="coffre">+ Ajouter un document</button>
+    </section>
+
+    <section class="alert-card">
+      <div class="alert-icon">!</div>
+      <div class="alert-copy"><p class="eyebrow amber">À PRÉPARER DANS 82 JOURS</p><h2>Renouvellement de votre titre de séjour</h2><p>Votre titre expire le 9 novembre 2026. Préparez votre dossier maintenant pour éviter le stress.</p><button class="primary" data-scroll="demarche">Préparer mon dossier <span>→</span></button></div>
+      <div class="date"><strong>09</strong><span>NOV.</span><small>2026</small></div>
+    </section>
+
+    <section class="heading" id="coffre"><div><p class="eyebrow">VOTRE COFFRE</p><h2>Vos documents importants</h2></div><button class="link-button" id="select-all">Tout inclure →</button></section>
+    <section class="document-grid" id="documents" aria-label="Documents du coffre"></section>
+
+    <section class="dossier" id="demarche">
+      <div class="dossier-header"><div><p class="eyebrow">DOSSIER EN COURS</p><h2>Renouvellement du titre de séjour</h2><p>Vérifiez les pièces avant de commencer la démarche officielle.</p></div><div class="progress"><strong id="progress-value">50%</strong><span>prêt</span></div></div>
+      <div class="checklist" id="checklist"></div>
+      <div class="dossier-footer"><p>Jamm organise les pièces et vous renvoie vers la démarche officielle adaptée à votre situation. Il ne garantit pas l'acceptation d'un dossier.</p><button class="primary" id="prepare">Préparer le dossier <span>→</span></button></div>
+      <div class="success" id="success" hidden><strong>Dossier prêt à être organisé.</strong><br>Dans la version connectée, vous téléchargerez un ZIP et accéderez au lien officiel correspondant à votre situation.</div>
+    </section>
+
+    <section class="family" id="famille"><div class="people"><span>MD</span><i></i><b>AM</b></div><div><p class="eyebrow">VOTRE FAMILLE</p><h2>Partagez seulement ce qui est utile.</h2><p>Invitez un proche, choisissez les dossiers qu'il peut consulter et gardez une trace des accès.</p></div><button class="outline" id="invite">Inviter un proche</button></section>
+    <footer>Jamm garde vos documents organisés. Il ne remplace pas les administrations ni un conseil juridique.</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
