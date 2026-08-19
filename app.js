@@ -358,7 +358,7 @@ function showQualification(code, existingJourney = null) {
   const isCustom = definition.kind === 'custom';
   const essonneEntries = officialCatalog.filter((entry) => entry.authority_code === '91' && entry.theme === 'residence_renewal');
   const passportOptions = ['France', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'République démocratique du Congo', 'Guinée', 'Autre pays'];
-  const residenceOptions = essonneEntries.map((entry) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small>Source : Préfecture de l’Essonne ↗</small></button>').join('');
+  const residenceOptions = essonneEntries.map((entry) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : Préfecture de l’Essonne ↗</small></button>').join('');
   const standardOptions = definition.kind === 'passport'
     ? passportOptions.map((item) => '<button class="journey-option" data-category="' + item + '" type="button">' + item + '</button>').join('')
     : residenceOptions;
@@ -375,7 +375,7 @@ function showQualification(code, existingJourney = null) {
   const catalogId = node.querySelector('#journey-catalog-id');
   const optionButtons = node.querySelectorAll('[data-category]');
   optionButtons.forEach((button) => {
-    button.style.cssText = 'border:1px solid #cdd6cd;border-radius:12px;padding:10px 12px;background:#fff;color:#315d4c;font:600 13px Arial;cursor:pointer;text-align:left';
+    button.style.cssText = 'display:grid;gap:4px;border:1px solid #cdd6cd;border-radius:12px;padding:12px 14px;background:#fff;color:#315d4c;font:600 13px Arial;cursor:pointer;text-align:left';
     button.addEventListener('click', () => {
       if (category) category.value = button.dataset.category;
       if (catalogId) catalogId.value = button.dataset.catalogId || '';
