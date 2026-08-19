@@ -19,6 +19,7 @@ let documents = [];
 let selected = new Set();
 let currentJourney = null;
 let activeView = 'vault';
+let vaultFilter = 'all';
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character]);
@@ -102,8 +103,9 @@ async function loadData() {
   if (docsError) throw docsError;
   if (tripsError) throw tripsError;
   documents = docs || [];
+  selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
   currentJourney = trips && trips[0] ? trips[0] : null;
-  selected = new Set(documents.map((doc) => doc.id));
+  selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
   render();
 }
 
@@ -130,7 +132,7 @@ function render() {
   $('#greeting').textContent = 'Bonjour.';
   $('#profile-button').textContent = currentUser ? initials(currentUser.email) : '—';
   $('#person-one').textContent = currentUser ? initials(currentUser.email).slice(0, 1) : 'J';
-  $('#documents-ready').textContent = documents.length;
+  $('#documents-ready').textContent = documents.filter((doc) => !doc.archived_at).length;
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   $('#journey-title').textContent = journey ? journey.title : 'Préparer un dossier';
   $('#dossier-title').textContent = journey ? journey.title : 'Choisissez votre démarche';
@@ -139,18 +141,81 @@ function render() {
   renderChecklist();
 }
 
+function categoryFor(documentType) {
+  if (['passport', 'identity_card'].includes(documentType)) return 'identity';
+  if (documentType === 'residence_permit') return 'residency';
+  if (documentType === 'proof_of_address') return 'home';
+  if (['birth_certificate', 'family_record'].includes(documentType)) return 'family';
+  return 'other';
+}
+
+function lifecycleFor(doc) {
+  if (doc.archived_at) return { key: 'archived', label: 'Archivé' };
+  if (!doc.expires_at) return { key: 'current', label: 'Sans échéance' };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const expiry = new Date(doc.expires_at + 'T12:00:00');
+  const days = Math.ceil((expiry - today) / 86400000);
+  if (days < 0) return { key: 'expired', label: 'Expiré' };
+  if (days <= 90) return { key: 'expiring', label: 'À actualiser' };
+  return { key: 'current', label: 'Valide' };
+}
+
+function filterDocuments() {
+  return documents.filter((doc) => {
+    const state = lifecycleFor(doc);
+    if (vaultFilter === 'archive') return state.key === 'archived';
+    if (vaultFilter === 'attention') return !doc.archived_at && ['expired', 'expiring'].includes(state.key);
+    if (vaultFilter === 'all') return !doc.archived_at;
+    return !doc.archived_at && categoryFor(doc.document_type) === vaultFilter;
+  });
+}
+
 function renderDocuments() {
   const container = $('#documents');
-  if (!documents.length) {
-    container.innerHTML = '<div class="empty-vault"><span>✦</span><div><strong>Votre coffre est prêt.</strong><p>Ajoutez un premier document pour commencer à préparer vos démarches.</p></div><button class="outline" id="empty-add-document" type="button">Ajouter un document</button></div>';
-    container.querySelector('#empty-add-document').addEventListener('click', () => currentUser ? showUpload() : showAuth());
+  const visibleDocuments = filterDocuments();
+  const attentionCount = documents.filter((doc) => !doc.archived_at && ['expired', 'expiring'].includes(lifecycleFor(doc).key)).length;
+  $('#attention-count').textContent = attentionCount ? attentionCount + ' document' + (attentionCount > 1 ? 's' : '') + ' à revoir' : 'Tout est à jour';
+  document.querySelectorAll('[data-vault-filter]').forEach((button) => button.classList.toggle('active', button.dataset.vaultFilter === vaultFilter));
+  const titles = { all: ['Tout votre coffre', 'Les documents restent ici, même lorsqu’ils sont utilisés dans une démarche.'], identity: ['Identité & voyage', 'Les documents qui vous accompagnent d’un pays à l’autre.'], residency: ['Séjour', 'Vos titres, autorisations et droits de séjour.'], home: ['Logement', 'Justificatifs de domicile et documents liés à votre adresse.'], family: ['Famille', 'État civil, liens familiaux et pièces partagées.'], attention: ['À surveiller', 'Des documents arrivent à expiration ou doivent être actualisés.'], archive: ['Archives', 'Des documents conservés pour mémoire, hors de vos démarches actives.'] };
+  $('#vault-context').innerHTML = '<strong>' + titles[vaultFilter][0] + '</strong><span>' + titles[vaultFilter][1] + '</span>';
+
+  if (!visibleDocuments.length) {
+    const emptyMessage = vaultFilter === 'all' ? 'Ajoutez un premier document pour commencer à préparer vos démarches.' : 'Aucun document dans cette vue pour le moment.';
+    container.innerHTML = '<div class="empty-vault"><span>✦</span><div><strong>' + (vaultFilter === 'all' ? 'Votre coffre est prêt.' : 'Rien à afficher ici.') + '</strong><p>' + emptyMessage + '</p></div>' + (vaultFilter === 'all' ? '<button class="outline" id="empty-add-document" type="button">Ajouter un document</button>' : '<button class="link-button" id="show-all-documents" type="button">Voir tout le coffre</button>') + '</div>';
+    const addButton = container.querySelector('#empty-add-document');
+    if (addButton) addButton.addEventListener('click', () => currentUser ? showUpload() : showAuth());
+    const allButton = container.querySelector('#show-all-documents');
+    if (allButton) allButton.addEventListener('click', () => { vaultFilter = 'all'; renderDocuments(); });
     return;
   }
-  container.innerHTML = documents.map((doc) => {
+
+  container.innerHTML = visibleDocuments.map((doc) => {
+    const lifecycle = lifecycleFor(doc);
     const expiry = doc.expires_at ? new Date(doc.expires_at + 'T12:00:00').toLocaleDateString('fr-FR') : 'Sans date d’expiration';
-    return '<article class="document-card ' + (selected.has(doc.id) ? 'selected' : '') + '" data-id="' + doc.id + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + ' · ' + expiry + '</small></span><button class="add delete-document" data-id="' + doc.id + '" type="button">Retirer</button></article>';
+    const detail = doc.holder_name ? escapeHtml(doc.holder_name) + ' · ' + expiry : escapeHtml(documentLabels[doc.document_type] || 'Document') + ' · ' + expiry;
+    const action = lifecycle.key === 'archived'
+      ? '<button class="add restore-document" data-id="' + doc.id + '" type="button">Restaurer</button>'
+      : '<button class="add archive-document" data-id="' + doc.id + '" type="button">Archiver</button>';
+    return '<article class="document-card lifecycle-' + lifecycle.key + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + detail + '</small></span><span class="status ' + lifecycle.key + '">' + lifecycle.label + '</span>' + action + '<button class="delete-document" data-id="' + doc.id + '" type="button" aria-label="Supprimer ' + escapeHtml(doc.display_name) + '">×</button></article>';
   }).join('');
+  container.querySelectorAll('.archive-document').forEach((button) => button.addEventListener('click', () => archiveDocument(button.dataset.id)));
+  container.querySelectorAll('.restore-document').forEach((button) => button.addEventListener('click', () => restoreDocument(button.dataset.id)));
   container.querySelectorAll('.delete-document').forEach((button) => button.addEventListener('click', () => deleteDocument(button.dataset.id)));
+}
+
+async function archiveDocument(id) {
+  const target = documents.find((doc) => doc.id === id);
+  if (!target || !confirm('Archiver ce document ? Il ne sera plus proposé dans vos démarches, mais restera conservé dans votre coffre.')) return;
+  const { error } = await supabaseClient.from('documents').update({ archived_at: new Date().toISOString() }).eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible d’archiver ce document : ' + error.message); return; }
+  await loadData();
+}
+
+async function restoreDocument(id) {
+  const { error } = await supabaseClient.from('documents').update({ archived_at: null }).eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible de restaurer ce document : ' + error.message); return; }
+  vaultFilter = 'all';
+  await loadData();
 }
 
 function renderChecklist() {
@@ -166,7 +231,7 @@ function renderChecklist() {
   const ready = requirements.filter((type) => documents.some((doc) => doc.document_type === type)).length;
   $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
   checklist.innerHTML = requirements.map((type) => {
-    const found = documents.find((doc) => doc.document_type === type);
+    const found = documents.find((doc) => !doc.archived_at && doc.document_type === type);
     return '<div class="check-row ' + (found ? 'done' : '') + '"><span class="checkmark">' + (found ? '✓' : '') + '</span><span class="check-copy"><strong>' + documentLabels[type] + '</strong><small>' + (found ? 'Présent dans le coffre' : 'À ajouter avant de continuer') + '</small></span>' + (found ? '<em>Prêt</em>' : '<button class="add" data-type="' + type + '" type="button">Ajouter</button>') + '</div>';
   }).join('');
   checklist.querySelectorAll('[data-type]').forEach((button) => button.addEventListener('click', () => showUpload(button.dataset.type)));
@@ -183,7 +248,7 @@ async function chooseJourney(code) {
 
 function showUpload(preselectedType) {
   const options = Object.entries(documentLabels).map(([value, label]) => '<option value="' + value + '"' + (value === preselectedType ? ' selected' : '') + '>' + label + '</option>').join('');
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Ajouter un document</h2><p style="color:#647069;line-height:1.45">Le fichier est conservé dans votre coffre privé. Vérifiez qu’il s’agit bien de votre document.</p><form id="upload-form"><label>Fichier<input id="upload-file" type="file" required accept=".pdf,image/jpeg,image/png"></label><label>Type de document<select id="upload-type">' + options + '</select></label><label>Date d’expiration (facultatif)<input id="upload-expiry" type="date"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Ajouter au coffre <span>→</span></button></form>');
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Ajouter un document</h2><p style="color:#647069;line-height:1.45">Le fichier est conservé dans votre coffre privé. Vérifiez qu’il s’agit bien de votre document.</p><form id="upload-form"><label>Fichier<input id="upload-file" type="file" required accept=".pdf,image/jpeg,image/png"></label><label>Type de document<select id="upload-type">' + options + '</select></label><label>Titulaire du document (facultatif)<input id="upload-holder" placeholder="Ex. Mariam Diallo"></label><label>Pays émetteur (facultatif)<input id="upload-country" placeholder="Ex. France"></label><label>Date d’expiration (facultatif)<input id="upload-expiry" type="date"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Ajouter au coffre <span>→</span></button></form>');
   styleModal(node);
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelector('#upload-form').addEventListener('submit', async (event) => {
@@ -201,7 +266,7 @@ function showUpload(preselectedType) {
     const { error: insertError } = await supabaseClient.from('documents').insert({
       id, vault_id: currentVault.id, owner_id: currentUser.id, document_type: node.querySelector('#upload-type').value,
       display_name: file.name, storage_path: storagePath, content_type: file.type, byte_size: file.size,
-      expires_at: node.querySelector('#upload-expiry').value || null
+      holder_name: node.querySelector('#upload-holder').value.trim() || null, issuer_country: node.querySelector('#upload-country').value.trim() || null, expires_at: node.querySelector('#upload-expiry').value || null
     });
     if (insertError) {
       await supabaseClient.storage.from('jamm-documents').remove([storagePath]);
@@ -231,7 +296,7 @@ async function downloadChecklist() {
   const button = $('#prepare');
   button.disabled = true;
   button.textContent = 'Préparation du dossier…';
-  const relevantDocuments = documents.filter((doc) => journey.documents.includes(doc.document_type));
+  const relevantDocuments = documents.filter((doc) => !doc.archived_at && journey.documents.includes(doc.document_type));
   const lines = ['JAMM — ' + journey.title, '', 'Checklist de préparation', '-------------------------'];
   journey.documents.forEach((type) => lines.push((relevantDocuments.some((doc) => doc.document_type === type) ? '[x] ' : '[ ] ') + documentLabels[type]));
   lines.push('', 'Ce dossier rassemble les pièces présentes dans votre coffre. Vérifiez toujours les exigences à jour auprès du site administratif officiel correspondant à votre situation.');
@@ -275,7 +340,8 @@ function wireUi() {
   document.querySelectorAll('.app-tab').forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)));
   $('#add-document').addEventListener('click', () => currentUser ? showUpload() : showAuth());
   $('#prepare').addEventListener('click', downloadChecklist);
-  $('#select-all').addEventListener('click', () => { selected = new Set(documents.map((doc) => doc.id)); renderDocuments(); });
+  $('#select-all').addEventListener('click', () => { selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id)); renderDocuments(); });
+  document.querySelectorAll('[data-vault-filter]').forEach((button) => button.addEventListener('click', () => { vaultFilter = button.dataset.vaultFilter; renderDocuments(); }));
   $('#invite').addEventListener('click', () => alert('Le partage familial sécurisé arrive dans une prochaine version.'));
   $('#profile-button').addEventListener('click', async () => {
     if (!currentUser) { showAuth(); return; }
