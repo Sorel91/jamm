@@ -5,7 +5,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
 const journeys = {
   residence_renewal: { title: 'Renouveler son titre de séjour', short: 'Titre de séjour', kind: 'residence', authorityLabel: 'Département où vous habitez', authorityPlaceholder: 'Ex. 75 — Paris' },
   passport_renewal: { title: 'Renouveler son passeport', short: 'Passeport', kind: 'passport', authorityLabel: 'Pays et ville de la démarche', authorityPlaceholder: 'Ex. France — mairie de Paris, ou consulat du Sénégal à Paris' },
-  custom_procedure: { title: 'Une autre démarche', short: 'Démarche libre', kind: 'custom', authorityLabel: 'Lieu ou organisme concerné', authorityPlaceholder: 'Ex. Kinshasa, mairie, notaire, banque…' },
+  custom_procedure: { title: 'Faire une autre démarche', short: 'Démarche libre', kind: 'custom', authorityLabel: 'Lieu ou organisme concerné', authorityPlaceholder: 'Ex. Kinshasa, mairie, notaire, banque…' },
   residence_permit: { title: 'Renouvellement du titre de séjour', legacy: true },
   passport: { title: 'Renouvellement de passeport', legacy: true },
   family_visit: { title: 'Visite familiale en France', legacy: true }
