@@ -400,11 +400,17 @@ function showQualification(code, existingJourney = null) {
   const isCustom = definition.kind === 'custom';
   const essonneEntries = officialCatalog.filter((entry) => entry.authority_code === '91' && entry.theme === 'residence_renewal');
   const passportOptions = ['France', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'République démocratique du Congo', 'Guinée', 'Autre pays'];
-  const residenceOptions = essonneEntries.map((entry) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : ' + escapeHtml(entry.source_label || 'Préfecture de l’Essonne') + ' ↗</small></button>').join('');
+  const passportEntries = officialCatalog.filter((entry) => entry.theme === 'passport_renewal');
+  const officialOption = (entry, fallbackSource) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : ' + escapeHtml(entry.source_label || fallbackSource) + ' ↗</small></button>';
+  const residenceOptions = essonneEntries.map((entry) => officialOption(entry, 'Préfecture de l’Essonne')).join('');
+  const passportCatalogOptions = passportEntries.map((entry) => officialOption(entry, 'Autorité consulaire compétente')).join('');
+  const passportFallbackOptions = passportOptions
+    .filter((country) => !passportEntries.some((entry) => entry.title.toLocaleLowerCase('fr-FR').startsWith(country.toLocaleLowerCase('fr-FR') + ' :')))
+    .map((item) => '<button class="journey-option" data-category="' + item + '" type="button">' + item + '</button>').join('');
   const standardOptions = definition.kind === 'passport'
-    ? passportOptions.map((item) => '<button class="journey-option" data-category="' + item + '" type="button">' + item + '</button>').join('')
+    ? passportCatalogOptions + passportFallbackOptions
     : residenceOptions;
-  const categoryLabel = definition.kind === 'passport' ? 'Quel passeport souhaitez-vous renouveler ?' : 'Choisissez un parcours officiel de la Préfecture de l’Essonne';
+  const categoryLabel = definition.kind === 'passport' ? 'Quel passeport et quelle situation souhaitez-vous préparer ?' : 'Choisissez un parcours officiel de la Préfecture de l’Essonne';
   const catalogueNote = definition.kind === 'residence' ? '<p class="catalogue-note">Catalogue pilote Essonne · sources contrôlées le 19 août 2026. Les intitulés ci-dessous proviennent du site de la préfecture.</p><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>' : '';
   const situationField = isCustom
     ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><label>Liste des documents nécessaires<textarea id="journey-requirements" rows="6" required placeholder="Une pièce par ligne&#10;Ex. Copie du passeport&#10;Procuration légalisée&#10;Attestation bancaire"></textarea></label>'
