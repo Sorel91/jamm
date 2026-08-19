@@ -15,7 +15,7 @@ const journeys = {
   family_visit: { title: 'Visite familiale en France', legacy: true }
 };
 const documentLabels = {
-  passport: 'Passeport', residence_permit: 'Titre de séjour', birth_certificate: 'Acte de naissance',
+  passport: 'Passeport', residence_permit: 'Titre de séjour', birth_certificate: 'Acte de naissance', marriage_certificate: 'Acte de mariage',
   proof_of_address: 'Justificatif de domicile', identity_card: 'Carte d’identité',
   family_record: 'Preuve du lien familial', other: 'Autre document'
 };
