@@ -69,16 +69,19 @@
     </section>
 
     <section class="app-view" id="journeys-view" hidden>
-      <section class="alert-card">
+      <section class="heading journey-heading"><div><p class="eyebrow">VOS DÉMARCHES</p><h2>Préparez un dossier, sans repartir de zéro.</h2><p class="section-description">Chaque démarche regarde votre coffre et vous indique uniquement ce qui est utile.</p></div><button class="primary compact" id="new-journey">+ Nouvelle démarche</button></section>
+      <section class="journey-board" id="journey-list" aria-label="Liste des démarches"></section>
+
+      <section class="alert-card journey-focus">
         <div class="alert-icon">!</div>
-        <div class="alert-copy"><p class="eyebrow amber">VOTRE PROCHAINE ÉTAPE</p><h2 id="journey-title">Préparer un dossier</h2><p id="journey-description">Choisissez une démarche. Jamm compare ses besoins avec les documents présents dans votre coffre.</p></div>
+        <div class="alert-copy"><p class="eyebrow amber">DÉMARCHE SÉLECTIONNÉE</p><h2 id="journey-title">Choisissez une démarche</h2><p id="journey-description">Commencez par choisir ce que vous voulez préparer. Jamm comparera ensuite les besoins avec votre coffre.</p></div>
         <div class="date"><strong id="documents-ready">0</strong><span>DOCS</span><small>dans le coffre</small></div>
       </section>
 
       <section class="dossier" id="demarche">
-        <div class="dossier-header"><div><p class="eyebrow">DOSSIER EN COURS</p><h2 id="dossier-title">Choisissez votre démarche</h2><p>Les démarches utilisent les documents du coffre, sans les déplacer ni les dupliquer.</p></div><div class="progress"><strong id="progress-value">0%</strong><span>prêt</span></div></div>
+        <div class="dossier-header"><div><p class="eyebrow">ÉTAT DU DOSSIER</p><h2 id="dossier-title">Choisissez votre démarche</h2><p>Les démarches utilisent les documents du coffre, sans les déplacer ni les dupliquer.</p></div><div class="progress"><strong id="progress-value">0%</strong><span>prêt</span></div></div>
         <div class="checklist" id="checklist"></div>
-        <div class="dossier-footer"><p>Jamm organise vos pièces ; vérifiez toujours les exigences à jour sur le site administratif officiel correspondant à votre situation.</p><button class="primary" id="prepare">Préparer et télécharger le dossier <span>→</span></button></div>
+        <div class="dossier-footer"><p>Jamm organise vos pièces ; vérifiez toujours les exigences à jour sur le site administratif officiel correspondant à votre situation.</p><div class="journey-actions"><button class="outline" id="complete-journey" hidden>Marquer comme terminée</button><button class="primary" id="prepare">Préparer et télécharger le dossier <span>→</span></button></div></div>
         <div class="success" id="success" hidden></div>
       </section>
     </section>
@@ -87,6 +90,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="app.js?v=54fbe229"></script>
+  <script src="app.js?v=journeys-ia-03"></script>
 </body>
 </html>
