@@ -35,6 +35,11 @@ let dossierCollapsed = false;
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character]);
 const initials = (email) => email ? email.slice(0, 2).toUpperCase() : 'J';
+const profileName = () => String(currentUser?.user_metadata?.first_name || '').trim();
+const profileInitials = () => {
+  const name = profileName();
+  return name ? name.slice(0, 2).toUpperCase() : initials(currentUser?.email);
+};
 
 function modal(content) {
   const node = document.createElement('section');
@@ -56,6 +61,33 @@ function showError(node, message) {
   const error = node.querySelector('[data-error]');
   error.textContent = message;
   error.hidden = false;
+}
+
+function showProfile() {
+  if (!currentUser) { showAuth(); return; }
+  const metadata = currentUser.user_metadata || {};
+  const passportCountries = ['France', 'Algérie', 'Maroc', 'Tunisie', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'Bénin', 'Gabon', 'Kenya', 'Mauritanie', 'Zimbabwe', 'Burkina Faso', 'République démocratique du Congo', 'République du Congo (Congo-Brazzaville)', 'Guinée', 'Nigeria', 'Éthiopie'];
+  const countryOptions = '<option value="">Aucun pays par défaut</option>' + passportCountries.map((country) => '<option value="' + escapeHtml(country) + '"' + (metadata.default_passport_country === country ? ' selected' : '') + '>' + escapeHtml(country) + '</option>').join('');
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">MON PROFIL</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Votre espace Jamm</h2><p style="color:#647069;line-height:1.45">Ces repères servent seulement à personnaliser Jamm et à préparer plus vite vos prochaines démarches.</p><form id="profile-form"><label>Prénom<input id="profile-first-name" autocomplete="given-name" maxlength="60" value="' + escapeHtml(metadata.first_name || '') + '" placeholder="Ex. Mariam"></label><label>Adresse e-mail<input type="email" value="' + escapeHtml(currentUser.email || '') + '" disabled></label><label>Département de résidence par défaut<input id="profile-department" inputmode="numeric" maxlength="3" value="' + escapeHtml(metadata.default_department || '') + '" placeholder="Ex. 91"></label><label>Pays de passeport le plus utilisé<select id="profile-passport-country">' + countryOptions + '</select></label><p style="color:#78847b;font-size:12px;line-height:1.45">Aucun document n’est enregistré dans votre profil. Vous pourrez modifier ces informations à tout moment.</p><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer mon profil <span>→</span></button></form><button id="profile-signout" style="margin-top:16px;border:0;background:none;color:#315d4c;text-decoration:underline;cursor:pointer">Se déconnecter</button>');
+  styleModal(node);
+  node.querySelector('.close').addEventListener('click', () => node.remove());
+  node.querySelector('#profile-signout').addEventListener('click', async () => {
+    if (confirm('Se déconnecter de Jamm ?')) await supabaseClient.auth.signOut();
+    node.remove();
+  });
+  node.querySelector('#profile-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = node.querySelector('[type="submit"]');
+    button.disabled = true;
+    const firstName = node.querySelector('#profile-first-name').value.trim();
+    const department = node.querySelector('#profile-department').value.trim();
+    const passportCountry = node.querySelector('#profile-passport-country').value;
+    const { data, error } = await supabaseClient.auth.updateUser({ data: { ...metadata, first_name: firstName, default_department: department, default_passport_country: passportCountry } });
+    if (error) { showError(node, 'Impossible d’enregistrer le profil : ' + error.message); button.disabled = false; return; }
+    currentUser = data.user || currentUser;
+    node.remove();
+    render();
+  });
 }
 
 function showAuth(initialLogin = false) {
@@ -157,9 +189,10 @@ function journeyTitle(journey) {
 }
 
 function render() {
-  $('#greeting').textContent = 'Bonjour.';
-  $('#profile-button').textContent = currentUser ? initials(currentUser.email) : '—';
-  $('#person-one').textContent = currentUser ? initials(currentUser.email).slice(0, 1) : 'J';
+  const name = profileName();
+  $('#greeting').textContent = name ? 'Bonjour, ' + name + '.' : 'Bonjour.';
+  $('#profile-button').textContent = currentUser ? profileInitials() : '—';
+  $('#person-one').textContent = currentUser ? profileInitials().slice(0, 1) : 'J';
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   $('#dossier-title').textContent = journey ? journeyTitle(currentJourney) : 'Choisissez votre démarche';
   renderDocuments();
@@ -460,7 +493,8 @@ function showQualification(code, existingJourney = null) {
     : (isPassport ? passportField : residenceField);
   const authorityLabel = isPassport ? 'Ville ou consulat où vous ferez la démarche' : definition.authorityLabel;
   const authorityPlaceholder = isPassport ? 'Ex. Consulat du Sénégal à Paris' : definition.authorityPlaceholder;
-  const authorityField = '<label>' + authorityLabel + '<input id="journey-department" required placeholder="' + authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : '') + '"></label>';
+  const defaultDepartment = String(currentUser?.user_metadata?.default_department || '').trim();
+  const authorityField = '<label>' + authorityLabel + '<input id="journey-department" required placeholder="' + authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : (isPassport ? '' : defaultDepartment)) + '"></label>';
   const intro = isCustom ? 'Vous connaissez les pièces demandées ? Ajoutez-les : Jamm vous aidera à rassembler les fichiers de votre coffre.' : (definition.kind === 'residence' ? 'Ce premier catalogue couvre les personnes domiciliées en Essonne (91). Le lien officiel sera conservé dans votre dossier.' : 'Choisissez d’abord le pays, puis la situation exacte de votre passeport.');
   const formFields = isPassport ? situationField + authorityField : authorityField + situationField;
   const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form">' + formFields + (isCustom ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label><div class="qualification-submit-bar"><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></div></form>');
@@ -540,6 +574,13 @@ function showQualification(code, existingJourney = null) {
     if (countrySelect.value) showPassportSituations(countrySelect.value);
     else if (situation) { situation.hidden = true; situation.innerHTML = ''; }
   });
+  if (!profile && isPassport && countrySelect) {
+    const preferredCountry = String(currentUser?.user_metadata?.default_passport_country || '');
+    if (passportCountries.includes(preferredCountry)) {
+      countrySelect.value = preferredCountry;
+      showPassportSituations(preferredCountry);
+    }
+  }
   if (profile) {
     if (isPassport && countrySelect) {
       const existingTitle = profile.permit_category || '';
@@ -702,10 +743,7 @@ function wireUi() {
   $('#new-journey').addEventListener('click', () => { $('#journey-list').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#complete-journey').addEventListener('click', completeJourney);
   $('#collapse-dossier').addEventListener('click', () => { dossierCollapsed = !dossierCollapsed; updateDossierCollapse(); });
-  $('#profile-button').addEventListener('click', async () => {
-    if (!currentUser) { showAuth(); return; }
-    if (confirm('Se déconnecter de Jamm ?')) await supabaseClient.auth.signOut();
-  });
+  $('#profile-button').addEventListener('click', () => showProfile());
   document.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => $('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' })));
 }
 
