@@ -301,31 +301,36 @@ function renderChecklist() {
     checklist.querySelector('#qualify-current-journey').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
     return;
   }
-  const requirements = Array.isArray(profile.situation_answers?.required_documents) ? profile.situation_answers.required_documents : [];
+  const catalogEntry = officialCatalog.find((entry) => entry.id === profile.situation_answers?.catalog_entry_id);
+  const personalRequirements = Array.isArray(profile.situation_answers?.required_documents) ? profile.situation_answers.required_documents : [];
+  const officialRequirements = Array.isArray(catalogEntry?.requirements) ? catalogEntry.requirements : [];
+  const isPersonal = personalRequirements.length > 0;
+  const requirements = isPersonal ? personalRequirements.map((label) => ({ label, document_type: null })) : officialRequirements;
   const links = profile.situation_answers?.requirement_links || {};
   if (requirements.length) {
-    const linked = (label) => documents.find((doc) => !doc.archived_at && doc.id === links[label]);
+    const linked = (requirement) => documents.find((doc) => !doc.archived_at && (doc.id === links[requirement.label] || (requirement.document_type && doc.document_type === requirement.document_type)));
     const ready = requirements.filter(linked).length;
     $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
-    checklist.innerHTML = '<div class="custom-list-note"><strong>Votre liste personnelle</strong><span>Ajoutée par vous — Jamm organise les pièces sans en valider le contenu.</span><button class="link-button" id="edit-qualification" type="button">Modifier la liste</button></div>' + requirements.map((label) => {
-      const doc = linked(label);
-      return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<em>Prêt</em>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(label) + '" type="button">Ajouter</button></span>') + '</div>';
+    const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
+    const heading = isPersonal
+      ? '<strong>Votre liste personnelle</strong><span>Ajoutée par vous — Jamm organise les pièces sans en valider le contenu.</span><button class="link-button" id="edit-qualification" type="button">Modifier la liste</button>'
+      : '<strong>Checklist officielle — renouvellement étudiant</strong><span>Pièces vérifiées à partir de la source nationale, avec dépôt indiqué par la Préfecture de l’Essonne.</span><span>' + sourceLink + '</span>';
+    checklist.innerHTML = '<div class="custom-list-note">' + heading + '</div>' + requirements.map((requirement) => {
+      const doc = linked(requirement);
+      return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<em>Prêt</em>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Ajouter</button></span>') + '</div>';
     }).join('');
-    checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
+    const edit = checklist.querySelector('#edit-qualification');
+    if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
     checklist.querySelectorAll('.link-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement)));
     checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload('other')));
     return;
   }
   const isVerified = profile.source_status === 'verified';
   $('#progress-value').textContent = isVerified ? 'Source OK' : 'À vérifier';
-  const sourceLine = profile.official_source_url
-    ? '<a href="' + escapeHtml(profile.official_source_url) + '" target="_blank" rel="noopener">Ouvrir la source officielle ↗</a>'
-    : 'La source officielle de l’organisme compétent reste à associer.';
+  const sourceLine = profile.official_source_url ? '<a href="' + escapeHtml(profile.official_source_url) + '" target="_blank" rel="noopener">Ouvrir la source officielle ↗</a>' : 'La source officielle de l’organisme compétent reste à associer.';
   const checked = profile.source_checked_at ? new Date(profile.source_checked_at).toLocaleDateString('fr-FR') : 'pas encore contrôlée';
   const statusTitle = isVerified ? 'Parcours officiel identifié.' : 'Checklist en cours de vérification.';
-  const statusCopy = isVerified
-    ? 'Jamm a rattaché ce dossier à la publication compétente. Les pièces détaillées seront ajoutées après revue de cette source.'
-    : 'Jamm attend la publication officielle correspondant à votre situation avant de lister des pièces.';
+  const statusCopy = isVerified ? 'Jamm a rattaché ce dossier à la publication compétente. Les pièces détaillées seront ajoutées après revue de cette source.' : 'Jamm attend la publication officielle correspondant à votre situation avant de lister des pièces.';
   checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>' + statusTitle + '</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Lieu :</b> ' + escapeHtml(profile.department) + '.</p><p>' + statusCopy + ' Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">Modifier ma situation</button></div></div>';
   checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
 }
