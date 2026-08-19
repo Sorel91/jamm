@@ -216,8 +216,7 @@ async function downloadChecklist() {
 
   try {
     const zip = new JSZip();
-    zip.file('checklist-jamm.txt', lines.join('
-'));
+    zip.file('checklist-jamm.txt', lines.join('\n'));
     const errors = [];
 
     for (const doc of relevantDocuments) {
