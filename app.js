@@ -110,5 +110,32 @@ document.querySelector('#prepare').addEventListener('click', function() {
   }, 0);
 });
 
+function openDocumentForm() {
+  const modal = document.createElement('section');
+  modal.className = 'document-form';
+  modal.innerHTML = '<div><button class="close" aria-label="Fermer">×</button><p>MODE DÉMO</p><h2>Ajouter un document</h2><span>Utilisez uniquement des informations fictives : aucun document n’est envoyé ni conservé.</span><label>Nom du document<input id="document-name" placeholder="Ex. Carte consulaire"></label><label>Date d’expiration (facultatif)<input id="document-expiry" type="date"></label><button class="primary" id="save-document">Ajouter au coffre <b>→</b></button></div>';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(27,45,36,.48);padding:24px;display:grid;place-items:center';
+  const card = modal.firstElementChild;
+  card.style.cssText = 'position:relative;width:min(470px,100%);background:#fbfaf6;border-radius:16px;padding:34px;color:#1e2924;box-shadow:0 20px 70px rgba(0,0,0,.22)';
+  card.querySelector('p').style.cssText = 'font:500 11px monospace;letter-spacing:1px;color:#78847b';
+  card.querySelector('h2').style.cssText = 'font:600 31px Georgia,serif;margin:8px 0 10px';
+  card.querySelector('span').style.cssText = 'display:block;color:#647069;line-height:1.45;margin-bottom:20px';
+  card.querySelectorAll('label').forEach(function(label) { label.style.cssText = 'display:block;font-size:13px;font-weight:700;margin:14px 0'; });
+  card.querySelectorAll('input').forEach(function(input) { input.style.cssText = 'width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:white;font:14px Arial'; });
+  card.querySelector('.close').style.cssText = 'position:absolute;right:16px;top:13px;border:0;background:none;font-size:27px;color:#647069';
+  card.querySelector('.primary').style.cssText = 'margin-top:12px';
+  card.querySelector('.close').addEventListener('click', function() { modal.remove(); });
+  card.querySelector('#save-document').addEventListener('click', function() {
+    const name = card.querySelector('#document-name').value.trim();
+    const expiry = card.querySelector('#document-expiry').value;
+    if (!name) { card.querySelector('#document-name').focus(); return; }
+    journey.documents.push({ name: name, detail: expiry ? 'Expire le ' + new Date(expiry + 'T12:00:00').toLocaleDateString('fr-FR') : 'Ajouté dans ce test', status: 'ready', label: 'prêt', icon: '◫' });
+    selected.add(name);
+    modal.remove();
+    render();
+  });
+  document.body.appendChild(modal);
+}
+document.querySelector('#add-document').addEventListener('click', openDocumentForm);
 render();
 showOnboarding();
