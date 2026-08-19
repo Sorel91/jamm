@@ -365,12 +365,12 @@ function renderChecklist() {
       : '<strong>Checklist officielle — ' + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>Pièces vérifiées à partir de la source officielle.</span>' + logistics + '<span>' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     checklist.innerHTML = '<div class="custom-list-note">' + heading + '</div>' + requirements.map((requirement) => {
       const doc = linked(requirement);
-      return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<em>Prêt</em>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Ajouter</button></span>') + '</div>';
+      return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<em>Prêt</em>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(requirement.document_type || requirement.category || 'other') + '" type="button">Ajouter</button></span>') + '</div>';
     }).join('');
     const edit = checklist.querySelector('#edit-qualification');
     if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
     checklist.querySelectorAll('.link-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement)));
-    checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload('other')));
+    checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload(button.dataset.documentType || 'other')));
     return;
   }
   const isVerified = profile.source_status === 'verified';
