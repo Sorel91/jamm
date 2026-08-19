@@ -400,7 +400,7 @@ function showQualification(code, existingJourney = null) {
   const isCustom = definition.kind === 'custom';
   const essonneEntries = officialCatalog.filter((entry) => entry.authority_code === '91' && entry.theme === 'residence_renewal');
   const passportOptions = ['France', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'République démocratique du Congo', 'Guinée', 'Autre pays'];
-  const residenceOptions = essonneEntries.map((entry) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : Préfecture de l’Essonne ↗</small></button>').join('');
+  const residenceOptions = essonneEntries.map((entry) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : ' + escapeHtml(entry.source_label || 'Préfecture de l’Essonne') + ' ↗</small></button>').join('');
   const standardOptions = definition.kind === 'passport'
     ? passportOptions.map((item) => '<button class="journey-option" data-category="' + item + '" type="button">' + item + '</button>').join('')
     : residenceOptions;
