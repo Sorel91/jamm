@@ -3,9 +3,10 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_xkbi-9JZAp5rGD1rwCf0mQ_1MliAIwY
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const journeys = {
-  residence_permit: { title: 'Renouvellement du titre de séjour', documents: ['passport', 'residence_permit', 'proof_of_address'] },
-  passport: { title: 'Renouvellement de passeport', documents: ['passport', 'birth_certificate', 'proof_of_address'] },
-  family_visit: { title: 'Visite familiale en France', documents: ['passport', 'proof_of_address', 'family_record'] }
+  renewal_employee: { title: 'Renouveler un titre — salarié', short: 'Salarié' },
+  renewal_family: { title: 'Renouveler un titre — vie privée et familiale', short: 'Vie privée et familiale' },
+  renewal_student: { title: 'Renouveler un titre — étudiant', short: 'Étudiant' },
+  renewal_visitor: { title: 'Renouveler un titre — visiteur', short: 'Visiteur' }
 };
 const documentLabels = {
   passport: 'Passeport', residence_permit: 'Titre de séjour', birth_certificate: 'Acte de naissance',
@@ -19,6 +20,7 @@ let documents = [];
 let selected = new Set();
 let currentJourney = null;
 let journeysList = [];
+let journeyProfiles = {};
 let activeView = 'vault';
 let vaultFilter = 'all';
 
@@ -106,6 +108,12 @@ async function loadData() {
   documents = docs || [];
   selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
   journeysList = trips || [];
+  journeyProfiles = {};
+  if (journeysList.length) {
+    const { data: profiles, error: profilesError } = await supabaseClient.from('journey_profiles').select('*').eq('owner_id', currentUser.id).in('journey_id', journeysList.map((journey) => journey.id));
+    if (profilesError) throw profilesError;
+    journeyProfiles = Object.fromEntries((profiles || []).map((profile) => [profile.journey_id, profile]));
+  }
   const preservedJourney = currentJourney && journeysList.find((journey) => journey.id === currentJourney.id);
   currentJourney = preservedJourney || journeysList.find((journey) => journey.status === 'active') || null;
   selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
@@ -223,10 +231,17 @@ async function restoreDocument(id) {
 }
 
 function journeyProgress(journey) {
-  const definition = journeys[journey.code];
-  if (!definition) return 0;
-  const ready = definition.documents.filter((type) => documents.some((doc) => !doc.archived_at && doc.document_type === type)).length;
-  return Math.round((ready / definition.documents.length) * 100);
+  const profile = journeyProfiles[journey.id];
+  if (!profile || profile.source_status !== 'verified') return null;
+  return 0;
+}
+
+function journeyStatusLabel(journey) {
+  const profile = journeyProfiles[journey.id];
+  if (journey.status === 'completed') return 'Terminée';
+  if (!profile) return 'Situation à préciser';
+  if (profile.source_status === 'verified') return 'Liste vérifiée';
+  return 'Source à vérifier';
 }
 
 function renderJourneys() {
@@ -236,7 +251,7 @@ function renderJourneys() {
     const definition = journeys[journey.code];
     const progress = journeyProgress(journey);
     const selectedClass = currentJourney && currentJourney.id === journey.id ? ' selected' : '';
-    const statusLabel = journey.status === 'completed' ? 'Terminée' : progress === 100 ? 'Prête' : progress + '% prêt';
+    const statusLabel = journeyStatusLabel(journey);
     return '<button class="journey-card' + selectedClass + '" data-journey-id="' + journey.id + '" type="button"><span class="journey-card-icon">' + (journey.status === 'completed' ? '✓' : '→') + '</span><span><small>' + (journey.status === 'completed' ? 'TERMINÉE' : 'EN COURS') + '</small><strong>' + definition.title + '</strong><em>' + statusLabel + '</em></span><b>→</b></button>';
   }).join('');
   const suggestions = Object.entries(journeys).filter(([code]) => !activeCodes.has(code)).map(([code, definition]) => '<button class="journey-card suggestion" data-start-journey="' + code + '" type="button"><span class="journey-card-icon">+</span><span><small>NOUVELLE DÉMARCHE</small><strong>' + definition.title + '</strong><em>Commencer la préparation</em></span><b>→</b></button>').join('');
@@ -258,16 +273,21 @@ function renderChecklist() {
     $('#complete-journey').hidden = true;
     return;
   }
-  const requirements = journey.documents;
-  const ready = requirements.filter((type) => documents.some((doc) => !doc.archived_at && doc.document_type === type)).length;
-  const journeyProgressValue = Math.round((ready / requirements.length) * 100);
-  $('#progress-value').textContent = journeyProgressValue + '%';
+  const profile = journeyProfiles[currentJourney.id];
   $('#complete-journey').hidden = currentJourney.status !== 'active';
-  checklist.innerHTML = requirements.map((type) => {
-    const found = documents.find((doc) => !doc.archived_at && doc.document_type === type);
-    return '<div class="check-row ' + (found ? 'done' : '') + '"><span class="checkmark">' + (found ? '✓' : '') + '</span><span class="check-copy"><strong>' + documentLabels[type] + '</strong><small>' + (found ? 'Présent dans le coffre' : 'À ajouter avant de continuer') + '</small></span>' + (found ? '<em>Prêt</em>' : '<button class="add" data-type="' + type + '" type="button">Ajouter</button>') + '</div>';
-  }).join('');
-  checklist.querySelectorAll('[data-type]').forEach((button) => button.addEventListener('click', () => showUpload(button.dataset.type)));
+  if (!profile) {
+    $('#progress-value').textContent = '—';
+    checklist.innerHTML = '<div class="journey-empty"><span>!</span><div><strong>Votre situation doit être précisée.</strong><p>Jamm ne propose pas de liste générique : précisez votre situation et votre préfecture avant toute checklist.</p><button class="outline" id="qualify-current-journey" type="button">Préciser ma situation</button></div></div>';
+    checklist.querySelector('#qualify-current-journey').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
+    return;
+  }
+  $('#progress-value').textContent = profile.source_status === 'verified' ? 'Prêt' : 'À vérifier';
+  const sourceLine = profile.official_source_url
+    ? '<a href="' + escapeHtml(profile.official_source_url) + '" target="_blank" rel="noopener">Ouvrir la source officielle ↗</a>'
+    : 'La source officielle de cette préfecture reste à associer.';
+  const checked = profile.source_checked_at ? new Date(profile.source_checked_at).toLocaleDateString('fr-FR') : 'pas encore contrôlée';
+  checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>Checklist personnalisée en cours de vérification.</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Département :</b> ' + escapeHtml(profile.department) + '.</p><p>Avant de lister des pièces, Jamm doit rattacher ce dossier à la publication officielle de la préfecture compétente. Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">Modifier ma situation</button></div></div>';
+  checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
 }
 
 async function chooseJourney(code) {
@@ -275,12 +295,34 @@ async function chooseJourney(code) {
   showView('journeys');
   const existing = journeysList.find((journey) => journey.code === code && journey.status === 'active');
   if (existing) { currentJourney = existing; render(); $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-  const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
-  if (error) { alert('Impossible de créer cette démarche : ' + error.message); return; }
-  currentJourney = data;
-  journeysList = [data, ...journeysList];
-  render();
-  $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showQualification(code);
+}
+
+function showQualification(code, existingJourney = null) {
+  const definition = journeys[code];
+  const profile = existingJourney ? journeyProfiles[existingJourney.id] : null;
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">AVANT LA CHECKLIST</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">Les pièces dépendent de votre situation et de votre préfecture. Ces informations servent uniquement à préparer ce dossier.</p><form id="qualification-form"><label>Département où vous habitez<input id="journey-department" required placeholder="Ex. 75 — Paris" value="' + escapeHtml(profile ? profile.department : '') + '"></label><label>Votre situation actuelle<select id="journey-category" required><option value="">Choisir</option><option value="Titre de séjour en cours de renouvellement">Titre de séjour en cours de renouvellement</option><option value="Récépissé ou attestation de prolongation">Récépissé ou attestation de prolongation</option><option value="VLS-TS ou visa long séjour">VLS-TS ou visa long séjour</option><option value="Autre situation à préciser">Autre situation à préciser</option></select></label><label>Date d’expiration du titre (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label><label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, enfant français, poursuite d’études…"></textarea></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer ma situation <span>→</span></button></form>');
+  styleModal(node);
+  const category = node.querySelector('#journey-category');
+  if (profile) category.value = profile.permit_category;
+  if (profile?.situation_answers?.note) node.querySelector('#journey-note').value = profile.situation_answers.note;
+  const note = node.querySelector('#journey-note');
+  note.style.cssText = 'display:block;box-sizing:border-box;width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial;resize:vertical';
+  node.querySelector('.close').addEventListener('click', () => node.remove());
+  node.querySelector('#qualification-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submit = node.querySelector('[type="submit"]'); submit.disabled = true;
+    let journey = existingJourney;
+    if (!journey) {
+      const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
+      if (error) { showError(node, error.message); submit.disabled = false; return; }
+      journey = data;
+    }
+    const payload = { journey_id: journey.id, owner_id: currentUser.id, department: node.querySelector('#journey-department').value.trim(), permit_category: category.value, expiry_date: node.querySelector('#journey-expiry').value || null, situation_answers: { note: node.querySelector('#journey-note').value.trim(), route: code }, source_status: 'to_verify', official_source_url: null, source_checked_at: null, updated_at: new Date().toISOString() };
+    const { error } = await supabaseClient.from('journey_profiles').upsert(payload, { onConflict: 'journey_id' });
+    if (error) { showError(node, error.message); submit.disabled = false; return; }
+    node.remove(); currentJourney = journey; await loadData(); showView('journeys'); $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 }
 
 async function completeJourney() {
@@ -341,10 +383,14 @@ async function downloadChecklist() {
   const button = $('#prepare');
   button.disabled = true;
   button.textContent = 'Préparation du dossier…';
-  const relevantDocuments = documents.filter((doc) => !doc.archived_at && journey.documents.includes(doc.document_type));
-  const lines = ['JAMM — ' + journey.title, '', 'Checklist de préparation', '-------------------------'];
-  journey.documents.forEach((type) => lines.push((relevantDocuments.some((doc) => doc.document_type === type) ? '[x] ' : '[ ] ') + documentLabels[type]));
-  lines.push('', 'Ce dossier rassemble les pièces présentes dans votre coffre. Vérifiez toujours les exigences à jour auprès du site administratif officiel correspondant à votre situation.');
+  const profile = journeyProfiles[currentJourney.id];
+  if (!profile || profile.source_status !== 'verified') {
+    $('#success').hidden = false;
+    $('#success').textContent = 'La checklist de cette démarche n’est pas encore vérifiée pour votre préfecture : aucun dossier n’a été téléchargé.';
+    return;
+  }
+  const relevantDocuments = [];
+  const lines = ['JAMM — ' + journey.title, '', 'Checklist de préparation', '-------------------------', '', 'Cette checklist est rattachée à une source officielle vérifiée.'];
 
   try {
     const zip = new JSZip();
