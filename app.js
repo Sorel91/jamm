@@ -228,7 +228,7 @@ function renderChecklist() {
     return;
   }
   const requirements = journey.documents;
-  const ready = requirements.filter((type) => documents.some((doc) => doc.document_type === type)).length;
+  const ready = requirements.filter((type) => documents.some((doc) => !doc.archived_at && doc.document_type === type)).length;
   $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
   checklist.innerHTML = requirements.map((type) => {
     const found = documents.find((doc) => !doc.archived_at && doc.document_type === type);
