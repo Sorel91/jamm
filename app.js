@@ -84,5 +84,31 @@ document.querySelector('#select-all').addEventListener('click', function() { jou
 document.querySelector('#prepare').addEventListener('click', function() { success.hidden = false; success.innerHTML = '<strong>Dossier prêt à être organisé.</strong><br>Dans la version connectée, Jamm créera un dossier ZIP et vous donnera le lien officiel correspondant à votre situation.'; success.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
 document.querySelector('#invite').addEventListener('click', function() { alert("L'invitation familiale sera disponible dans la prochaine version de Jamm."); });
 document.querySelectorAll('[data-scroll]').forEach(function(button) { button.addEventListener('click', function() { document.querySelector('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' }); }); });
+function downloadChecklist() {
+  const lines = [
+    'JAMM — ' + journey.title,
+    '',
+    'Checklist de préparation',
+    '-------------------------',
+    ...journey.documents.map(function(doc) {
+      return (selected.has(doc.name) ? '[x] ' : '[ ] ') + doc.name + ' — ' + (selected.has(doc.name) ? 'inclus dans le dossier' : 'à compléter');
+    }),
+    '',
+    'Important : cette checklist organise vos pièces. Vérifiez toujours les exigences auprès du site administratif officiel correspondant à votre situation.'
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'jamm-checklist-' + journey.title.toLowerCase().replaceAll(' ', '-') + '.txt';
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+document.querySelector('#prepare').addEventListener('click', function() {
+  setTimeout(function() {
+    success.innerHTML += '<br><button class="outline" id="download-checklist" style="margin-top:14px">Télécharger ma checklist</button>';
+    document.querySelector('#download-checklist').addEventListener('click', downloadChecklist);
+  }, 0);
+});
+
 render();
 showOnboarding();
