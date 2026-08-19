@@ -18,6 +18,7 @@ let currentVault = null;
 let documents = [];
 let selected = new Set();
 let currentJourney = null;
+let activeView = 'vault';
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character]);
@@ -45,16 +46,17 @@ function showError(node, message) {
   error.hidden = false;
 }
 
-function showAuth() {
+function showAuth(initialLogin = false) {
   const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Bienvenue dans Jamm.</h2><p style="color:#647069;line-height:1.45">Créez un compte pour conserver vos documents dans un espace privé.</p><form id="auth-form"><label>Adresse e-mail<input id="auth-email" type="email" autocomplete="email" required></label><label>Mot de passe<input id="auth-password" type="password" autocomplete="current-password" minlength="8" required></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><p data-status hidden style="color:#245843;font-size:13px;line-height:1.4"></p><button class="primary" id="auth-submit" type="submit">Créer mon compte <span>→</span></button></form><button id="switch-auth" style="margin-top:14px;border:0;background:none;color:#245843;text-decoration:underline;cursor:pointer">J’ai déjà un compte</button><p id="auth-note" style="margin-top:18px;color:#78847b;font-size:12px;line-height:1.4">Utilisez au moins 8 caractères. Nous ne stockons jamais votre mot de passe.</p>');
   styleModal(node);
-  let loginMode = false;
+  let loginMode = initialLogin;
   const updateMode = () => {
     $('#auth-submit').textContent = loginMode ? 'Se connecter →' : 'Créer mon compte →';
     $('#switch-auth').textContent = loginMode ? 'Créer un compte' : 'J’ai déjà un compte';
     $('#auth-note').textContent = loginMode ? 'Connectez-vous pour retrouver votre coffre privé.' : 'Utilisez au moins 8 caractères. Nous ne stockons jamais votre mot de passe.';
     $('#auth-password').autocomplete = loginMode ? 'current-password' : 'new-password';
   };
+  updateMode();
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelector('#switch-auth').addEventListener('click', () => { loginMode = !loginMode; updateMode(); });
   node.querySelector('#auth-form').addEventListener('submit', async (event) => {
@@ -105,6 +107,25 @@ async function loadData() {
   render();
 }
 
+function applyAppState() {
+  const signedIn = Boolean(currentUser);
+  $('#marketing').hidden = signedIn;
+  $('#app-shell').hidden = !signedIn;
+  if (signedIn) showView(activeView);
+}
+
+function showView(view) {
+  activeView = view;
+  const isVault = view === 'vault';
+  $('#vault-view').hidden = !isVault;
+  $('#journeys-view').hidden = isVault;
+  document.querySelectorAll('.app-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
+  $('#today').textContent = isVault ? 'VOTRE ESPACE PRIVÉ' : 'VOS DÉMARCHES';
+  $('#app-subtitle').textContent = isVault
+    ? 'Votre mémoire administrative, organisée et prête.'
+    : 'Des dossiers temporaires qui s’appuient sur votre coffre.';
+}
+
 function render() {
   $('#greeting').textContent = 'Bonjour.';
   $('#profile-button').textContent = currentUser ? initials(currentUser.email) : '—';
@@ -153,6 +174,7 @@ function renderChecklist() {
 
 async function chooseJourney(code) {
   if (!currentUser) { showAuth(); return; }
+  showView('journeys');
   const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
   if (error) { alert('Impossible de créer cette démarche : ' + error.message); return; }
   currentJourney = data;
@@ -248,6 +270,9 @@ async function downloadChecklist() {
 }
 
 function wireUi() {
+  ['marketing-signup', 'hero-signup', 'bottom-signup'].forEach((id) => $('#' + id).addEventListener('click', () => showAuth()));
+  ['marketing-login', 'hero-login'].forEach((id) => $('#' + id).addEventListener('click', () => showAuth(true)));
+  document.querySelectorAll('.app-tab').forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)));
   $('#add-document').addEventListener('click', () => currentUser ? showUpload() : showAuth());
   $('#prepare').addEventListener('click', downloadChecklist);
   $('#select-all').addEventListener('click', () => { selected = new Set(documents.map((doc) => doc.id)); renderDocuments(); });
@@ -263,14 +288,16 @@ async function boot() {
   wireUi();
   const { data: { session } } = await supabaseClient.auth.getSession();
   currentUser = session ? session.user : null;
+  applyAppState();
   if (currentUser) {
     try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
-  } else render();
+  }
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
     currentUser = session ? session.user : null;
+    applyAppState();
     if (currentUser) {
       try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
-    } else { currentVault = null; documents = []; currentJourney = null; selected = new Set(); render(); }
+    } else { currentVault = null; documents = []; currentJourney = null; selected = new Set(); }
   });
 }
 boot();
