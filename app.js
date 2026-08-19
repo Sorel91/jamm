@@ -316,12 +316,17 @@ function renderChecklist() {
     checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload('other')));
     return;
   }
-  $('#progress-value').textContent = profile.source_status === 'verified' ? 'Prêt' : 'À vérifier';
+  const isVerified = profile.source_status === 'verified';
+  $('#progress-value').textContent = isVerified ? 'Source OK' : 'À vérifier';
   const sourceLine = profile.official_source_url
     ? '<a href="' + escapeHtml(profile.official_source_url) + '" target="_blank" rel="noopener">Ouvrir la source officielle ↗</a>'
     : 'La source officielle de l’organisme compétent reste à associer.';
   const checked = profile.source_checked_at ? new Date(profile.source_checked_at).toLocaleDateString('fr-FR') : 'pas encore contrôlée';
-  checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>Checklist en cours de vérification.</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Lieu :</b> ' + escapeHtml(profile.department) + '.</p><p>Jamm attend la publication officielle correspondant à votre situation avant de lister des pièces. Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">Modifier ma situation</button></div></div>';
+  const statusTitle = isVerified ? 'Parcours officiel identifié.' : 'Checklist en cours de vérification.';
+  const statusCopy = isVerified
+    ? 'Jamm a rattaché ce dossier à la publication compétente. Les pièces détaillées seront ajoutées après revue de cette source.'
+    : 'Jamm attend la publication officielle correspondant à votre situation avant de lister des pièces.';
+  checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>' + statusTitle + '</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Lieu :</b> ' + escapeHtml(profile.department) + '.</p><p>' + statusCopy + ' Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">Modifier ma situation</button></div></div>';
   checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
 }
 
