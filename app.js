@@ -18,6 +18,7 @@ let currentVault = null;
 let documents = [];
 let selected = new Set();
 let currentJourney = null;
+let journeysList = [];
 let activeView = 'vault';
 let vaultFilter = 'all';
 
@@ -98,13 +99,15 @@ async function loadData() {
   currentVault = await ensureVault();
   const [{ data: docs, error: docsError }, { data: trips, error: tripsError }] = await Promise.all([
     supabaseClient.from('documents').select('*').eq('owner_id', currentUser.id).order('created_at', { ascending: false }),
-    supabaseClient.from('journeys').select('*').eq('owner_id', currentUser.id).eq('status', 'active').limit(1)
+    supabaseClient.from('journeys').select('*').eq('owner_id', currentUser.id).order('created_at', { ascending: false })
   ]);
   if (docsError) throw docsError;
   if (tripsError) throw tripsError;
   documents = docs || [];
   selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
-  currentJourney = trips && trips[0] ? trips[0] : null;
+  journeysList = trips || [];
+  const preservedJourney = currentJourney && journeysList.find((journey) => journey.id === currentJourney.id);
+  currentJourney = preservedJourney || journeysList.find((journey) => journey.status === 'active') || null;
   selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
   render();
 }
@@ -138,6 +141,7 @@ function render() {
   $('#dossier-title').textContent = journey ? journey.title : 'Choisissez votre démarche';
   $('#journey-description').textContent = journey ? 'Jamm compare les pièces présentes avec cette préparation.' : 'Commencez par choisir une démarche.';
   renderDocuments();
+  renderJourneys();
   renderChecklist();
 }
 
@@ -218,18 +222,47 @@ async function restoreDocument(id) {
   await loadData();
 }
 
+function journeyProgress(journey) {
+  const definition = journeys[journey.code];
+  if (!definition) return 0;
+  const ready = definition.documents.filter((type) => documents.some((doc) => !doc.archived_at && doc.document_type === type)).length;
+  return Math.round((ready / definition.documents.length) * 100);
+}
+
+function renderJourneys() {
+  const board = $('#journey-list');
+  const activeCodes = new Set(journeysList.filter((journey) => journey.status === 'active').map((journey) => journey.code));
+  const existing = journeysList.map((journey) => {
+    const definition = journeys[journey.code];
+    const progress = journeyProgress(journey);
+    const selectedClass = currentJourney && currentJourney.id === journey.id ? ' selected' : '';
+    const statusLabel = journey.status === 'completed' ? 'Terminée' : progress === 100 ? 'Prête' : progress + '% prêt';
+    return '<button class="journey-card' + selectedClass + '" data-journey-id="' + journey.id + '" type="button"><span class="journey-card-icon">' + (journey.status === 'completed' ? '✓' : '→') + '</span><span><small>' + (journey.status === 'completed' ? 'TERMINÉE' : 'EN COURS') + '</small><strong>' + definition.title + '</strong><em>' + statusLabel + '</em></span><b>→</b></button>';
+  }).join('');
+  const suggestions = Object.entries(journeys).filter(([code]) => !activeCodes.has(code)).map(([code, definition]) => '<button class="journey-card suggestion" data-start-journey="' + code + '" type="button"><span class="journey-card-icon">+</span><span><small>NOUVELLE DÉMARCHE</small><strong>' + definition.title + '</strong><em>Commencer la préparation</em></span><b>→</b></button>').join('');
+  board.innerHTML = existing + suggestions;
+  board.querySelectorAll('[data-journey-id]').forEach((button) => button.addEventListener('click', () => {
+    currentJourney = journeysList.find((journey) => journey.id === button.dataset.journeyId) || null;
+    render();
+    $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  board.querySelectorAll('[data-start-journey]').forEach((button) => button.addEventListener('click', () => chooseJourney(button.dataset.startJourney)));
+}
+
 function renderChecklist() {
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   const checklist = $('#checklist');
   if (!journey) {
-    checklist.innerHTML = Object.entries(journeys).map(([code, item]) => '<button class="check-row choose-journey" data-code="' + code + '" type="button"><span class="checkmark">→</span><span class="check-copy"><strong>' + item.title + '</strong><small>Choisir cette démarche</small></span></button>').join('');
-    checklist.querySelectorAll('.choose-journey').forEach((button) => button.addEventListener('click', () => chooseJourney(button.dataset.code)));
+    checklist.innerHTML = '<div class="journey-empty"><span>→</span><div><strong>Choisissez une démarche au-dessus.</strong><p>Jamm comparera alors les pièces nécessaires avec votre coffre.</p></div></div>';
     $('#progress-value').textContent = '0%';
+    $('#complete-journey').hidden = true;
     return;
   }
   const requirements = journey.documents;
   const ready = requirements.filter((type) => documents.some((doc) => !doc.archived_at && doc.document_type === type)).length;
-  $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
+  const journeyProgressValue = Math.round((ready / requirements.length) * 100);
+  $('#progress-value').textContent = journeyProgressValue + '%';
+  $('#complete-journey').hidden = currentJourney.status !== 'active';
   checklist.innerHTML = requirements.map((type) => {
     const found = documents.find((doc) => !doc.archived_at && doc.document_type === type);
     return '<div class="check-row ' + (found ? 'done' : '') + '"><span class="checkmark">' + (found ? '✓' : '') + '</span><span class="check-copy"><strong>' + documentLabels[type] + '</strong><small>' + (found ? 'Présent dans le coffre' : 'À ajouter avant de continuer') + '</small></span>' + (found ? '<em>Prêt</em>' : '<button class="add" data-type="' + type + '" type="button">Ajouter</button>') + '</div>';
@@ -240,10 +273,22 @@ function renderChecklist() {
 async function chooseJourney(code) {
   if (!currentUser) { showAuth(); return; }
   showView('journeys');
+  const existing = journeysList.find((journey) => journey.code === code && journey.status === 'active');
+  if (existing) { currentJourney = existing; render(); $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
   if (error) { alert('Impossible de créer cette démarche : ' + error.message); return; }
   currentJourney = data;
+  journeysList = [data, ...journeysList];
   render();
+  $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function completeJourney() {
+  if (!currentJourney || currentJourney.status !== 'active') return;
+  if (!confirm('Marquer cette démarche comme terminée ? Le dossier restera consultable dans vos démarches terminées.')) return;
+  const { error } = await supabaseClient.from('journeys').update({ status: 'completed' }).eq('id', currentJourney.id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible de terminer cette démarche : ' + error.message); return; }
+  await loadData();
 }
 
 function showUpload(preselectedType) {
@@ -343,6 +388,8 @@ function wireUi() {
   $('#select-all').addEventListener('click', () => { selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id)); renderDocuments(); });
   document.querySelectorAll('[data-vault-filter]').forEach((button) => button.addEventListener('click', () => { vaultFilter = button.dataset.vaultFilter; renderDocuments(); }));
   $('#invite').addEventListener('click', () => alert('Le partage familial sécurisé arrive dans une prochaine version.'));
+  $('#new-journey').addEventListener('click', () => { $('#journey-list').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  $('#complete-journey').addEventListener('click', completeJourney);
   $('#profile-button').addEventListener('click', async () => {
     if (!currentUser) { showAuth(); return; }
     if (confirm('Se déconnecter de Jamm ?')) await supabaseClient.auth.signOut();
