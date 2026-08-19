@@ -491,8 +491,13 @@ async function downloadChecklist() {
   button.disabled = true;
   button.textContent = 'Préparation du dossier…';
   const profile = journeyProfiles[currentJourney.id];
-  const requirements = profile?.situation_answers?.required_documents || [];
-  if (!requirements.length) {
+  const catalogEntry = officialCatalog.find((entry) => entry.id === profile?.situation_answers?.catalog_entry_id);
+  const personalRequirements = profile?.situation_answers?.required_documents || [];
+  const isPersonal = personalRequirements.length > 0;
+  const requirementItems = isPersonal
+    ? personalRequirements.map((label) => ({ label, document_type: null }))
+    : (catalogEntry?.requirements || []);
+  if (!requirementItems.length) {
     $('#success').hidden = false;
     $('#success').textContent = 'La checklist de cette démarche n’est pas encore vérifiée par la source officielle compétente : aucun dossier n’a été téléchargé.';
     button.disabled = false;
@@ -500,10 +505,11 @@ async function downloadChecklist() {
     return;
   }
   const links = profile.situation_answers?.requirement_links || {};
-  const relevantDocuments = requirements.map((label) => documents.find((doc) => !doc.archived_at && doc.id === links[label])).filter(Boolean);
-  const lines = ['JAMM — ' + journeyTitle(currentJourney), '', 'Liste de préparation personnelle', '------------------------------'];
-  requirements.forEach((label) => lines.push((links[label] ? '[x] ' : '[ ] ') + label));
-  lines.push('', 'Cette liste a été indiquée par vous. Jamm rassemble les documents rattachés, sans en vérifier l’exhaustivité.');
+  const documentFor = (requirement) => documents.find((doc) => !doc.archived_at && (doc.id === links[requirement.label] || (requirement.document_type && doc.document_type === requirement.document_type)));
+  const relevantDocuments = requirementItems.map(documentFor).filter(Boolean);
+  const lines = ['JAMM — ' + journeyTitle(currentJourney), '', isPersonal ? 'Liste de préparation personnelle' : 'Checklist officielle de préparation', '------------------------------'];
+  requirementItems.forEach((requirement) => lines.push((documentFor(requirement) ? '[x] ' : '[ ] ') + requirement.label));
+  lines.push('', isPersonal ? 'Cette liste a été indiquée par vous. Jamm rassemble les documents rattachés, sans en vérifier l’exhaustivité.' : 'Checklist issue de la source officielle indiquée dans Jamm. Vérifiez toujours les éventuelles pièces conditionnelles avant le dépôt.');
 
   try {
     const zip = new JSZip();
@@ -522,7 +528,7 @@ async function downloadChecklist() {
     link.click();
     URL.revokeObjectURL(link.href);
     $('#success').hidden = false;
-    $('#success').textContent = 'Votre dossier personnel a été préparé sur cet appareil.';
+    $('#success').textContent = isPersonal ? 'Votre dossier personnel a été préparé sur cet appareil.' : 'Votre dossier de préparation a été téléchargé sur cet appareil.';
   } catch (error) {
     $('#success').hidden = false;
     $('#success').textContent = 'Impossible de préparer le dossier. Vérifiez votre connexion et réessayez.';
