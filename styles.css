@@ -121,3 +121,17 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 .start-journey-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:#edf3ec;color:#39705a;font-weight:800}.start-journey>span:nth-child(2){display:grid;gap:5px;min-width:0;flex:1}.start-journey strong{font:600 16px/1.15 Fraunces,Georgia,serif}.start-journey em{color:#748078;font-size:12px;font-style:normal}.start-journey>b{color:#39705a;font-size:17px}
 .completed-card{min-height:104px}.dossier[hidden]{display:none!important}
 @media(max-width:760px){.resume-journey{align-items:flex-start}.resume-action{padding-top:4px;font-size:0}.resume-action b{font-size:19px}.resume-copy strong{font-size:18px}.start-journey-grid{grid-template-columns:1fr}.start-journey{min-height:82px}.dossier-header-actions{align-items:flex-end;flex-direction:column;gap:8px}.collapse-dossier{font-size:12px}}
+
+
+/* Hiérarchie finale des démarches */
+.journey-group-title{display:flex;align-items:center;gap:10px;color:#244c3d;font:800 14px/1.2 Arial,sans-serif;letter-spacing:.1em}
+.journey-group-title::after{content:"";height:1px;flex:1;background:#dbe5dc}
+.journey-new{padding:20px;border:1px solid #e0e8df;border-radius:17px;background:#fbfdfb}
+.resume-group{padding:20px;border:1px solid #d6e2d8;border-radius:17px;background:#f8fbf8}
+.resume-group .dossier{margin:16px 0 0;background:#fff}
+.empty-resume{background:#fafcf9}.empty-resume p{padding-top:3px}
+.completed-journeys{margin:0;padding:20px;border:1px solid #e0e8df;border-radius:17px;background:#fbfdfb}
+.completed-journeys summary{color:#244c3d;font:800 14px/1.2 Arial,sans-serif;letter-spacing:.1em}
+.completed-journeys summary span{background:#e8f0e8;color:#285c48}
+.completed-journeys[open] summary{padding-bottom:15px;margin-bottom:14px;border-bottom:1px solid #dbe5dc}
+@media(max-width:760px){.journey-new,.resume-group,.completed-journeys{padding:16px}.journey-group-title{font-size:13px}.resume-group .dossier{margin-top:13px}}
