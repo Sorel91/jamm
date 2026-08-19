@@ -3,10 +3,9 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_xkbi-9JZAp5rGD1rwCf0mQ_1MliAIwY
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const journeys = {
-  renewal_employee: { title: 'Renouveler un titre — salarié', short: 'Salarié' },
-  renewal_family: { title: 'Renouveler un titre — vie privée et familiale', short: 'Vie privée et familiale' },
-  renewal_student: { title: 'Renouveler un titre — étudiant', short: 'Étudiant' },
-  renewal_visitor: { title: 'Renouveler un titre — visiteur', short: 'Visiteur' },
+  residence_renewal: { title: 'Renouveler son titre de séjour', short: 'Titre de séjour', kind: 'residence', authorityLabel: 'Département où vous habitez', authorityPlaceholder: 'Ex. 75 — Paris' },
+  passport_renewal: { title: 'Renouveler son passeport', short: 'Passeport', kind: 'passport', authorityLabel: 'Pays et ville de la démarche', authorityPlaceholder: 'Ex. France — mairie de Paris, ou consulat du Sénégal à Paris' },
+  custom_procedure: { title: 'Une autre démarche', short: 'Démarche libre', kind: 'custom', authorityLabel: 'Lieu ou organisme concerné', authorityPlaceholder: 'Ex. Kinshasa, mairie, notaire, banque…' },
   residence_permit: { title: 'Renouvellement du titre de séjour', legacy: true },
   passport: { title: 'Renouvellement de passeport', legacy: true },
   family_visit: { title: 'Visite familiale en France', legacy: true }
@@ -142,15 +141,20 @@ function showView(view) {
     : 'Des dossiers temporaires qui s’appuient sur votre coffre.';
 }
 
+function journeyTitle(journey) {
+  const profile = journey && journeyProfiles[journey.id];
+  return profile?.situation_answers?.custom_title || (journey && journeys[journey.code] ? journeys[journey.code].title : 'Démarche');
+}
+
 function render() {
   $('#greeting').textContent = 'Bonjour.';
   $('#profile-button').textContent = currentUser ? initials(currentUser.email) : '—';
   $('#person-one').textContent = currentUser ? initials(currentUser.email).slice(0, 1) : 'J';
   $('#documents-ready').textContent = documents.filter((doc) => !doc.archived_at).length;
   const journey = currentJourney ? journeys[currentJourney.code] : null;
-  $('#journey-title').textContent = journey ? journey.title : 'Préparer un dossier';
-  $('#dossier-title').textContent = journey ? journey.title : 'Choisissez votre démarche';
-  $('#journey-description').textContent = journey ? 'Jamm compare les pièces présentes avec cette préparation.' : 'Commencez par choisir une démarche.';
+  $('#journey-title').textContent = journey ? journeyTitle(currentJourney) : 'Préparer un dossier';
+  $('#dossier-title').textContent = journey ? journeyTitle(currentJourney) : 'Choisissez votre démarche';
+  $('#journey-description').textContent = journey ? 'Jamm part de votre situation avant de préparer les pièces.' : 'Commencez par choisir une démarche.';
   renderDocuments();
   renderJourneys();
   renderChecklist();
@@ -255,7 +259,7 @@ function renderJourneys() {
     const progress = journeyProgress(journey);
     const selectedClass = currentJourney && currentJourney.id === journey.id ? ' selected' : '';
     const statusLabel = journeyStatusLabel(journey);
-    return '<button class="journey-card' + selectedClass + '" data-journey-id="' + journey.id + '" type="button"><span class="journey-card-icon">' + (journey.status === 'completed' ? '✓' : '→') + '</span><span><small>' + (journey.status === 'completed' ? 'TERMINÉE' : 'EN COURS') + '</small><strong>' + definition.title + '</strong><em>' + statusLabel + '</em></span><b>→</b></button>';
+    return '<button class="journey-card' + selectedClass + '" data-journey-id="' + journey.id + '" type="button"><span class="journey-card-icon">' + (journey.status === 'completed' ? '✓' : '→') + '</span><span><small>' + (journey.status === 'completed' ? 'TERMINÉE' : 'EN COURS') + '</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + statusLabel + '</em></span><b>→</b></button>';
   }).join('');
   const suggestions = Object.entries(journeys).filter(([code, definition]) => !definition.legacy && !activeCodes.has(code)).map(([code, definition]) => '<button class="journey-card suggestion" data-start-journey="' + code + '" type="button"><span class="journey-card-icon">+</span><span><small>NOUVELLE DÉMARCHE</small><strong>' + definition.title + '</strong><em>Commencer la préparation</em></span><b>→</b></button>').join('');
   board.innerHTML = existing + suggestions;
