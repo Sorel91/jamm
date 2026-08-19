@@ -143,6 +143,7 @@ function showView(view) {
   const isVault = view === 'vault';
   $('#vault-view').hidden = !isVault;
   $('#journeys-view').hidden = isVault;
+  $('#add-document').hidden = !isVault;
   document.querySelectorAll('.app-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
   $('#today').textContent = isVault ? 'VOTRE ESPACE PRIVÉ' : 'VOS DÉMARCHES';
   $('#app-subtitle').textContent = isVault
@@ -296,10 +297,14 @@ function renderJourneys() {
   const suggestions = Object.entries(journeys)
     .filter(([code, definition]) => !definition.legacy && !activeCodes.has(code))
     .map(([code, definition]) => '<button class="start-journey" data-start-journey="' + code + '" type="button"><span class="start-journey-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Choisir votre situation' : definition.kind === 'passport' ? 'Choisir le pays du passeport' : 'Créer votre liste de pièces') + '</em></span><b>→</b></button>').join('');
+  const dossier = $('#demarche');
   board.innerHTML =
-    (activeJourneys.length ? '<section class="journey-group resume-group"><p class="journey-group-title">À REPRENDRE</p><div class="resume-list">' + activeJourneys.map(activeCard).join('') + '</div></section>' : '<section class="journey-group resume-group empty-resume"><p class="journey-group-title">À REPRENDRE</p><p>Vous n’avez pas encore de dossier en cours.</p></section>') +
     '<section class="journey-group journey-new"><p class="journey-group-title">COMMENCER</p><div class="start-journey-grid">' + suggestions + '</div></section>' +
-    (completedJourneys.length ? '<details class="completed-journeys"><summary>Démarches terminées <span>' + completedJourneys.length + '</span></summary><div class="journey-group-grid">' + completedJourneys.map(completedCard).join('') + '</div></details>' : '');
+    (activeJourneys.length ? '<section class="journey-group resume-group"><p class="journey-group-title">À REPRENDRE</p><div class="resume-list">' + activeJourneys.map(activeCard).join('') + '</div></section>' : '<section class="journey-group resume-group empty-resume"><p class="journey-group-title">À REPRENDRE</p><p>Vous n’avez pas encore de dossier en cours.</p></section>') +
+    (completedJourneys.length ? '<details class="completed-journeys"><summary>DÉMARCHES TERMINÉES <span>' + completedJourneys.length + '</span></summary><div class="journey-group-grid">' + completedJourneys.map(completedCard).join('') + '</div></details>' : '');
+  const resumeGroup = board.querySelector('.resume-group');
+  if (currentJourney && resumeGroup) resumeGroup.appendChild(dossier);
+  else board.insertAdjacentElement('afterend', dossier);
   board.querySelectorAll('[data-resume-id]').forEach((button) => button.addEventListener('click', () => {
     currentJourney = journeysList.find((journey) => journey.id === button.dataset.resumeId) || null;
     dossierCollapsed = false;
