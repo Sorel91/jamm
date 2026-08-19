@@ -451,7 +451,17 @@ function showQualification(code, existingJourney = null) {
     if (catalogId) catalogId.value = '';
     const confirmation = node.querySelector('#selected-route-confirmation');
     if (confirmation) confirmation.hidden = true;
-    const matches = passportEntries.filter((entry) => entry.title.toLocaleLowerCase('fr-FR').startsWith(country.toLocaleLowerCase('fr-FR') + ' :'));
+    const countryPrefixes = {
+      'Sénégal': 'passeport sénégalais',
+      'France': 'passeport français',
+      'Mali': 'passeport malien',
+      'Côte d’Ivoire': 'passeport ivoirien',
+      'Cameroun': 'passeport camerounais',
+      'République démocratique du Congo': 'passeport congolais',
+      'Guinée': 'passeport guinéen'
+    };
+    const prefix = countryPrefixes[country] || country.toLocaleLowerCase('fr-FR');
+    const matches = passportEntries.filter((entry) => entry.title.toLocaleLowerCase('fr-FR').startsWith(prefix + ' :'));
     situation.hidden = false;
     situation.style.cssText = 'display:grid;gap:8px;margin:14px 0 4px';
     if (!matches.length) {
