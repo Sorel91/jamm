@@ -445,6 +445,7 @@ function renderChecklist() {
     checklist.innerHTML = '<div class="journey-empty"><span>→</span><div><strong>Choisissez une démarche au-dessus.</strong><p>Jamm vous demandera ensuite votre situation, puis préparera le dossier.</p></div></div>';
     $('#progress-value').textContent = '0%';
     $('#complete-journey').hidden = true;
+    $('#reopen-journey').hidden = true;
     return;
   }
   const profile = journeyProfiles[currentJourney.id];
@@ -452,6 +453,7 @@ function renderChecklist() {
   prepareButton.disabled = false;
   prepareButton.innerHTML = 'Préparer et télécharger le dossier <span>→</span>';
   $('#complete-journey').hidden = currentJourney.status !== 'active';
+  $('#reopen-journey').hidden = currentJourney.status !== 'completed';
   if (!profile) {
     $('#progress-value').textContent = '—';
     checklist.innerHTML = '<div class="journey-empty"><span>!</span><div><strong>Précisez votre situation.</strong><p>Jamm ne propose pas de liste générique : nous avons besoin de comprendre votre démarche.</p><button class="outline" id="qualify-current-journey" type="button">Préciser ma situation</button></div></div>';
@@ -728,6 +730,27 @@ async function completeJourney() {
   await loadData();
 }
 
+async function reopenJourney() {
+  if (!currentJourney || currentJourney.status !== 'completed') return;
+  if (!confirm('Rouvrir ce dossier ? Il reviendra dans « À reprendre ». Vos documents et votre checklist seront conservés.')) return;
+  const { data, error } = await supabaseClient
+    .from('journeys')
+    .update({ status: 'active' })
+    .eq('id', currentJourney.id)
+    .eq('owner_id', currentUser.id)
+    .select('id, status')
+    .single();
+  if (error || data?.status !== 'active') {
+    alert('Impossible de rouvrir ce dossier. Vérifiez votre connexion et réessayez.');
+    return;
+  }
+  await loadData();
+  showView('journeys');
+  $('#success').hidden = false;
+  $('#success').textContent = 'Dossier rouvert : vous pouvez reprendre sa checklist.';
+  requestAnimationFrame(() => $('#demarche')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+}
+
 function showUpload(preselectedType) {
   const options = Object.entries(documentLabels).map(([value, label]) => '<option value="' + value + '"' + (value === preselectedType ? ' selected' : '') + '>' + label + '</option>').join('');
   const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Ajouter un document</h2><p style="color:#647069;line-height:1.45">Le fichier est conservé dans votre coffre privé. Vérifiez qu’il s’agit bien de votre document.</p><form id="upload-form"><label>Fichier<input id="upload-file" type="file" required accept=".pdf,image/jpeg,image/png"></label><label>Type de document<select id="upload-type">' + options + '</select></label><label>Titulaire du document (facultatif)<input id="upload-holder" placeholder="Ex. Mariam Diallo"></label><label>Pays émetteur (facultatif)<input id="upload-country" placeholder="Ex. France"></label><label>Date d’expiration (facultatif)<input id="upload-expiry" type="date"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Ajouter au coffre <span>→</span></button></form>');
@@ -836,6 +859,7 @@ function wireUi() {
   $('#invite').addEventListener('click', () => alert('Le partage familial sécurisé arrive dans une prochaine version.'));
   $('#new-journey').addEventListener('click', () => { $('#journey-list').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#complete-journey').addEventListener('click', completeJourney);
+  $('#reopen-journey').addEventListener('click', reopenJourney);
   $('#profile-button').addEventListener('click', () => showProfile());
   document.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => $('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' })));
 }
