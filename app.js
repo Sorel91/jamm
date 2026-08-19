@@ -363,7 +363,7 @@ function showQualification(code, existingJourney = null) {
     ? passportOptions.map((item) => '<button class="journey-option" data-category="' + item + '" type="button">' + item + '</button>').join('')
     : residenceOptions;
   const categoryLabel = definition.kind === 'passport' ? 'Quel passeport souhaitez-vous renouveler ?' : 'Choisissez un parcours officiel de la Préfecture de l’Essonne';
-  const catalogueNote = definition.kind === 'residence' ? '<p class="catalogue-note">Catalogue pilote Essonne · sources contrôlées le 19 août 2026. Les intitulés ci-dessous proviennent du site de la préfecture.</p>' : '';
+  const catalogueNote = definition.kind === 'residence' ? '<p class="catalogue-note">Catalogue pilote Essonne · sources contrôlées le 19 août 2026. Les intitulés ci-dessous proviennent du site de la préfecture.</p><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>' : '';
   const situationField = isCustom
     ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><label>Liste des documents nécessaires<textarea id="journey-requirements" rows="6" required placeholder="Une pièce par ligne&#10;Ex. Copie du passeport&#10;Procuration légalisée&#10;Attestation bancaire"></textarea></label>'
     : '<label>' + categoryLabel + '<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + standardOptions + '</div>' + catalogueNote + '</label>';
@@ -381,6 +381,10 @@ function showQualification(code, existingJourney = null) {
       if (catalogId) catalogId.value = button.dataset.catalogId || '';
       optionButtons.forEach((item) => { item.style.background = '#fff'; item.style.borderColor = '#cdd6cd'; item.style.color = '#315d4c'; });
       button.style.background = '#1f664f'; button.style.borderColor = '#1f664f'; button.style.color = '#fff';
+      const confirmation = node.querySelector('#selected-route-confirmation');
+      if (confirmation) { confirmation.textContent = 'Parcours sélectionné : ' + button.dataset.category; confirmation.hidden = false; }
+      const submit = node.querySelector('[type="submit"]');
+      if (submit) submit.innerHTML = 'Continuer avec ce parcours <span>→</span>';
     });
   });
   const picker = node.querySelector('.journey-option-picker');
@@ -417,7 +421,10 @@ function showQualification(code, existingJourney = null) {
     const payload = { journey_id: journey.id, owner_id: currentUser.id, department: authority, permit_category: customTitle || category.value, expiry_date: node.querySelector('#journey-expiry')?.value || null, situation_answers: { ...previousAnswers, note: node.querySelector('#journey-note').value.trim(), route: code, catalog_entry_id: selectedEntry?.id || null, custom_title: customTitle || undefined, required_documents: requirements, requirement_links: previousAnswers.requirement_links || {} }, source_status: selectedEntry ? selectedEntry.source_status : 'to_verify', official_source_url: selectedEntry?.source_url || null, source_checked_at: selectedEntry?.source_checked_at || null, updated_at: new Date().toISOString() };
     const { error } = await supabaseClient.from('journey_profiles').upsert(payload, { onConflict: 'journey_id' });
     if (error) { showError(node, error.message); submit.disabled = false; return; }
-    node.remove(); currentJourney = journey; await loadData(); showView('journeys'); $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    node.remove(); currentJourney = journey; await loadData(); showView('journeys');
+    $('#success').hidden = false;
+    $('#success').textContent = 'Votre démarche est enregistrée. Le parcours officiel et sa source sont maintenant rattachés à ce dossier.';
+    $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 
