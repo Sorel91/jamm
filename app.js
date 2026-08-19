@@ -210,17 +210,10 @@ function render() {
 function updateDossierCollapse() {
   const dossier = $('#demarche');
   const toggle = $('#collapse-dossier');
-  const canCollapse = Boolean(currentJourney);
-  dossier.hidden = !canCollapse;
-  if (!canCollapse) {
-    dossier.classList.remove('is-collapsed');
-    toggle.hidden = true;
-    return;
-  }
-  dossier.classList.toggle('is-collapsed', dossierCollapsed);
-  toggle.hidden = false;
-  toggle.setAttribute('aria-expanded', String(!dossierCollapsed));
-  toggle.textContent = dossierCollapsed ? 'Afficher la checklist' : 'Réduire la checklist';
+  dossier.hidden = !currentJourney;
+  dossier.classList.remove('is-collapsed');
+  dossierCollapsed = false;
+  if (toggle) toggle.hidden = true;
 }
 
 function documentMatchesRequirement(doc, requirement, links = {}) {
@@ -805,7 +798,6 @@ function wireUi() {
   $('#invite').addEventListener('click', () => alert('Le partage familial sécurisé arrive dans une prochaine version.'));
   $('#new-journey').addEventListener('click', () => { $('#journey-list').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#complete-journey').addEventListener('click', completeJourney);
-  $('#collapse-dossier').addEventListener('click', () => { dossierCollapsed = !dossierCollapsed; updateDossierCollapse(); });
   $('#profile-button').addEventListener('click', () => showProfile());
   document.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => $('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' })));
 }
