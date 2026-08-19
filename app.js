@@ -147,6 +147,7 @@ function renderChecklist() {
 }
 
 async function chooseJourney(code) {
+  if (!currentUser) { showAuth(); return; }
   const { data, error } = await supabase.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
   if (error) { alert('Impossible de créer cette démarche : ' + error.message); return; }
   currentJourney = data;
