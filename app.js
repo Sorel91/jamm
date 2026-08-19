@@ -159,11 +159,8 @@ function render() {
   $('#greeting').textContent = 'Bonjour.';
   $('#profile-button').textContent = currentUser ? initials(currentUser.email) : '—';
   $('#person-one').textContent = currentUser ? initials(currentUser.email).slice(0, 1) : 'J';
-  $('#documents-ready').textContent = documents.filter((doc) => !doc.archived_at).length;
   const journey = currentJourney ? journeys[currentJourney.code] : null;
-  $('#journey-title').textContent = journey ? journeyTitle(currentJourney) : 'Préparer un dossier';
   $('#dossier-title').textContent = journey ? journeyTitle(currentJourney) : 'Choisissez votre démarche';
-  $('#journey-description').textContent = journey ? 'Jamm part de votre situation avant de préparer les pièces.' : 'Commencez par choisir une démarche.';
   renderDocuments();
   renderJourneys();
   renderChecklist();
