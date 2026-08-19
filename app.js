@@ -6,7 +6,10 @@ const journeys = {
   renewal_employee: { title: 'Renouveler un titre — salarié', short: 'Salarié' },
   renewal_family: { title: 'Renouveler un titre — vie privée et familiale', short: 'Vie privée et familiale' },
   renewal_student: { title: 'Renouveler un titre — étudiant', short: 'Étudiant' },
-  renewal_visitor: { title: 'Renouveler un titre — visiteur', short: 'Visiteur' }
+  renewal_visitor: { title: 'Renouveler un titre — visiteur', short: 'Visiteur' },
+  residence_permit: { title: 'Renouvellement du titre de séjour', legacy: true },
+  passport: { title: 'Renouvellement de passeport', legacy: true },
+  family_visit: { title: 'Visite familiale en France', legacy: true }
 };
 const documentLabels = {
   passport: 'Passeport', residence_permit: 'Titre de séjour', birth_certificate: 'Acte de naissance',
@@ -254,7 +257,7 @@ function renderJourneys() {
     const statusLabel = journeyStatusLabel(journey);
     return '<button class="journey-card' + selectedClass + '" data-journey-id="' + journey.id + '" type="button"><span class="journey-card-icon">' + (journey.status === 'completed' ? '✓' : '→') + '</span><span><small>' + (journey.status === 'completed' ? 'TERMINÉE' : 'EN COURS') + '</small><strong>' + definition.title + '</strong><em>' + statusLabel + '</em></span><b>→</b></button>';
   }).join('');
-  const suggestions = Object.entries(journeys).filter(([code]) => !activeCodes.has(code)).map(([code, definition]) => '<button class="journey-card suggestion" data-start-journey="' + code + '" type="button"><span class="journey-card-icon">+</span><span><small>NOUVELLE DÉMARCHE</small><strong>' + definition.title + '</strong><em>Commencer la préparation</em></span><b>→</b></button>').join('');
+  const suggestions = Object.entries(journeys).filter(([code, definition]) => !definition.legacy && !activeCodes.has(code)).map(([code, definition]) => '<button class="journey-card suggestion" data-start-journey="' + code + '" type="button"><span class="journey-card-icon">+</span><span><small>NOUVELLE DÉMARCHE</small><strong>' + definition.title + '</strong><em>Commencer la préparation</em></span><b>→</b></button>').join('');
   board.innerHTML = existing + suggestions;
   board.querySelectorAll('[data-journey-id]').forEach((button) => button.addEventListener('click', () => {
     currentJourney = journeysList.find((journey) => journey.id === button.dataset.journeyId) || null;
