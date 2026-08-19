@@ -585,16 +585,17 @@ function showQualification(code, existingJourney = null) {
   const passportField = '<label>Pays du passeport<select id="journey-passport-country" required><option value="">Choisir un pays</option>' + passportCountries.map((country) => '<option value="' + escapeHtml(country) + '">' + escapeHtml(country) + '</option>').join('') + '</select></label><div id="passport-situation" hidden aria-live="polite"></div><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">';
   const residenceField = '<label>Votre situation pour le renouvellement<select id="journey-residence-route" required><option value="">Choisir une situation</option>' + essonneEntries.map((entry) => '<option value="' + escapeHtml(entry.id) + '">' + escapeHtml(entry.title.replace(/^Renouvellement\s*:\s*/i, '')) + '</option>').join('') + '</select></label><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">' + catalogueNote;
   const homeField = '<label>Type de bien<select id="home-property-type"><option value="apartment">Appartement</option><option value="house">Maison</option><option value="new_build">Logement neuf (VEFA)</option></select></label><label>Achetez-vous seul ou à plusieurs ?<select id="home-purchase-mode"><option value="solo">J’achète seul</option><option value="joint">J’achète à deux ou plus</option></select></label><label>Où en êtes-vous dans votre achat ?<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + homePurchaseSteps.map((step) => '<button class="journey-option" data-category="' + escapeHtml(step.title) + '" type="button"><strong>' + escapeHtml(step.title) + '</strong><small style="font-weight:600;opacity:.78">Préparer les documents de cette étape</small></button>').join('') + '</div><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p></label>';
-  const situationField = isCustom
-    ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><div class="custom-requirements-field"><strong>Documents nécessaires</strong><p>Ajoutez une pièce à la fois. Jamm vérifiera ensuite si elle est déjà dans votre coffre.</p><div id="custom-requirements-list"></div><button class="outline" id="add-custom-requirement" type="button">+ Ajouter une pièce</button></div>'
-    : (isPassport ? passportField : (isHome ? homeField : residenceField));
+  const situationField = isPassport ? passportField : (isHome ? homeField : residenceField);
   const authorityLabel = isPassport ? 'Ville ou consulat où vous ferez la démarche' : definition.authorityLabel;
   const authorityPlaceholder = isPassport ? 'Ex. Consulat du Sénégal à Paris' : definition.authorityPlaceholder;
   const defaultDepartment = String(currentUser?.user_metadata?.default_department || '').trim();
   const authorityField = '<label>' + authorityLabel + '<input id="journey-department" required placeholder="' + authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : (isPassport ? '' : defaultDepartment)) + '"></label>';
-  const intro = isCustom ? 'Vous connaissez les pièces demandées ? Ajoutez-les : Jamm vous aidera à rassembler les fichiers de votre coffre.' : (isHome ? 'Jamm vous aide à organiser les documents selon votre étape. Cette liste est une aide à compléter avec votre banque, votre notaire et les documents du bien.' : (definition.kind === 'residence' ? 'Ce premier catalogue couvre les personnes domiciliées en Essonne (91). Le lien officiel sera conservé dans votre dossier.' : 'Choisissez d’abord le pays, puis la situation exacte de votre passeport.'));
-  const formFields = isPassport ? situationField + authorityField : authorityField + situationField;
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form">' + formFields + (isCustom || isHome ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label><div class="qualification-submit-bar"><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></div></form>');
+  const noteField = '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label>';
+  const customDetails = '<section id="custom-step-details"><p class="custom-step-label">ÉTAPE 1 SUR 2 · DÉCRIRE</p>' + authorityField + '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label>' + noteField + '<p id="custom-step-error" hidden style="color:#aa3425;font-size:13px"></p><button class="primary" id="custom-next-step" type="button">Continuer vers les documents <span>→</span></button></section>';
+  const customDocuments = '<section id="custom-step-documents" hidden><p class="custom-step-label">ÉTAPE 2 SUR 2 · DOCUMENTS</p><div class="custom-requirements-field"><strong>Quels documents sont nécessaires ?</strong><p>Ajoutez une pièce par ligne. Jamm cherchera ensuite les correspondances dans votre coffre.</p><div id="custom-requirements-list"></div><button class="outline" id="add-custom-requirement" type="button">+ Ajouter une pièce</button></div><button class="link-button" id="custom-back-step" type="button">← Modifier la démarche</button></section>';
+  const intro = isCustom ? 'Commencez par décrire votre besoin. Vous constituerez ensuite votre liste de pièces personnalisée.' : (isHome ? 'Jamm vous aide à organiser les documents selon votre étape. Cette liste est une aide à compléter avec votre banque, votre notaire et les documents du bien.' : (definition.kind === 'residence' ? 'Ce premier catalogue couvre les personnes domiciliées en Essonne (91). Le lien officiel sera conservé dans votre dossier.' : 'Choisissez d’abord le pays, puis la situation exacte de votre passeport.'));
+  const formFields = isCustom ? customDetails + customDocuments : (isPassport ? situationField + authorityField : authorityField + situationField);
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form">' + formFields + (isCustom || isHome ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + (isCustom ? '' : noteField) + '<div class="qualification-submit-bar"><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></div></form>');
   styleModal(node);
   node.querySelectorAll('textarea').forEach((field) => field.style.cssText = 'display:block;box-sizing:border-box;width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial;resize:vertical');
   const customRequirementsList = node.querySelector('#custom-requirements-list');
@@ -639,7 +640,34 @@ function showQualification(code, existingJourney = null) {
   const picker = node.querySelector('.journey-option-picker');
   if (picker) picker.style.cssText = 'display:grid;grid-template-columns:1fr;gap:6px;margin-top:9px';
   const submitBar = node.querySelector('.qualification-submit-bar');
-  if (submitBar) submitBar.style.cssText = 'position:sticky;bottom:-34px;margin:18px -34px -34px;padding:14px 34px 20px;background:#fbfaf6;border-top:1px solid #e0e5df;z-index:2';
+  if (submitBar) {
+    submitBar.style.cssText = 'position:sticky;bottom:-34px;margin:18px -34px -34px;padding:14px 34px 20px;background:#fbfaf6;border-top:1px solid #e0e5df;z-index:2';
+    if (isCustom) submitBar.hidden = true;
+  }
+  if (isCustom) {
+    const detailsStep = node.querySelector('#custom-step-details');
+    const documentsStep = node.querySelector('#custom-step-documents');
+    const showCustomStep = (step) => {
+      detailsStep.hidden = step !== 1;
+      documentsStep.hidden = step !== 2;
+      submitBar.hidden = step !== 2;
+      if (step === 2) documentsStep.querySelector('.custom-requirement-input')?.focus();
+    };
+    node.querySelector('#custom-next-step').addEventListener('click', () => {
+      const title = node.querySelector('#journey-custom-title').value.trim();
+      const authority = node.querySelector('#journey-department').value.trim();
+      const error = node.querySelector('#custom-step-error');
+      if (!title || !authority) {
+        error.textContent = 'Indiquez le nom de la démarche et le lieu ou organisme concerné.';
+        error.hidden = false;
+        (!title ? node.querySelector('#journey-custom-title') : node.querySelector('#journey-department')).focus();
+        return;
+      }
+      error.hidden = true;
+      showCustomStep(2);
+    });
+    node.querySelector('#custom-back-step').addEventListener('click', () => showCustomStep(1));
+  }
   const catalogueNoteNode = node.querySelector('.catalogue-note');
   if (catalogueNoteNode) catalogueNoteNode.style.cssText = 'margin:10px 0 0;color:#69766e;font-size:12px;line-height:1.4';
   wireRouteButtons();
