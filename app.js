@@ -528,10 +528,9 @@ function showQualification(code, existingJourney = null) {
   const passportCountries = ['France', 'Algérie', 'Maroc', 'Tunisie', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'Bénin', 'Gabon', 'Kenya', 'Mauritanie', 'Zimbabwe', 'Burkina Faso', 'République démocratique du Congo', 'République du Congo (Congo-Brazzaville)', 'Guinée', 'Nigeria', 'Éthiopie', 'Autre pays'];
   const passportEntries = officialCatalog.filter((entry) => entry.theme === 'passport_renewal');
   const officialOption = (entry, fallbackSource) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : ' + escapeHtml(entry.source_label || fallbackSource) + ' ↗</small>' + (entry.theme === 'passport_renewal' && entry.notes ? '<small style="line-height:1.35;opacity:.82">' + escapeHtml(entry.notes) + '</small>' : '') + '</button>';
-  const residenceOptions = essonneEntries.map((entry) => officialOption(entry, 'Préfecture de l’Essonne')).join('');
-  const catalogueNote = definition.kind === 'residence' ? '<p class="catalogue-note">Catalogue pilote Essonne · sources contrôlées le 19 août 2026. Les intitulés ci-dessous proviennent du site de la préfecture.</p><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>' : '<p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>';
+  const catalogueNote = definition.kind === 'residence' ? '<p class="catalogue-note">Catalogue pilote Essonne · sources contrôlées le 19 août 2026. Les intitulés proviennent des sources officielles indiquées.</p><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>' : '<p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>';
   const passportField = '<label>Pays du passeport<select id="journey-passport-country" required><option value="">Choisir un pays</option>' + passportCountries.map((country) => '<option value="' + escapeHtml(country) + '">' + escapeHtml(country) + '</option>').join('') + '</select></label><div id="passport-situation" hidden aria-live="polite"></div><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">';
-  const residenceField = '<label>Choisissez un parcours officiel de la Préfecture de l’Essonne<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + residenceOptions + '</div>' + catalogueNote + '</label>';
+  const residenceField = '<label>Votre situation pour le renouvellement<select id="journey-residence-route" required><option value="">Choisir une situation</option>' + essonneEntries.map((entry) => '<option value="' + escapeHtml(entry.id) + '">' + escapeHtml(entry.title.replace(/^Renouvellement\s*:\s*/i, '')) + '</option>').join('') + '</select></label><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">' + catalogueNote;
   const homeField = '<label>Type de bien<select id="home-property-type"><option value="apartment">Appartement</option><option value="house">Maison</option><option value="new_build">Logement neuf (VEFA)</option></select></label><label>Achetez-vous seul ou à plusieurs ?<select id="home-purchase-mode"><option value="solo">J’achète seul</option><option value="joint">J’achète à deux ou plus</option></select></label><label>Où en êtes-vous dans votre achat ?<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + homePurchaseSteps.map((step) => '<button class="journey-option" data-category="' + escapeHtml(step.title) + '" type="button"><strong>' + escapeHtml(step.title) + '</strong><small style="font-weight:600;opacity:.78">Préparer les documents de cette étape</small></button>').join('') + '</div><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p></label>';
   const situationField = isCustom
     ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><label>Liste des documents nécessaires<textarea id="journey-requirements" rows="6" required placeholder="Une pièce par ligne&#10;Ex. Copie du passeport&#10;Procuration légalisée&#10;Attestation bancaire"></textarea></label>'
@@ -571,7 +570,20 @@ function showQualification(code, existingJourney = null) {
   if (catalogueNoteNode) catalogueNoteNode.style.cssText = 'margin:10px 0 0;color:#69766e;font-size:12px;line-height:1.4';
   wireRouteButtons();
   const countrySelect = node.querySelector('#journey-passport-country');
+  const residenceSelect = node.querySelector('#journey-residence-route');
   const situation = node.querySelector('#passport-situation');
+  const showResidenceRoute = (entryId) => {
+    const entry = essonneEntries.find((item) => item.id === entryId);
+    if (!entry) return;
+    if (category) category.value = entry.title;
+    if (catalogId) catalogId.value = entry.id;
+    const confirmation = node.querySelector('#selected-route-confirmation');
+    if (confirmation) {
+      confirmation.textContent = 'Parcours sélectionné : ' + entry.title + ' · Source : ' + (entry.source_label || 'Préfecture de l’Essonne') + ' ↗';
+      confirmation.hidden = false;
+    }
+    if (submit) submit.innerHTML = 'Continuer avec ce parcours <span>→</span>';
+  };
   const showPassportSituations = (country) => {
     if (!situation) return;
     if (category) category.value = '';
@@ -619,6 +631,13 @@ function showQualification(code, existingJourney = null) {
     if (countrySelect.value) showPassportSituations(countrySelect.value);
     else if (situation) { situation.hidden = true; situation.innerHTML = ''; }
   });
+  if (residenceSelect) residenceSelect.addEventListener('change', () => {
+    if (category) category.value = '';
+    if (catalogId) catalogId.value = '';
+    const confirmation = node.querySelector('#selected-route-confirmation');
+    if (confirmation) confirmation.hidden = true;
+    if (residenceSelect.value) showResidenceRoute(residenceSelect.value);
+  });
   if (!profile && isPassport && countrySelect) {
     const preferredCountry = String(currentUser?.user_metadata?.default_passport_country || '');
     if (passportCountries.includes(preferredCountry)) {
@@ -635,6 +654,12 @@ function showQualification(code, existingJourney = null) {
         showPassportSituations(existingCountry);
         const selectedOption = Array.from(node.querySelectorAll('[data-category]')).find((button) => button.dataset.category === existingTitle);
         if (selectedOption) selectedOption.click();
+      }
+    } else if (definition.kind === 'residence' && residenceSelect) {
+      const selectedEntry = essonneEntries.find((entry) => entry.title === profile.permit_category);
+      if (selectedEntry) {
+        residenceSelect.value = selectedEntry.id;
+        showResidenceRoute(selectedEntry.id);
       }
     } else if (category) {
       category.value = profile.permit_category;
