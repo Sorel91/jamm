@@ -321,10 +321,12 @@ function renderDocuments() {
     const action = lifecycle.key === 'archived'
       ? '<button class="add restore-document" data-id="' + doc.id + '" type="button">Restaurer</button>'
       : '<button class="add archive-document" data-id="' + doc.id + '" type="button">Archiver</button>';
-    return '<article class="document-card lifecycle-' + lifecycle.key + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + detail + '</small></span><span class="status ' + lifecycle.key + '">' + lifecycle.label + '</span>' + action + '<button class="delete-document" data-id="' + doc.id + '" type="button" aria-label="Supprimer ' + escapeHtml(doc.display_name) + '">×</button></article>';
+    return '<article class="document-card lifecycle-' + lifecycle.key + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + detail + '</small></span><span class="status ' + lifecycle.key + '">' + lifecycle.label + '</span><span class="vault-document-actions"><button class="link-button open-vault-document" data-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button download-vault-document" data-id="' + doc.id + '" type="button">Télécharger</button>' + action + '</span><button class="delete-document" data-id="' + doc.id + '" type="button" aria-label="Supprimer ' + escapeHtml(doc.display_name) + '">×</button></article>';
   }).join('');
   container.querySelectorAll('.archive-document').forEach((button) => button.addEventListener('click', () => archiveDocument(button.dataset.id)));
   container.querySelectorAll('.restore-document').forEach((button) => button.addEventListener('click', () => restoreDocument(button.dataset.id)));
+  container.querySelectorAll('.open-vault-document').forEach((button) => button.addEventListener('click', () => openChecklistDocument(button.dataset.id)));
+  container.querySelectorAll('.download-vault-document').forEach((button) => button.addEventListener('click', () => downloadChecklistDocument(button.dataset.id)));
   container.querySelectorAll('.delete-document').forEach((button) => button.addEventListener('click', () => deleteDocument(button.dataset.id)));
 }
 
