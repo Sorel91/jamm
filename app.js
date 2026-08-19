@@ -782,6 +782,7 @@ function showQualification(code, existingJourney = null) {
   node.querySelector('#qualification-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     submit.disabled = true;
+    try {
     const authority = node.querySelector('#journey-department').value.trim();
     if (!isCustom && !category.value) { showError(node, isPassport ? 'Choisissez d’abord le pays puis votre situation.' : 'Choisissez une option pour continuer.'); submit.disabled = false; return; }
     const customRequirements = isCustom ? Array.from(node.querySelectorAll('.custom-requirement-input')).map((input) => input.value.trim()).filter(Boolean) : [];
@@ -796,19 +797,23 @@ function showQualification(code, existingJourney = null) {
     const customTitle = node.querySelector('#journey-custom-title')?.value.trim();
     const propertyType = node.querySelector('#home-property-type')?.value || '';
     const purchaseMode = node.querySelector('#home-purchase-mode')?.value || '';
-    const homeBaseRequirements = homePurchaseSteps.find((step) => step.title === category.value)?.requirements || [];
+    const homeBaseRequirements = homePurchaseSteps.find((step) => step.title === category?.value)?.requirements || [];
     const propertyRequirements = propertyType === 'apartment' ? [{ label: 'Règlement de copropriété et derniers procès-verbaux d’assemblée générale', document_type: 'other' }] : (propertyType === 'house' ? [{ label: 'Informations sur le terrain, les limites et les éventuelles servitudes', document_type: 'other' }] : (propertyType === 'new_build' ? [{ label: 'Contrat de réservation et garantie financière du programme', document_type: 'other' }] : []));
     const coBuyerRequirements = purchaseMode === 'joint' ? [{ label: 'Pièce d’identité du ou des co-acquéreurs', document_type: 'identity_card' }, { label: 'Justificatifs de revenus du ou des co-acquéreurs', document_type: 'other' }] : [];
     const requirements = isHome ? [...homeBaseRequirements, ...propertyRequirements, ...coBuyerRequirements] : (isCustom ? customRequirements : []);
     const previousAnswers = profile?.situation_answers || {};
     const selectedEntry = officialCatalog.find((entry) => entry.id === catalogId?.value);
-    const payload = { journey_id: journey.id, owner_id: currentUser.id, department: authority, permit_category: customTitle || category.value, expiry_date: node.querySelector('#journey-expiry')?.value || null, situation_answers: { ...previousAnswers, note: node.querySelector('#journey-note').value.trim(), route: code, catalog_entry_id: selectedEntry?.id || null, custom_title: customTitle || undefined, required_documents: requirements, home_property_type: isHome ? propertyType : previousAnswers.home_property_type, home_purchase_mode: isHome ? purchaseMode : previousAnswers.home_purchase_mode, requirement_links: previousAnswers.requirement_links || {} }, source_status: selectedEntry ? selectedEntry.source_status : 'to_verify', official_source_url: selectedEntry?.source_url || null, source_checked_at: selectedEntry?.source_checked_at || null, updated_at: new Date().toISOString() };
+    const payload = { journey_id: journey.id, owner_id: currentUser.id, department: authority, permit_category: customTitle || category?.value || '', expiry_date: node.querySelector('#journey-expiry')?.value || null, situation_answers: { ...previousAnswers, note: node.querySelector('#journey-note').value.trim(), route: code, catalog_entry_id: selectedEntry?.id || null, custom_title: customTitle || undefined, required_documents: requirements, home_property_type: isHome ? propertyType : previousAnswers.home_property_type, home_purchase_mode: isHome ? purchaseMode : previousAnswers.home_purchase_mode, requirement_links: previousAnswers.requirement_links || {} }, source_status: selectedEntry ? selectedEntry.source_status : 'to_verify', official_source_url: selectedEntry?.source_url || null, source_checked_at: selectedEntry?.source_checked_at || null, updated_at: new Date().toISOString() };
     const { error } = await supabaseClient.from('journey_profiles').upsert(payload, { onConflict: 'journey_id' });
     if (error) { showError(node, error.message); submit.disabled = false; return; }
     node.remove(); currentJourney = journey; await loadData(); showView('journeys');
     $('#success').hidden = false;
     $('#success').textContent = isHome ? 'Votre étape d’achat est enregistrée. Jamm organise vos pièces, à compléter avec votre banque et votre notaire.' : 'Votre démarche est enregistrée. Le parcours officiel et sa source sont maintenant rattachés à ce dossier.';
     $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      showError(node, 'Impossible d’enregistrer cette démarche. Réessayez dans un instant.');
+      submit.disabled = false;
+    }
   });
 }
 async function completeJourney() {
