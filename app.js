@@ -257,16 +257,21 @@ function journeyStatusLabel(journey) {
 
 function renderJourneys() {
   const board = $('#journey-list');
-  const activeCodes = new Set(journeysList.filter((journey) => journey.status === 'active').map((journey) => journey.code));
-  const existing = journeysList.map((journey) => {
-    const definition = journeys[journey.code];
-    const progress = journeyProgress(journey);
+  const activeJourneys = journeysList.filter((journey) => journey.status === 'active');
+  const completedJourneys = journeysList.filter((journey) => journey.status === 'completed');
+  const activeCodes = new Set(activeJourneys.map((journey) => journey.code));
+  const journeyCard = (journey) => {
+    const definition = journeys[journey.code] || { title: 'Démarche' };
     const selectedClass = currentJourney && currentJourney.id === journey.id ? ' selected' : '';
-    const statusLabel = journeyStatusLabel(journey);
-    return '<button class="journey-card' + selectedClass + '" data-journey-id="' + journey.id + '" type="button"><span class="journey-card-icon">' + (journey.status === 'completed' ? '✓' : '→') + '</span><span><small>' + (journey.status === 'completed' ? 'TERMINÉE' : 'EN COURS') + '</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + statusLabel + '</em></span><b>→</b></button>';
-  }).join('');
+    return '<button class="journey-card' + selectedClass + '" data-journey-id="' + journey.id + '" type="button"><span class="journey-card-icon">' + (journey.status === 'completed' ? '✓' : '→') + '</span><span><small>' + (journey.status === 'completed' ? 'TERMINÉE' : 'EN COURS') + '</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + journeyStatusLabel(journey) + '</em></span><b>→</b></button>';
+  };
   const suggestions = Object.entries(journeys).filter(([code, definition]) => !definition.legacy && !activeCodes.has(code)).map(([code, definition]) => '<button class="journey-card suggestion" data-start-journey="' + code + '" type="button"><span class="journey-card-icon">+</span><span><small>NOUVELLE DÉMARCHE</small><strong>' + definition.title + '</strong><em>Commencer la préparation</em></span><b>→</b></button>').join('');
-  board.innerHTML = existing + suggestions;
+  const active = activeJourneys.map(journeyCard).join('');
+  const completed = completedJourneys.map(journeyCard).join('');
+  board.innerHTML =
+    (active ? '<section class="journey-group"><p class="journey-group-title">EN COURS</p><div class="journey-group-grid">' + active + '</div></section>' : '') +
+    '<section class="journey-group journey-new"><p class="journey-group-title">COMMENCER UNE NOUVELLE DÉMARCHE</p><div class="journey-group-grid">' + suggestions + '</div></section>' +
+    (completed ? '<details class="completed-journeys"><summary>Voir mes démarches terminées <span>' + completedJourneys.length + '</span></summary><div class="journey-group-grid">' + completed + '</div></details>' : '');
   board.querySelectorAll('[data-journey-id]').forEach((button) => button.addEventListener('click', () => {
     currentJourney = journeysList.find((journey) => journey.id === button.dataset.journeyId) || null;
     render();
