@@ -165,3 +165,6 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 
 /* Le contenu de « Plus » doit toujours rester une liste verticale lisible. */
 .vault-more-menu{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:2px!important;width:164px!important;padding:6px!important}.vault-more-menu>button{display:block!important;width:100%!important;min-height:34px!important;margin:0!important;padding:8px 10px!important;line-height:18px!important;white-space:nowrap!important}.vault-more-menu .add{position:static!important;color:#58705f!important}
+
+/* Une démarche reprise s’ouvre directement sous sa propre carte. */
+.resume-item{display:grid;gap:10px}.resume-item.is-open .resume-journey{border-color:#78a58a;background:#f1f8f2}.inline-dossier-slot{margin:0 0 4px}.inline-dossier-slot .dossier{margin:0;border-color:#cfe0d2;box-shadow:none}.inline-dossier-slot .dossier-header{padding-top:0}@media(max-width:640px){.inline-dossier-slot .dossier{padding:22px 17px}.resume-action{font-size:12px}}
