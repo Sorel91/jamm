@@ -73,3 +73,12 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 .tab-icon{width:23px;height:23px;display:grid;place-items:center;border-radius:7px;background:#dce9dc;color:#356d55;font-size:15px;line-height:1}
 .app-tab:hover{background:#f9fcf8;color:#245b47}.app-tab.active{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 5px 12px rgba(29,96,75,.2)}.app-tab.active .tab-icon{background:rgba(255,255,255,.18);color:#fff}
 @media(max-width:760px){.app-tabs{gap:3px;padding:4px}.app-tab{min-width:0;padding:8px 9px;gap:5px;font-size:12px}.tab-icon{width:19px;height:19px;border-radius:5px;font-size:12px}}
+
+.app-tabs{background:transparent;border:0;box-shadow:none;padding:0}
+.app-tab[data-view="vault"]{background:#e4f0e4;border-color:#cfe0d0;color:#286149}
+.app-tab[data-view="journeys"]{background:#f9ecd0;border-color:#ecd5a3;color:#8d5c1b}
+.app-tab[data-view="vault"] .tab-icon{background:#cce1cd;color:#266047}
+.app-tab[data-view="journeys"] .tab-icon{background:#efd59b;color:#8c5919}
+.app-tab[data-view="vault"].active{background:#1d604b;border-color:#1d604b;color:#fff}
+.app-tab[data-view="journeys"].active{background:#bc7b28;border-color:#bc7b28;color:#fff;box-shadow:0 5px 12px rgba(145,90,23,.22)}
+.app-tab[data-view="vault"].active .tab-icon,.app-tab[data-view="journeys"].active .tab-icon{background:rgba(255,255,255,.19);color:#fff}
