@@ -269,7 +269,7 @@ function journeyProgress(journey) {
   const requirements = personal.length ? personal.map((label) => ({ label, document_type: null })) : (Array.isArray(catalogEntry?.requirements) ? catalogEntry.requirements : []);
   if (!requirements.length) return null;
   const links = profile.situation_answers?.requirement_links || {};
-  const ready = requirements.filter((requirement) => documents.some((doc) => !doc.archived_at && (doc.id === links[requirement.label] || (requirement.document_type && doc.document_type === requirement.document_type)))).length;
+  const ready = requirements.filter((requirement) => documents.some((doc) => !doc.archived_at && (doc.id === links[requirement.label] || ((requirement.document_type || requirement.category) && doc.document_type === (requirement.document_type || requirement.category))))).length;
   return { ready, total: requirements.length };
 }
 
@@ -340,7 +340,7 @@ function renderChecklist() {
   const requirements = isPersonal ? personalRequirements.map((label) => ({ label, document_type: null })) : officialRequirements;
   const links = profile.situation_answers?.requirement_links || {};
   if (requirements.length) {
-    const linked = (requirement) => documents.find((doc) => !doc.archived_at && (doc.id === links[requirement.label] || (requirement.document_type && doc.document_type === requirement.document_type)));
+    const linked = (requirement) => documents.find((doc) => !doc.archived_at && (doc.id === links[requirement.label] || ((requirement.document_type || requirement.category) && doc.document_type === (requirement.document_type || requirement.category))));
     const ready = requirements.filter(linked).length;
     $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
     const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
@@ -604,7 +604,7 @@ async function downloadChecklist() {
     return;
   }
   const links = profile.situation_answers?.requirement_links || {};
-  const documentFor = (requirement) => documents.find((doc) => !doc.archived_at && (doc.id === links[requirement.label] || (requirement.document_type && doc.document_type === requirement.document_type)));
+  const documentFor = (requirement) => documents.find((doc) => !doc.archived_at && (doc.id === links[requirement.label] || ((requirement.document_type || requirement.category) && doc.document_type === (requirement.document_type || requirement.category))));
   const relevantDocuments = requirementItems.map(documentFor).filter(Boolean);
   const lines = ['JAMM — ' + journeyTitle(currentJourney), '', isPersonal ? 'Liste de préparation personnelle' : 'Checklist officielle de préparation', '------------------------------'];
   requirementItems.forEach((requirement) => lines.push((documentFor(requirement) ? '[x] ' : '[ ] ') + requirement.label));
