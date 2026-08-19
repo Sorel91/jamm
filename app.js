@@ -30,6 +30,7 @@ let journeyProfiles = {};
 let officialCatalog = [];
 let activeView = 'vault';
 let vaultFilter = 'all';
+let dossierCollapsed = false;
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character]);
@@ -166,6 +167,22 @@ function render() {
   renderDocuments();
   renderJourneys();
   renderChecklist();
+  updateDossierCollapse();
+}
+
+function updateDossierCollapse() {
+  const dossier = $('#demarche');
+  const toggle = $('#collapse-dossier');
+  const canCollapse = Boolean(currentJourney);
+  if (!canCollapse) {
+    dossier.classList.remove('is-collapsed');
+    toggle.hidden = true;
+    return;
+  }
+  dossier.classList.toggle('is-collapsed', dossierCollapsed);
+  toggle.hidden = false;
+  toggle.setAttribute('aria-expanded', String(!dossierCollapsed));
+  toggle.textContent = dossierCollapsed ? 'Afficher la checklist' : 'Réduire la checklist';
 }
 
 function categoryFor(documentType) {
@@ -559,6 +576,7 @@ function wireUi() {
   $('#invite').addEventListener('click', () => alert('Le partage familial sécurisé arrive dans une prochaine version.'));
   $('#new-journey').addEventListener('click', () => { $('#journey-list').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#complete-journey').addEventListener('click', completeJourney);
+  $('#collapse-dossier').addEventListener('click', () => { dossierCollapsed = !dossierCollapsed; updateDossierCollapse(); });
   $('#profile-button').addEventListener('click', async () => {
     if (!currentUser) { showAuth(); return; }
     if (confirm('Se déconnecter de Jamm ?')) await supabaseClient.auth.signOut();
