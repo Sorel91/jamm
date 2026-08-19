@@ -197,6 +197,36 @@ function documentMatchesRequirement(doc, requirement, links = {}) {
   return Boolean(nameMatchers[requiredType] && nameMatchers[requiredType].test(fileName));
 }
 
+async function openChecklistDocument(id) {
+  const documentToOpen = documents.find((doc) => doc.id === id && !doc.archived_at);
+  if (!documentToOpen) return;
+  const preview = window.open('about:blank', '_blank');
+  if (preview) preview.opener = null;
+  const { data, error } = await supabaseClient.storage.from('jamm-documents').createSignedUrl(documentToOpen.storage_path, 60);
+  if (error || !data?.signedUrl) {
+    if (preview) preview.close();
+    alert('Impossible d’ouvrir ce document. Vérifiez votre connexion et réessayez.');
+    return;
+  }
+  if (preview) preview.location.replace(data.signedUrl);
+  else window.location.assign(data.signedUrl);
+}
+
+async function downloadChecklistDocument(id) {
+  const documentToDownload = documents.find((doc) => doc.id === id && !doc.archived_at);
+  if (!documentToDownload) return;
+  const { data, error } = await supabaseClient.storage.from('jamm-documents').download(documentToDownload.storage_path);
+  if (error || !data) {
+    alert('Impossible de télécharger ce document. Vérifiez votre connexion et réessayez.');
+    return;
+  }
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(data);
+  link.download = documentToDownload.display_name || 'document-jamm';
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 function categoryFor(documentType) {
   if (['passport', 'identity_card'].includes(documentType)) return 'identity';
   if (documentType === 'residence_permit') return 'residency';
@@ -365,12 +395,14 @@ function renderChecklist() {
       : '<strong>Checklist officielle — ' + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>Pièces vérifiées à partir de la source officielle.</span>' + logistics + '<span>' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     checklist.innerHTML = '<div class="custom-list-note">' + heading + '</div>' + requirements.map((requirement) => {
       const doc = linked(requirement);
-      return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<em>Prêt</em>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(requirement.document_type || requirement.category || 'other') + '" type="button">Ajouter</button></span>') + '</div>';
+      return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<span class="ready-actions"><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button download-checklist-document" data-document-id="' + doc.id + '" type="button">Télécharger</button><em>Prêt</em></span>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(requirement.document_type || requirement.category || 'other') + '" type="button">Ajouter</button></span>') + '</div>';
     }).join('');
     const edit = checklist.querySelector('#edit-qualification');
     if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
     checklist.querySelectorAll('.link-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement)));
     checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload(button.dataset.documentType || 'other')));
+    checklist.querySelectorAll('.open-checklist-document').forEach((button) => button.addEventListener('click', () => openChecklistDocument(button.dataset.documentId)));
+    checklist.querySelectorAll('.download-checklist-document').forEach((button) => button.addEventListener('click', () => downloadChecklistDocument(button.dataset.documentId)));
     return;
   }
   const isVerified = profile.source_status === 'verified';
