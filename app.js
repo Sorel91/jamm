@@ -321,13 +321,40 @@ function renderDocuments() {
     const action = lifecycle.key === 'archived'
       ? '<button class="add restore-document" data-id="' + doc.id + '" type="button">Restaurer</button>'
       : '<button class="add archive-document" data-id="' + doc.id + '" type="button">Archiver</button>';
-    return '<article class="document-card lifecycle-' + lifecycle.key + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + detail + '</small></span><span class="status ' + lifecycle.key + '">' + lifecycle.label + '</span><span class="vault-document-actions"><button class="link-button open-vault-document" data-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button download-vault-document" data-id="' + doc.id + '" type="button">Télécharger</button>' + action + '</span><button class="delete-document" data-id="' + doc.id + '" type="button" aria-label="Supprimer ' + escapeHtml(doc.display_name) + '">×</button></article>';
+    return '<article class="document-card lifecycle-' + lifecycle.key + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + detail + '</small></span><span class="status ' + lifecycle.key + '">' + lifecycle.label + '</span><span class="vault-document-actions"><button class="link-button open-vault-document" data-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button download-vault-document" data-id="' + doc.id + '" type="button">Télécharger</button><button class="link-button edit-vault-document" data-id="' + doc.id + '" type="button">Modifier</button>' + action + '</span><button class="delete-document" data-id="' + doc.id + '" type="button" aria-label="Supprimer ' + escapeHtml(doc.display_name) + '">×</button></article>';
   }).join('');
   container.querySelectorAll('.archive-document').forEach((button) => button.addEventListener('click', () => archiveDocument(button.dataset.id)));
   container.querySelectorAll('.restore-document').forEach((button) => button.addEventListener('click', () => restoreDocument(button.dataset.id)));
   container.querySelectorAll('.open-vault-document').forEach((button) => button.addEventListener('click', () => openChecklistDocument(button.dataset.id)));
   container.querySelectorAll('.download-vault-document').forEach((button) => button.addEventListener('click', () => downloadChecklistDocument(button.dataset.id)));
+  container.querySelectorAll('.edit-vault-document').forEach((button) => button.addEventListener('click', () => showDocumentEditor(button.dataset.id)));
   container.querySelectorAll('.delete-document').forEach((button) => button.addEventListener('click', () => deleteDocument(button.dataset.id)));
+}
+
+function showDocumentEditor(id) {
+  const doc = documents.find((item) => item.id === id);
+  if (!doc) return;
+  const options = Object.entries(documentLabels).map(([value, label]) => '<option value="' + value + '"' + (value === doc.document_type ? ' selected' : '') + '>' + label + '</option>').join('');
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Mettre à jour le document</h2><p style="color:#647069;line-height:1.45">Vous modifiez uniquement les informations de ce document. Le fichier d’origine reste inchangé.</p><form id="document-edit-form"><label>Nom du document<input id="edit-document-name" maxlength="180" required value="' + escapeHtml(doc.display_name) + '"></label><label>Type de document<select id="edit-document-type">' + options + '</select></label><label>Titulaire du document<input id="edit-document-holder" value="' + escapeHtml(doc.holder_name || '') + '" placeholder="Ex. Mariam Diallo"></label><label>Pays émetteur<input id="edit-document-country" value="' + escapeHtml(doc.issuer_country || '') + '" placeholder="Ex. France"></label><label>Date d’expiration<input id="edit-document-expiry" type="date" value="' + (doc.expires_at || '') + '"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer les modifications <span>→</span></button></form>');
+  styleModal(node);
+  node.querySelector('.close').addEventListener('click', () => node.remove());
+  node.querySelector('#document-edit-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = node.querySelector('[type="submit"]');
+    button.disabled = true;
+    const payload = {
+      display_name: node.querySelector('#edit-document-name').value.trim(),
+      document_type: node.querySelector('#edit-document-type').value,
+      holder_name: node.querySelector('#edit-document-holder').value.trim() || null,
+      issuer_country: node.querySelector('#edit-document-country').value.trim() || null,
+      expires_at: node.querySelector('#edit-document-expiry').value || null,
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await supabaseClient.from('documents').update(payload).eq('id', doc.id).eq('owner_id', currentUser.id);
+    if (error) { showError(node, 'Impossible de mettre à jour ce document : ' + error.message); button.disabled = false; return; }
+    node.remove();
+    await loadData();
+  });
 }
 
 async function archiveDocument(id) {
