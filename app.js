@@ -398,7 +398,7 @@ function showQualification(code, existingJourney = null) {
     const submit = node.querySelector('[type="submit"]'); submit.disabled = true;
     const authority = node.querySelector('#journey-department').value.trim();
     if (!isCustom && !category.value) { showError(node, 'Choisissez une option pour continuer.'); submit.disabled = false; return; }
-    if (definition.kind === 'residence' && !/(^|\\D)91(\\D|$)|essonne/i.test(authority)) { showError(node, 'Le catalogue pilote couvre actuellement uniquement les démarches auprès de la Préfecture de l’Essonne (91).'); submit.disabled = false; return; }
+    if (definition.kind === 'residence' && !/(^|\D)91(\D|$)|essonne/i.test(authority)) { showError(node, 'Le catalogue pilote couvre actuellement uniquement les démarches auprès de la Préfecture de l’Essonne (91).'); submit.disabled = false; return; }
     let journey = existingJourney;
     if (!journey) {
       const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
