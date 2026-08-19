@@ -398,66 +398,101 @@ function showQualification(code, existingJourney = null) {
   const definition = journeys[code];
   const profile = existingJourney ? journeyProfiles[existingJourney.id] : null;
   const isCustom = definition.kind === 'custom';
+  const isPassport = definition.kind === 'passport';
   const essonneEntries = officialCatalog.filter((entry) => entry.authority_code === '91' && entry.theme === 'residence_renewal');
-  const passportOptions = ['France', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'République démocratique du Congo', 'Guinée', 'Autre pays'];
+  const passportCountries = ['France', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'République démocratique du Congo', 'Guinée', 'Autre pays'];
   const passportEntries = officialCatalog.filter((entry) => entry.theme === 'passport_renewal');
   const officialOption = (entry, fallbackSource) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : ' + escapeHtml(entry.source_label || fallbackSource) + ' ↗</small></button>';
   const residenceOptions = essonneEntries.map((entry) => officialOption(entry, 'Préfecture de l’Essonne')).join('');
-  const passportCatalogOptions = passportEntries.map((entry) => officialOption(entry, 'Autorité consulaire compétente')).join('');
-  const passportFallbackOptions = passportOptions
-    .filter((country) => !passportEntries.some((entry) => entry.title.toLocaleLowerCase('fr-FR').startsWith(country.toLocaleLowerCase('fr-FR') + ' :')))
-    .map((item) => '<button class="journey-option" data-category="' + item + '" type="button">' + item + '</button>').join('');
-  const standardOptions = definition.kind === 'passport'
-    ? passportCatalogOptions + passportFallbackOptions
-    : residenceOptions;
-  const categoryLabel = definition.kind === 'passport' ? 'Quel passeport et quelle situation souhaitez-vous préparer ?' : 'Choisissez un parcours officiel de la Préfecture de l’Essonne';
-  const catalogueNote = definition.kind === 'residence' ? '<p class="catalogue-note">Catalogue pilote Essonne · sources contrôlées le 19 août 2026. Les intitulés ci-dessous proviennent du site de la préfecture.</p><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>' : '';
+  const catalogueNote = definition.kind === 'residence' ? '<p class="catalogue-note">Catalogue pilote Essonne · sources contrôlées le 19 août 2026. Les intitulés ci-dessous proviennent du site de la préfecture.</p><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>' : '<p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>';
+  const passportField = '<label>Pays du passeport<select id="journey-passport-country" required><option value="">Choisir un pays</option>' + passportCountries.map((country) => '<option value="' + escapeHtml(country) + '">' + escapeHtml(country) + '</option>').join('') + '</select></label><div id="passport-situation" hidden aria-live="polite"></div><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">';
+  const residenceField = '<label>Choisissez un parcours officiel de la Préfecture de l’Essonne<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + residenceOptions + '</div>' + catalogueNote + '</label>';
   const situationField = isCustom
     ? '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label><label>Liste des documents nécessaires<textarea id="journey-requirements" rows="6" required placeholder="Une pièce par ligne&#10;Ex. Copie du passeport&#10;Procuration légalisée&#10;Attestation bancaire"></textarea></label>'
-    : '<label>' + categoryLabel + '<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + standardOptions + '</div>' + catalogueNote + '</label>';
-  const intro = isCustom ? 'Vous connaissez les pièces demandées ? Ajoutez-les : Jamm vous aidera à rassembler les fichiers de votre coffre.' : (definition.kind === 'residence' ? 'Ce premier catalogue couvre les personnes domiciliées en Essonne (91). Le lien officiel sera conservé dans votre dossier.' : 'Choisissez le pays du passeport puis le lieu de la démarche.');
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form"><label>' + definition.authorityLabel + '<input id="journey-department" required placeholder="' + definition.authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : '') + '"></label>' + situationField + (isCustom ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label><div class="qualification-submit-bar"><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></div></form>');
+    : (isPassport ? passportField : residenceField);
+  const authorityLabel = isPassport ? 'Ville ou consulat où vous ferez la démarche' : definition.authorityLabel;
+  const authorityPlaceholder = isPassport ? 'Ex. Consulat du Sénégal à Paris' : definition.authorityPlaceholder;
+  const authorityField = '<label>' + authorityLabel + '<input id="journey-department" required placeholder="' + authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : '') + '"></label>';
+  const intro = isCustom ? 'Vous connaissez les pièces demandées ? Ajoutez-les : Jamm vous aidera à rassembler les fichiers de votre coffre.' : (definition.kind === 'residence' ? 'Ce premier catalogue couvre les personnes domiciliées en Essonne (91). Le lien officiel sera conservé dans votre dossier.' : 'Choisissez d’abord le pays, puis la situation exacte de votre passeport.');
+  const formFields = isPassport ? situationField + authorityField : authorityField + situationField;
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form">' + formFields + (isCustom ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label><div class="qualification-submit-bar"><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></div></form>');
   styleModal(node);
   node.querySelectorAll('textarea').forEach((field) => field.style.cssText = 'display:block;box-sizing:border-box;width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial;resize:vertical');
   const category = node.querySelector('#journey-category');
   const catalogId = node.querySelector('#journey-catalog-id');
-  const optionButtons = node.querySelectorAll('[data-category]');
-  optionButtons.forEach((button) => {
-    button.style.cssText = 'display:grid;gap:4px;border:1px solid #cdd6cd;border-radius:12px;padding:9px 12px;background:#fff;color:#315d4c;font:600 13px Arial;cursor:pointer;text-align:left';
-    button.addEventListener('click', () => {
-      if (category) category.value = button.dataset.category;
-      if (catalogId) catalogId.value = button.dataset.catalogId || '';
-      optionButtons.forEach((item) => { item.style.background = '#fff'; item.style.borderColor = '#cdd6cd'; item.style.color = '#315d4c'; });
-      button.style.background = '#1f664f'; button.style.borderColor = '#1f664f'; button.style.color = '#fff';
-      const confirmation = node.querySelector('#selected-route-confirmation');
-      if (confirmation) { confirmation.textContent = 'Parcours sélectionné : ' + button.dataset.category; confirmation.hidden = false; }
-      const submit = node.querySelector('[type="submit"]');
-      if (submit) submit.innerHTML = 'Continuer avec ce parcours <span>→</span>';
+  const submit = node.querySelector('[type="submit"]');
+  const selectRoute = (button) => {
+    if (category) category.value = button.dataset.category;
+    if (catalogId) catalogId.value = button.dataset.catalogId || '';
+    node.querySelectorAll('[data-category]').forEach((item) => { item.style.background = '#fff'; item.style.borderColor = '#cdd6cd'; item.style.color = '#315d4c'; });
+    button.style.background = '#1f664f'; button.style.borderColor = '#1f664f'; button.style.color = '#fff';
+    const confirmation = node.querySelector('#selected-route-confirmation');
+    if (confirmation) { confirmation.textContent = 'Parcours sélectionné : ' + button.dataset.category; confirmation.hidden = false; }
+    if (submit) submit.innerHTML = 'Continuer avec ce parcours <span>→</span>';
+  };
+  const wireRouteButtons = (container = node) => {
+    container.querySelectorAll('[data-category]').forEach((button) => {
+      button.style.cssText = 'display:grid;gap:4px;border:1px solid #cdd6cd;border-radius:12px;padding:9px 12px;background:#fff;color:#315d4c;font:600 13px Arial;cursor:pointer;text-align:left';
+      button.addEventListener('click', () => selectRoute(button));
     });
-  });
+  };
   const picker = node.querySelector('.journey-option-picker');
   if (picker) picker.style.cssText = 'display:grid;grid-template-columns:1fr;gap:6px;margin-top:9px';
   const submitBar = node.querySelector('.qualification-submit-bar');
   if (submitBar) submitBar.style.cssText = 'position:sticky;bottom:-34px;margin:18px -34px -34px;padding:14px 34px 20px;background:#fbfaf6;border-top:1px solid #e0e5df;z-index:2';
   const catalogueNoteNode = node.querySelector('.catalogue-note');
   if (catalogueNoteNode) catalogueNoteNode.style.cssText = 'margin:10px 0 0;color:#69766e;font-size:12px;line-height:1.4';
+  wireRouteButtons();
+  const countrySelect = node.querySelector('#journey-passport-country');
+  const situation = node.querySelector('#passport-situation');
+  const showPassportSituations = (country) => {
+    if (!situation) return;
+    if (category) category.value = '';
+    if (catalogId) catalogId.value = '';
+    const confirmation = node.querySelector('#selected-route-confirmation');
+    if (confirmation) confirmation.hidden = true;
+    const matches = passportEntries.filter((entry) => entry.title.toLocaleLowerCase('fr-FR').startsWith(country.toLocaleLowerCase('fr-FR') + ' :'));
+    situation.hidden = false;
+    situation.style.cssText = 'display:grid;gap:8px;margin:14px 0 4px';
+    if (!matches.length) {
+      situation.innerHTML = '<p class="catalogue-note" style="margin:0;color:#69766e;font-size:13px;line-height:1.45">La checklist officielle pour ce pays arrive prochainement. Pour l’instant, utilisez « Faire une autre démarche » si vous avez déjà la liste des pièces.</p>';
+      return;
+    }
+    situation.innerHTML = '<strong style="font:700 14px Arial">Quelle est votre situation ?</strong><div class="journey-option-picker">' + matches.map((entry) => officialOption(entry, 'Autorité consulaire compétente')).join('') + '</div><p class="catalogue-note" style="margin:0;color:#69766e;font-size:12px;line-height:1.4">Checklist vérifiée le 19 août 2026 auprès de l’autorité consulaire indiquée.</p>';
+    const localPicker = situation.querySelector('.journey-option-picker');
+    if (localPicker) localPicker.style.cssText = 'display:grid;grid-template-columns:1fr;gap:6px';
+    wireRouteButtons(situation);
+  };
+  if (countrySelect) countrySelect.addEventListener('change', () => {
+    if (countrySelect.value) showPassportSituations(countrySelect.value);
+    else if (situation) { situation.hidden = true; situation.innerHTML = ''; }
+  });
   if (profile) {
-    if (category) {
+    if (isPassport && countrySelect) {
+      const existingTitle = profile.permit_category || '';
+      const existingCountry = passportCountries.find((country) => existingTitle.toLocaleLowerCase('fr-FR').startsWith(country.toLocaleLowerCase('fr-FR')));
+      if (existingCountry) {
+        countrySelect.value = existingCountry;
+        showPassportSituations(existingCountry);
+        const selectedOption = Array.from(node.querySelectorAll('[data-category]')).find((button) => button.dataset.category === existingTitle);
+        if (selectedOption) selectedOption.click();
+      }
+    } else if (category) {
       category.value = profile.permit_category;
-      const selectedOption = Array.from(optionButtons).find((button) => button.dataset.category === profile.permit_category);
+      const selectedOption = Array.from(node.querySelectorAll('[data-category]')).find((button) => button.dataset.category === profile.permit_category);
       if (selectedOption) selectedOption.click();
     }
     if (node.querySelector('#journey-custom-title')) node.querySelector('#journey-custom-title').value = profile.situation_answers?.custom_title || '';
-    if (node.querySelector('#journey-requirements')) node.querySelector('#journey-requirements').value = (profile.situation_answers?.required_documents || []).join('\n');
+    if (node.querySelector('#journey-requirements')) node.querySelector('#journey-requirements').value = (profile.situation_answers?.required_documents || []).join('\\n');
     if (profile.situation_answers?.note) node.querySelector('#journey-note').value = profile.situation_answers.note;
   }
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelector('#qualification-form').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const submit = node.querySelector('[type="submit"]'); submit.disabled = true;
+    submit.disabled = true;
     const authority = node.querySelector('#journey-department').value.trim();
-    if (!isCustom && !category.value) { showError(node, 'Choisissez une option pour continuer.'); submit.disabled = false; return; }
-    if (definition.kind === 'residence' && !/(^|\D)91(\D|$)|essonne/i.test(authority)) { showError(node, 'Le catalogue pilote couvre actuellement uniquement les démarches auprès de la Préfecture de l’Essonne (91).'); submit.disabled = false; return; }
+    if (!isCustom && !category.value) { showError(node, isPassport ? 'Choisissez d’abord le pays puis votre situation.' : 'Choisissez une option pour continuer.'); submit.disabled = false; return; }
+    if (definition.kind === 'residence' && !/(^|\\D)91(\\D|$)|essonne/i.test(authority)) { showError(node, 'Le catalogue pilote couvre actuellement uniquement les démarches auprès de la Préfecture de l’Essonne (91).'); submit.disabled = false; return; }
     let journey = existingJourney;
     if (!journey) {
       const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
@@ -465,7 +500,7 @@ function showQualification(code, existingJourney = null) {
       journey = data;
     }
     const customTitle = node.querySelector('#journey-custom-title')?.value.trim();
-    const requirements = node.querySelector('#journey-requirements')?.value.split('\n').map((item) => item.trim()).filter(Boolean) || [];
+    const requirements = node.querySelector('#journey-requirements')?.value.split('\\n').map((item) => item.trim()).filter(Boolean) || [];
     const previousAnswers = profile?.situation_answers || {};
     const selectedEntry = officialCatalog.find((entry) => entry.id === catalogId?.value);
     const payload = { journey_id: journey.id, owner_id: currentUser.id, department: authority, permit_category: customTitle || category.value, expiry_date: node.querySelector('#journey-expiry')?.value || null, situation_answers: { ...previousAnswers, note: node.querySelector('#journey-note').value.trim(), route: code, catalog_entry_id: selectedEntry?.id || null, custom_title: customTitle || undefined, required_documents: requirements, requirement_links: previousAnswers.requirement_links || {} }, source_status: selectedEntry ? selectedEntry.source_status : 'to_verify', official_source_url: selectedEntry?.source_url || null, source_checked_at: selectedEntry?.source_checked_at || null, updated_at: new Date().toISOString() };
@@ -477,7 +512,6 @@ function showQualification(code, existingJourney = null) {
     $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
-
 async function completeJourney() {
   if (!currentJourney || currentJourney.status !== 'active') return;
   if (!confirm('Marquer cette démarche comme terminée ? Le dossier restera consultable dans vos démarches terminées.')) return;
