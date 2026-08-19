@@ -146,7 +146,11 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 .custom-list-note .link-button{justify-self:start;margin-top:2px;padding:5px 0;color:#23634b;font-size:12px;font-weight:800}
 .check-row{min-width:0}
 .check-row.done{background:linear-gradient(90deg,#f4faf4,transparent 78%)}
+.ready-actions{display:flex;align-items:center;gap:13px;flex:0 0 auto;white-space:nowrap}
+.ready-actions .link-button{border:0;background:transparent;color:#23634b;font-size:12px;font-weight:800;cursor:pointer;padding:5px 0}
+.ready-actions .link-button:hover{color:#133f30;text-decoration:underline}
+.ready-actions em{font-style:normal;font-size:12px;color:#35735a}
 .requirement-actions{display:flex;align-items:center;gap:15px;flex:0 0 auto;white-space:nowrap}
 .requirement-actions .link-button{border:0;background:transparent;color:#1f664f;font-size:12px;font-weight:800;cursor:pointer;padding:5px 0}
 .requirement-actions .link-button:hover,.custom-list-note .link-button:hover{color:#133f30;text-decoration:underline}
-@media(max-width:640px){.custom-list-note{padding:15px}.custom-list-note>strong{font-size:17px}.check-row{align-items:flex-start}.check-copy{padding-top:1px}.requirement-actions{gap:10px;flex-direction:column;align-items:flex-end}.check-row em{padding-top:4px}.check-copy strong{font-size:13px;line-height:1.32}.check-copy small{line-height:1.35}}
+@media(max-width:640px){.custom-list-note{padding:15px}.custom-list-note>strong{font-size:17px}.check-row{align-items:flex-start}.check-copy{padding-top:1px}.requirement-actions,.ready-actions{gap:10px;flex-direction:column;align-items:flex-end}.check-row em{padding-top:4px}.check-copy strong{font-size:13px;line-height:1.32}.check-copy small{line-height:1.35}}
