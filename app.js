@@ -103,8 +103,8 @@ async function loadData() {
 
 function render() {
   $('#greeting').textContent = 'Bonjour.';
-  $('#profile-button').textContent = initials(currentUser.email);
-  $('#person-one').textContent = initials(currentUser.email).slice(0, 1);
+  $('#profile-button').textContent = currentUser ? initials(currentUser.email) : '—';
+  $('#person-one').textContent = currentUser ? initials(currentUser.email).slice(0, 1) : 'J';
   $('#documents-ready').textContent = documents.length;
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   $('#journey-title').textContent = journey ? journey.title : 'Préparer un dossier';
