@@ -1,141 +1,241 @@
+const SUPABASE_URL = 'https://bnkpvyswxdflktpbvxbo.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_xkbi-9JZAp5rGD1rwCf0mQ_1MliAIwY';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
 const journeys = {
-  residence: {
-    title: 'Renouvellement de votre titre de séjour',
-    label: 'À PRÉPARER DANS 82 JOURS',
-    description: 'Votre titre expire le 9 novembre 2026. Préparez votre dossier maintenant pour éviter le stress.',
-    documents: [
-      { name: 'Passeport', detail: 'Expire le 14 oct. 2028', status: 'ready', label: 'prêt', icon: '◫' },
-      { name: 'Titre de séjour', detail: 'Expire dans 82 jours', status: 'ready', label: 'prêt', icon: '▣' },
-      { name: 'Justificatif de domicile', detail: 'Daté de février 2026', status: 'refresh', label: 'à actualiser', icon: '⌂' },
-      { name: 'Attestation employeur', detail: 'À demander', status: 'missing', label: 'manquant', icon: '✦' }
-    ]
-  },
-  passport: {
-    title: 'Renouvellement de passeport',
-    label: 'À ANTICIPER AVANT VOTRE VOYAGE',
-    description: 'Réunissez les pièces utiles avant de prendre rendez-vous avec votre consulat.',
-    documents: [
-      { name: 'Passeport actuel', detail: 'À renouveler', status: 'ready', label: 'prêt', icon: '◫' },
-      { name: 'Photo d’identité', detail: 'À prévoir', status: 'missing', label: 'manquant', icon: '◉' },
-      { name: 'Justificatif de domicile', detail: 'Daté de février 2026', status: 'refresh', label: 'à actualiser', icon: '⌂' },
-      { name: 'Acte de naissance', detail: 'Déjà dans le coffre', status: 'ready', label: 'prêt', icon: '✦' }
-    ]
-  },
-  visit: {
-    title: 'Visite familiale en France',
-    label: 'À PRÉPARER AVANT LE RENDEZ-VOUS',
-    description: 'Organisez avec votre proche les documents de voyage, d’hébergement et de prise en charge.',
-    documents: [
-      { name: 'Passeport du visiteur', detail: 'À demander au proche', status: 'missing', label: 'manquant', icon: '◫' },
-      { name: 'Attestation d’accueil', detail: 'Démarche à la mairie', status: 'missing', label: 'manquant', icon: '⌂' },
-      { name: 'Justificatif de domicile', detail: 'Daté de février 2026', status: 'refresh', label: 'à actualiser', icon: '▣' },
-      { name: 'Preuve du lien familial', detail: 'Déjà dans le coffre', status: 'ready', label: 'prêt', icon: '✦' }
-    ]
-  }
+  residence_permit: { title: 'Renouvellement du titre de séjour', documents: ['passport', 'residence_permit', 'proof_of_address'] },
+  passport: { title: 'Renouvellement de passeport', documents: ['passport', 'birth_certificate', 'proof_of_address'] },
+  family_visit: { title: 'Visite familiale en France', documents: ['passport', 'proof_of_address', 'family_record'] }
+};
+const documentLabels = {
+  passport: 'Passeport', residence_permit: 'Titre de séjour', birth_certificate: 'Acte de naissance',
+  proof_of_address: 'Justificatif de domicile', identity_card: 'Carte d’identité',
+  family_record: 'Preuve du lien familial', other: 'Autre document'
 };
 
-let journey = journeys.residence;
-let selected = new Set(['Passeport', 'Titre de séjour']);
-const documentList = document.querySelector('#documents');
-const checklist = document.querySelector('#checklist');
-const progress = document.querySelector('#progress-value');
-const success = document.querySelector('#success');
+let currentUser = null;
+let currentVault = null;
+let documents = [];
+let selected = new Set();
+let currentJourney = null;
 
-function render() {
-  documentList.innerHTML = journey.documents.map(function(doc) {
-    return '<button class="document-card ' + (selected.has(doc.name) ? 'selected' : '') + '" data-name="' + doc.name + '"><span class="doc-icon">' + doc.icon + '</span><span class="document-copy"><strong>' + doc.name + '</strong><small>' + doc.detail + '</small></span><span class="status ' + doc.status + '">' + doc.label + '</span></button>';
-  }).join('');
-  checklist.innerHTML = journey.documents.map(function(doc) {
-    const included = selected.has(doc.name);
-    const instruction = included ? 'Inclus dans le dossier' : doc.status === 'refresh' ? 'Ajoutez un document récent' : 'À ajouter avant de continuer';
-    return '<label class="check-row ' + (included ? 'done' : '') + '"><input type="checkbox" data-name="' + doc.name + '"' + (included ? ' checked' : '') + '><span class="checkmark">' + (included ? '✓' : '') + '</span><span class="check-copy"><strong>' + doc.name + '</strong><small>' + instruction + '</small></span>' + (included ? '<em>Prêt</em>' : '<button class="add" type="button" data-name="' + doc.name + '">Ajouter</button>') + '</label>';
-  }).join('');
-  progress.textContent = Math.round(selected.size / journey.documents.length * 100) + '%';
-  success.hidden = true;
-  documentList.querySelectorAll('[data-name]').forEach(function(button) { button.addEventListener('click', function() { toggle(button.dataset.name); }); });
-  checklist.querySelectorAll('input, .add').forEach(function(control) { control.addEventListener('click', function(event) { event.preventDefault(); toggle(control.dataset.name); }); });
+const $ = (selector) => document.querySelector(selector);
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character]);
+const initials = (email) => email ? email.slice(0, 2).toUpperCase() : 'J';
+
+function modal(content) {
+  const node = document.createElement('section');
+  node.className = 'jamm-modal';
+  node.innerHTML = '<div class="jamm-modal-card">' + content + '</div>';
+  node.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(27,45,36,.55);padding:24px;display:grid;place-items:center';
+  const card = node.firstElementChild;
+  card.style.cssText = 'position:relative;width:min(480px,100%);background:#fbfaf6;border-radius:16px;padding:34px;color:#1e2924;box-shadow:0 20px 70px rgba(0,0,0,.22)';
+  document.body.appendChild(node);
+  return node;
 }
-function toggle(name) { selected.has(name) ? selected.delete(name) : selected.add(name); render(); }
-function chooseJourney(key) {
-  journey = journeys[key];
-  selected = new Set(journey.documents.slice(0, 2).map(function(doc) { return doc.name; }));
-  document.querySelector('.alert-copy h2').textContent = journey.title;
-  document.querySelector('.alert-copy .amber').textContent = journey.label;
-  document.querySelector('.alert-copy > p:not(.eyebrow)').textContent = journey.description;
-  document.querySelector('.dossier-header h2').textContent = journey.title;
-  document.querySelector('.onboarding').remove();
+function styleModal(node) {
+  node.querySelectorAll('input,select').forEach((input) => input.style.cssText = 'display:block;box-sizing:border-box;width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:#fff;font:14px Arial');
+  node.querySelectorAll('label').forEach((label) => label.style.cssText = 'display:block;font-size:13px;font-weight:700;margin:14px 0');
+  const close = node.querySelector('.close');
+  if (close) close.style.cssText = 'position:absolute;right:16px;top:13px;border:0;background:none;font-size:27px;color:#647069';
+}
+function showError(node, message) {
+  const error = node.querySelector('[data-error]');
+  error.textContent = message;
+  error.hidden = false;
+}
+
+function showAuth() {
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Bienvenue dans Jamm.</h2><p style="color:#647069;line-height:1.45">Créez un compte pour conserver vos documents dans un espace privé.</p><form id="auth-form"><label>Adresse e-mail<input id="auth-email" type="email" autocomplete="email" required></label><label>Mot de passe<input id="auth-password" type="password" autocomplete="current-password" minlength="8" required></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" id="auth-submit" type="submit">Créer mon compte <span>→</span></button></form><button id="switch-auth" style="margin-top:14px;border:0;background:none;color:#245843;text-decoration:underline;cursor:pointer">J’ai déjà un compte</button><p id="auth-note" style="margin-top:18px;color:#78847b;font-size:12px;line-height:1.4">Utilisez au moins 8 caractères. Nous ne stockons jamais votre mot de passe.</p>');
+  styleModal(node);
+  let loginMode = false;
+  const updateMode = () => {
+    $('#auth-submit').textContent = loginMode ? 'Se connecter →' : 'Créer mon compte →';
+    $('#switch-auth').textContent = loginMode ? 'Créer un compte' : 'J’ai déjà un compte';
+    $('#auth-note').textContent = loginMode ? 'Connectez-vous pour retrouver votre coffre privé.' : 'Utilisez au moins 8 caractères. Nous ne stockons jamais votre mot de passe.';
+    $('#auth-password').autocomplete = loginMode ? 'current-password' : 'new-password';
+  };
+  node.querySelector('.close').addEventListener('click', () => node.remove());
+  node.querySelector('#switch-auth').addEventListener('click', () => { loginMode = !loginMode; updateMode(); });
+  node.querySelector('#auth-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = node.querySelector('#auth-email').value.trim();
+    const password = node.querySelector('#auth-password').value;
+    const button = node.querySelector('#auth-submit');
+    button.disabled = true;
+    if (loginMode) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { showError(node, error.message); button.disabled = false; return; }
+      node.remove();
+    } else {
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.href } });
+      if (error) { showError(node, error.message); button.disabled = false; return; }
+      if (!data.session) {
+        showError(node, 'Vérifiez votre e-mail pour confirmer votre compte, puis connectez-vous.');
+        button.disabled = false;
+      } else node.remove();
+    }
+  });
+}
+
+async function ensureVault() {
+  const { data, error } = await supabase.from('vaults').select('*').eq('owner_id', currentUser.id).limit(1);
+  if (error) throw error;
+  if (data[0]) return data[0];
+  const { data: created, error: createError } = await supabase.from('vaults').insert({ owner_id: currentUser.id, name: 'Mon coffre Jamm' }).select().single();
+  if (createError) throw createError;
+  return created;
+}
+
+async function loadData() {
+  currentVault = await ensureVault();
+  const [{ data: docs, error: docsError }, { data: trips, error: tripsError }] = await Promise.all([
+    supabase.from('documents').select('*').eq('owner_id', currentUser.id).order('created_at', { ascending: false }),
+    supabase.from('journeys').select('*').eq('owner_id', currentUser.id).eq('status', 'active').limit(1)
+  ]);
+  if (docsError) throw docsError;
+  if (tripsError) throw tripsError;
+  documents = docs || [];
+  currentJourney = trips && trips[0] ? trips[0] : null;
+  selected = new Set(documents.map((doc) => doc.id));
   render();
 }
-function showOnboarding() {
-  const modal = document.createElement('section');
-  modal.className = 'onboarding';
-  modal.innerHTML = '<div><p>PREMIÈRE DÉMARCHE</p><h2>Que veux-tu préparer&nbsp;?</h2><span>Commence par une seule démarche. Jamm organisera les documents utiles et les prochaines actions.</span><button data-journey="residence">▣ Renouveler un titre de séjour<small>Documents, échéances et dossier</small></button><button data-journey="passport">◫ Renouveler un passeport<small>Préparer les pièces pour le consulat</small></button><button data-journey="visit">✦ Faire venir un proche<small>Coordonner la visite familiale</small></button><em>Prototype de démonstration — n’ajoutez aucun document personnel.</em></div>';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:50;background:rgba(27,45,36,.48);padding:24px;display:grid;place-items:center';
-  modal.firstElementChild.style.cssText = 'width:min(560px,100%);background:#fbfaf6;border-radius:16px;padding:34px;color:#1e2924;box-shadow:0 20px 70px rgba(0,0,0,.22)';
-  modal.querySelector('p').style.cssText = 'font:500 11px monospace;letter-spacing:1px;color:#78847b';
-  modal.querySelector('h2').style.cssText = 'font:600 31px Georgia,serif;margin:8px 0 10px';
-  modal.querySelector('span').style.cssText = 'display:block;color:#647069;line-height:1.45;margin-bottom:20px';
-  modal.querySelectorAll('button').forEach(function(button) { button.style.cssText = 'display:block;width:100%;text-align:left;margin:10px 0;padding:15px;border:1px solid #d8dfd6;border-radius:10px;background:white;color:#245843;font-weight:700'; button.querySelector('small'); });
-  modal.querySelectorAll('button').forEach(function(button) { button.addEventListener('click', function() { chooseJourney(button.dataset.journey); }); });
-  modal.querySelector('em').style.cssText = 'display:block;margin-top:18px;color:#778079;font-size:12px;font-style:normal';
-  document.body.appendChild(modal);
+
+function render() {
+  $('#greeting').textContent = 'Bonjour.';
+  $('#profile-button').textContent = initials(currentUser.email);
+  $('#person-one').textContent = initials(currentUser.email).slice(0, 1);
+  $('#documents-ready').textContent = documents.length;
+  const journey = currentJourney ? journeys[currentJourney.code] : null;
+  $('#journey-title').textContent = journey ? journey.title : 'Préparer un dossier';
+  $('#dossier-title').textContent = journey ? journey.title : 'Choisissez votre démarche';
+  $('#journey-description').textContent = journey ? 'Jamm compare les pièces présentes avec cette préparation.' : 'Commencez par choisir une démarche.';
+  renderDocuments();
+  renderChecklist();
 }
-document.querySelector('#select-all').addEventListener('click', function() { journey.documents.forEach(function(doc) { selected.add(doc.name); }); render(); });
-document.querySelector('#prepare').addEventListener('click', function() { success.hidden = false; success.innerHTML = '<strong>Dossier prêt à être organisé.</strong><br>Dans la version connectée, Jamm créera un dossier ZIP et vous donnera le lien officiel correspondant à votre situation.'; success.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
-document.querySelector('#invite').addEventListener('click', function() { alert("L'invitation familiale sera disponible dans la prochaine version de Jamm."); });
-document.querySelectorAll('[data-scroll]').forEach(function(button) { button.addEventListener('click', function() { document.querySelector('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' }); }); });
+
+function renderDocuments() {
+  const container = $('#documents');
+  if (!documents.length) {
+    container.innerHTML = '<div style="grid-column:1/-1;padding:28px;border:1px dashed #cbd5cd;border-radius:12px;color:#647069">Votre coffre est vide. Ajoutez votre premier document ; il restera privé.</div>';
+    return;
+  }
+  container.innerHTML = documents.map((doc) => {
+    const expiry = doc.expires_at ? new Date(doc.expires_at + 'T12:00:00').toLocaleDateString('fr-FR') : 'Sans date d’expiration';
+    return '<article class="document-card ' + (selected.has(doc.id) ? 'selected' : '') + '" data-id="' + doc.id + '"><span class="doc-icon">◫</span><span class="document-copy"><strong>' + escapeHtml(doc.display_name) + '</strong><small>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + ' · ' + expiry + '</small></span><button class="add delete-document" data-id="' + doc.id + '" type="button">Supprimer</button></article>';
+  }).join('');
+  container.querySelectorAll('.delete-document').forEach((button) => button.addEventListener('click', () => deleteDocument(button.dataset.id)));
+}
+
+function renderChecklist() {
+  const journey = currentJourney ? journeys[currentJourney.code] : null;
+  const checklist = $('#checklist');
+  if (!journey) {
+    checklist.innerHTML = Object.entries(journeys).map(([code, item]) => '<button class="check-row choose-journey" data-code="' + code + '" type="button"><span class="checkmark">→</span><span class="check-copy"><strong>' + item.title + '</strong><small>Choisir cette démarche</small></span></button>').join('');
+    checklist.querySelectorAll('.choose-journey').forEach((button) => button.addEventListener('click', () => chooseJourney(button.dataset.code)));
+    $('#progress-value').textContent = '0%';
+    return;
+  }
+  const requirements = journey.documents;
+  const ready = requirements.filter((type) => documents.some((doc) => doc.document_type === type)).length;
+  $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
+  checklist.innerHTML = requirements.map((type) => {
+    const found = documents.find((doc) => doc.document_type === type);
+    return '<div class="check-row ' + (found ? 'done' : '') + '"><span class="checkmark">' + (found ? '✓' : '') + '</span><span class="check-copy"><strong>' + documentLabels[type] + '</strong><small>' + (found ? 'Présent dans le coffre' : 'À ajouter avant de continuer') + '</small></span>' + (found ? '<em>Prêt</em>' : '<button class="add" data-type="' + type + '" type="button">Ajouter</button>') + '</div>';
+  }).join('');
+  checklist.querySelectorAll('[data-type]').forEach((button) => button.addEventListener('click', () => showUpload(button.dataset.type)));
+}
+
+async function chooseJourney(code) {
+  const { data, error } = await supabase.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
+  if (error) { alert('Impossible de créer cette démarche : ' + error.message); return; }
+  currentJourney = data;
+  render();
+}
+
+function showUpload(preselectedType) {
+  const options = Object.entries(documentLabels).map(([value, label]) => '<option value="' + value + '"' + (value === preselectedType ? ' selected' : '') + '>' + label + '</option>').join('');
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Ajouter un document</h2><p style="color:#647069;line-height:1.45">Le fichier est conservé dans votre coffre privé. Vérifiez qu’il s’agit bien de votre document.</p><form id="upload-form"><label>Fichier<input id="upload-file" type="file" required accept=".pdf,image/jpeg,image/png"></label><label>Type de document<select id="upload-type">' + options + '</select></label><label>Date d’expiration (facultatif)<input id="upload-expiry" type="date"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Ajouter au coffre <span>→</span></button></form>');
+  styleModal(node);
+  node.querySelector('.close').addEventListener('click', () => node.remove());
+  node.querySelector('#upload-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const file = node.querySelector('#upload-file').files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { showError(node, 'Ce fichier dépasse la limite de 10 Mo.'); return; }
+    const id = crypto.randomUUID();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = currentUser.id + '/' + id + '/' + safeName;
+    const submit = node.querySelector('[type="submit"]');
+    submit.disabled = true;
+    const { error: uploadError } = await supabase.storage.from('jamm-documents').upload(storagePath, file, { contentType: file.type, upsert: false });
+    if (uploadError) { showError(node, uploadError.message); submit.disabled = false; return; }
+    const { error: insertError } = await supabase.from('documents').insert({
+      id, vault_id: currentVault.id, owner_id: currentUser.id, document_type: node.querySelector('#upload-type').value,
+      display_name: file.name, storage_path: storagePath, content_type: file.type, byte_size: file.size,
+      expires_at: node.querySelector('#upload-expiry').value || null
+    });
+    if (insertError) {
+      await supabase.storage.from('jamm-documents').remove([storagePath]);
+      showError(node, insertError.message);
+      submit.disabled = false;
+      return;
+    }
+    node.remove();
+    await loadData();
+  });
+}
+
+async function deleteDocument(id) {
+  const documentToDelete = documents.find((doc) => doc.id === id);
+  if (!documentToDelete || !confirm('Supprimer ce document du coffre ? Cette action est définitive.')) return;
+  const { error: storageError } = await supabase.storage.from('jamm-documents').remove([documentToDelete.storage_path]);
+  if (storageError) { alert('Impossible de supprimer le fichier : ' + storageError.message); return; }
+  const { error } = await supabase.from('documents').delete().eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Le fichier a été supprimé, mais ses informations doivent encore être retirées : ' + error.message); return; }
+  await loadData();
+}
+
 function downloadChecklist() {
-  const lines = [
-    'JAMM — ' + journey.title,
-    '',
-    'Checklist de préparation',
-    '-------------------------',
-    ...journey.documents.map(function(doc) {
-      return (selected.has(doc.name) ? '[x] ' : '[ ] ') + doc.name + ' — ' + (selected.has(doc.name) ? 'inclus dans le dossier' : 'à compléter');
-    }),
-    '',
-    'Important : cette checklist organise vos pièces. Vérifiez toujours les exigences auprès du site administratif officiel correspondant à votre situation.'
-  ];
+  const journey = currentJourney ? journeys[currentJourney.code] : null;
+  if (!journey) { $('#demarche').scrollIntoView({ behavior: 'smooth' }); return; }
+  const lines = ['JAMM — ' + journey.title, '', 'Checklist de préparation', '-------------------------'];
+  journey.documents.forEach((type) => lines.push((documents.some((doc) => doc.document_type === type) ? '[x] ' : '[ ] ') + documentLabels[type]));
+  lines.push('', 'Cette checklist organise vos pièces. Vérifiez les exigences à jour auprès du site administratif officiel correspondant à votre situation.');
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = 'jamm-checklist-' + journey.title.toLowerCase().replaceAll(' ', '-') + '.txt';
+  link.download = 'jamm-checklist.txt';
   link.click();
   URL.revokeObjectURL(link.href);
+  $('#success').hidden = false;
+  $('#success').textContent = 'Checklist téléchargée. Aucun document n’a été envoyé à une administration.';
 }
-document.querySelector('#prepare').addEventListener('click', function() {
-  setTimeout(function() {
-    success.innerHTML += '<br><button class="outline" id="download-checklist" style="margin-top:14px">Télécharger ma checklist</button>';
-    document.querySelector('#download-checklist').addEventListener('click', downloadChecklist);
-  }, 0);
-});
 
-function openDocumentForm() {
-  const modal = document.createElement('section');
-  modal.className = 'document-form';
-  modal.innerHTML = '<div><button class="close" aria-label="Fermer">×</button><p>MODE DÉMO</p><h2>Ajouter un document</h2><span>Utilisez uniquement des informations fictives : aucun document n’est envoyé ni conservé.</span><label>Nom du document<input id="document-name" placeholder="Ex. Carte consulaire"></label><label>Date d’expiration (facultatif)<input id="document-expiry" type="date"></label><button class="primary" id="save-document">Ajouter au coffre <b>→</b></button></div>';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(27,45,36,.48);padding:24px;display:grid;place-items:center';
-  const card = modal.firstElementChild;
-  card.style.cssText = 'position:relative;width:min(470px,100%);background:#fbfaf6;border-radius:16px;padding:34px;color:#1e2924;box-shadow:0 20px 70px rgba(0,0,0,.22)';
-  card.querySelector('p').style.cssText = 'font:500 11px monospace;letter-spacing:1px;color:#78847b';
-  card.querySelector('h2').style.cssText = 'font:600 31px Georgia,serif;margin:8px 0 10px';
-  card.querySelector('span').style.cssText = 'display:block;color:#647069;line-height:1.45;margin-bottom:20px';
-  card.querySelectorAll('label').forEach(function(label) { label.style.cssText = 'display:block;font-size:13px;font-weight:700;margin:14px 0'; });
-  card.querySelectorAll('input').forEach(function(input) { input.style.cssText = 'width:100%;margin-top:7px;border:1px solid #cdd6cd;border-radius:8px;padding:11px;background:white;font:14px Arial'; });
-  card.querySelector('.close').style.cssText = 'position:absolute;right:16px;top:13px;border:0;background:none;font-size:27px;color:#647069';
-  card.querySelector('.primary').style.cssText = 'margin-top:12px';
-  card.querySelector('.close').addEventListener('click', function() { modal.remove(); });
-  card.querySelector('#save-document').addEventListener('click', function() {
-    const name = card.querySelector('#document-name').value.trim();
-    const expiry = card.querySelector('#document-expiry').value;
-    if (!name) { card.querySelector('#document-name').focus(); return; }
-    journey.documents.push({ name: name, detail: expiry ? 'Expire le ' + new Date(expiry + 'T12:00:00').toLocaleDateString('fr-FR') : 'Ajouté dans ce test', status: 'ready', label: 'prêt', icon: '◫' });
-    selected.add(name);
-    modal.remove();
-    render();
+function wireUi() {
+  $('#add-document').addEventListener('click', () => currentUser ? showUpload() : showAuth());
+  $('#prepare').addEventListener('click', downloadChecklist);
+  $('#select-all').addEventListener('click', () => { selected = new Set(documents.map((doc) => doc.id)); renderDocuments(); });
+  $('#invite').addEventListener('click', () => alert('Le partage familial sécurisé arrive dans une prochaine version.'));
+  $('#profile-button').addEventListener('click', async () => {
+    if (!currentUser) { showAuth(); return; }
+    if (confirm('Se déconnecter de Jamm ?')) await supabase.auth.signOut();
   });
-  document.body.appendChild(modal);
+  document.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => $('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' })));
 }
-document.querySelector('#add-document').addEventListener('click', openDocumentForm);
-render();
-showOnboarding();
+
+async function boot() {
+  wireUi();
+  const { data: { session } } = await supabase.auth.getSession();
+  currentUser = session ? session.user : null;
+  if (currentUser) {
+    try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
+  } else render();
+  supabase.auth.onAuthStateChange(async (_event, session) => {
+    currentUser = session ? session.user : null;
+    if (currentUser) {
+      try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
+    } else { currentVault = null; documents = []; currentJourney = null; selected = new Set(); render(); }
+  });
+}
+boot();
