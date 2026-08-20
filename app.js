@@ -67,6 +67,57 @@ function showError(node, message) {
   error.hidden = false;
 }
 
+function showConfirmDialog({ title, message, confirmLabel = 'Confirmer', tone = 'primary' }) {
+  return new Promise((resolve) => {
+    const node = modal('<div class="jamm-confirm-content"><span class="jamm-confirm-icon" aria-hidden="true">' + (tone === 'danger' ? '!' : '✓') + '</span><p class="eyebrow">CONFIRMATION</p><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(message) + '</p><div class="jamm-confirm-actions"><button class="outline" type="button" data-confirm-cancel>Annuler</button><button class="' + (tone === 'danger' ? 'danger-button' : 'primary') + '" type="button" data-confirm-accept>' + escapeHtml(confirmLabel) + '</button></div></div>');
+    node.classList.add('jamm-confirm-dialog');
+    node.setAttribute('role', 'presentation');
+    const card = node.querySelector('.jamm-modal-card');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', title);
+    const cancel = node.querySelector('[data-confirm-cancel]');
+    const accept = node.querySelector('[data-confirm-accept]');
+    const close = (answer) => {
+      document.removeEventListener('keydown', onKeydown);
+      node.remove();
+      resolve(answer);
+    };
+    const onKeydown = (event) => {
+      if (event.key === 'Escape') close(false);
+      if (event.key === 'Tab') {
+        const focusable = [cancel, accept];
+        const index = focusable.indexOf(document.activeElement);
+        if (event.shiftKey && index === 0) { event.preventDefault(); accept.focus(); }
+        if (!event.shiftKey && index === focusable.length - 1) { event.preventDefault(); cancel.focus(); }
+      }
+    };
+    cancel.addEventListener('click', () => close(false));
+    accept.addEventListener('click', () => close(true));
+    node.addEventListener('click', (event) => { if (event.target === node) close(false); });
+    document.addEventListener('keydown', onKeydown);
+    requestAnimationFrame(() => cancel.focus());
+  });
+}
+
+function showEmailConfirmation(node, email) {
+  const card = node.querySelector('.jamm-modal-card');
+  card.innerHTML = '<button class="close" aria-label="Fermer">×</button><div class="email-confirmation"><span class="email-confirmation-icon" aria-hidden="true">✉</span><p class="eyebrow">VÉRIFIEZ VOTRE ADRESSE E-MAIL</p><h2>Un lien vient de vous être envoyé.</h2><p>Pour activer votre coffre, ouvrez l’e-mail envoyé à :</p><strong class="email-confirmation-address">' + escapeHtml(email) + '</strong><ol><li>Ouvrez votre boîte de réception.</li><li>Cliquez sur le lien de confirmation de Jamm.</li><li>Revenez ici pour vous connecter.</li></ol><p class="email-confirmation-hint">Pensez à vérifier vos courriers indésirables.</p><p data-email-status hidden class="email-confirmation-status" role="status"></p><div class="email-confirmation-actions"><button class="primary" type="button" data-email-confirmed>J’ai confirmé mon adresse <span>→</span></button><button class="link-button" type="button" data-email-resend>Renvoyer l’e-mail</button><button class="link-button" type="button" data-email-change>Utiliser une autre adresse</button></div></div>';
+  styleModal(node);
+  card.querySelector('.close').addEventListener('click', () => node.remove());
+  card.querySelector('[data-email-confirmed]').addEventListener('click', () => { node.remove(); showAuth(true, email); });
+  card.querySelector('[data-email-change]').addEventListener('click', () => { node.remove(); showAuth(false); });
+  card.querySelector('[data-email-resend]').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const status = card.querySelector('[data-email-status]');
+    button.disabled = true;
+    const { error } = await supabaseClient.auth.resend({ type: 'signup', email, options: { emailRedirectTo: window.location.href } });
+    status.textContent = error ? 'Impossible de renvoyer le lien. Réessayez dans un instant.' : 'Un nouvel e-mail vient d’être envoyé à cette adresse.';
+    status.hidden = false;
+    button.disabled = false;
+  });
+}
+
 function renderProfilePage() {
   if (!currentUser) return;
   const metadata = currentUser.user_metadata || {};
@@ -81,7 +132,7 @@ function renderProfilePage() {
     '<p data-error hidden class="profile-error"></p><p data-status hidden class="profile-status" role="status"></p><div class="profile-actions"><button class="primary" type="submit">Enregistrer les modifications <span>→</span></button><button id="profile-signout" class="link-button" type="button">Se déconnecter</button></div></form></section>';
   $('#profile-back').addEventListener('click', () => showView('vault'));
   $('#profile-signout').addEventListener('click', async () => {
-    if (confirm('Se déconnecter de Jamm ?')) await supabaseClient.auth.signOut();
+    if (await showConfirmDialog({ title: 'Se déconnecter de Jamm ?', message: 'Vous pourrez vous reconnecter à tout moment.', confirmLabel: 'Se déconnecter' })) await supabaseClient.auth.signOut();
   });
   $('#profile-form').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -109,8 +160,8 @@ function showProfile() {
   if (!currentUser) { showAuth(); return; }
   showView('profile');
 }
-function showAuth(initialLogin = false) {
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Bienvenue dans Jamm.</h2><p style="color:#647069;line-height:1.45">Créez un compte pour conserver vos documents dans un espace privé.</p><form id="auth-form"><label>Adresse e-mail<input id="auth-email" type="email" autocomplete="email" required></label><label>Mot de passe<input id="auth-password" type="password" autocomplete="current-password" minlength="12" required></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><p data-status hidden style="color:#245843;font-size:13px;line-height:1.4"></p><button class="primary" id="auth-submit" type="submit">Créer mon compte <span>→</span></button></form><button id="switch-auth" style="margin-top:14px;border:0;background:none;color:#245843;text-decoration:underline;cursor:pointer">J’ai déjà un compte</button><p id="auth-note" style="margin-top:18px;color:#78847b;font-size:12px;line-height:1.4">Utilisez au moins 12 caractères. Nous ne stockons jamais votre mot de passe.</p>');
+function showAuth(initialLogin = false, prefilledEmail = '') {
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Bienvenue dans Jamm.</h2><p style="color:#647069;line-height:1.45">Créez un compte pour conserver vos documents dans un espace privé.</p><form id="auth-form"><label>Adresse e-mail<input id="auth-email" type="email" autocomplete="email" value="' + escapeHtml(prefilledEmail) + '" required></label><label>Mot de passe<input id="auth-password" type="password" autocomplete="current-password" minlength="12" required></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><p data-status hidden style="color:#245843;font-size:13px;line-height:1.4"></p><button class="primary" id="auth-submit" type="submit">Créer mon compte <span>→</span></button></form><button id="switch-auth" style="margin-top:14px;border:0;background:none;color:#245843;text-decoration:underline;cursor:pointer">J’ai déjà un compte</button><p id="auth-note" style="margin-top:18px;color:#78847b;font-size:12px;line-height:1.4">Utilisez au moins 12 caractères. Nous ne stockons jamais votre mot de passe.</p>');
   styleModal(node);
   let loginMode = initialLogin;
   const updateMode = () => {
@@ -136,12 +187,7 @@ function showAuth(initialLogin = false) {
       const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { emailRedirectTo: window.location.href } });
       if (error) { showError(node, error.message); button.disabled = false; return; }
       if (!data.session) {
-        const status = node.querySelector('[data-status]');
-        status.textContent = 'E-mail de confirmation envoyé. Vérifiez votre boîte de réception et vos spams, puis utilisez « J’ai déjà un compte » pour vous connecter.';
-        status.hidden = false;
-        loginMode = true;
-        updateMode();
-        button.disabled = false;
+        showEmailConfirmation(node, email);
       } else node.remove();
     }
   });
@@ -411,7 +457,7 @@ function showDocumentEditor(id) {
 
 async function archiveDocument(id) {
   const target = documents.find((doc) => doc.id === id);
-  if (!target || !confirm('Archiver ce document ? Il ne sera plus proposé dans vos démarches, mais restera conservé dans votre coffre.')) return;
+  if (!target || !(await showConfirmDialog({ title: 'Archiver ce document ?', message: 'Il ne sera plus proposé dans vos démarches, mais restera conservé dans votre coffre.', confirmLabel: 'Archiver' }))) return;
   const { error } = await supabaseClient.from('documents').update({ archived_at: new Date().toISOString() }).eq('id', id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible d’archiver ce document : ' + error.message); return; }
   await loadData();
@@ -480,7 +526,7 @@ async function restoreTrashedDocument(id) {
 
 async function permanentlyDeleteTrashedDocument(id) {
   const documentToDelete = documents.find((doc) => doc.id === id && doc.deleted_at);
-  if (!documentToDelete || !confirm('Supprimer définitivement ce document ? Cette action est irréversible.')) return;
+  if (!documentToDelete || !(await showConfirmDialog({ title: 'Supprimer définitivement ce document ?', message: 'Cette action est irréversible.', confirmLabel: 'Supprimer définitivement', tone: 'danger' }))) return;
   const { error } = await supabaseClient.from('documents').delete().eq('id', id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible de supprimer ce document : ' + error.message); return; }
   if (documentToDelete.storage_path) {
@@ -930,7 +976,7 @@ function showQualification(code, existingJourney = null, customResidence = false
 }
 async function completeJourney() {
   if (!currentJourney || currentJourney.status !== 'active') return;
-  if (!confirm('Marquer cette démarche comme terminée ? Le dossier restera consultable dans vos démarches terminées.')) return;
+  if (!(await showConfirmDialog({ title: 'Marquer cette démarche comme terminée ?', message: 'Le dossier restera consultable dans vos démarches terminées.', confirmLabel: 'Marquer comme terminée' }))) return;
   const { error } = await supabaseClient.from('journeys').update({ status: 'completed' }).eq('id', currentJourney.id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible de terminer cette démarche : ' + error.message); return; }
   await loadData();
@@ -938,7 +984,7 @@ async function completeJourney() {
 
 async function reopenJourney() {
   if (!currentJourney || currentJourney.status !== 'completed') return;
-  if (!confirm('Rouvrir ce dossier ? Il reviendra dans « À reprendre ». Vos documents et votre checklist seront conservés.')) return;
+  if (!(await showConfirmDialog({ title: 'Rouvrir ce dossier ?', message: 'Il reviendra dans « À reprendre ». Vos documents et votre checklist seront conservés.', confirmLabel: 'Rouvrir le dossier' }))) return;
   const { data, error } = await supabaseClient
     .from('journeys')
     .update({ status: 'active' })
@@ -961,7 +1007,7 @@ async function trashJourney(id) {
   const journey = journeysList.find((item) => item.id === id);
   if (!journey) return;
   const retentionEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  if (!confirm('Supprimer cette démarche ? Elle sera placée dans la corbeille jusqu’au ' + retentionEnd + '. Vos documents du coffre ne seront pas supprimés.')) return;
+  if (!(await showConfirmDialog({ title: 'Supprimer cette démarche ?', message: 'Elle sera placée dans la corbeille jusqu’au ' + retentionEnd + '. Vos documents du coffre ne seront pas supprimés.', confirmLabel: 'Supprimer', tone: 'danger' }))) return;
   const { error } = await supabaseClient.from('journeys').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible de placer cette démarche dans la corbeille : ' + error.message); return; }
   if (currentJourney?.id === id) currentJourney = null;
@@ -982,7 +1028,7 @@ async function restoreTrashedJourney(id) {
 
 async function permanentlyDeleteJourney(id) {
   const journey = journeysList.find((item) => item.id === id);
-  if (!journey || !confirm('Supprimer définitivement cette démarche ? Cette action est irréversible. Les documents de votre coffre seront conservés.')) return;
+  if (!journey || !(await showConfirmDialog({ title: 'Supprimer définitivement cette démarche ?', message: 'Cette action est irréversible. Les documents de votre coffre seront conservés.', confirmLabel: 'Supprimer définitivement', tone: 'danger' }))) return;
   const { error } = await supabaseClient.from('journeys').delete().eq('id', id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible de supprimer cette démarche : ' + error.message); return; }
   await loadData();
@@ -1026,7 +1072,7 @@ async function deleteDocument(id) {
   const documentToDelete = documents.find((doc) => doc.id === id);
   if (!documentToDelete) return;
   const retentionEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  if (!confirm('Supprimer ce document ? Il sera placé dans votre corbeille jusqu’au ' + retentionEnd + '. Vous pourrez le restaurer ou le supprimer définitivement à tout moment.')) return;
+  if (!(await showConfirmDialog({ title: 'Supprimer ce document ?', message: 'Il sera placé dans votre corbeille jusqu’au ' + retentionEnd + '. Vous pourrez le restaurer ou le supprimer définitivement à tout moment.', confirmLabel: 'Supprimer', tone: 'danger' }))) return;
   const { error } = await supabaseClient.from('documents').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible de placer ce document dans la corbeille : ' + error.message); return; }
   await loadData();
