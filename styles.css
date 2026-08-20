@@ -530,3 +530,15 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
  .trash-page-item{grid-template-columns:34px minmax(0,1fr);align-items:start;padding:14px}
  .trash-page-actions{grid-column:2;justify-content:flex-start;flex-wrap:wrap;margin-top:4px}
 }
+
+/* Outil Corbeille : icône explicite et sobre, séparée des espaces de travail. */
+.app-nav-utilities{padding-left:14px;border-left:1px solid #dce5de}
+.trash-nav{display:grid;place-items:center;width:40px;height:40px;padding:0;border:1px solid #ccdbcf;border-radius:11px;background:#f7faf6;color:#2e6953}
+.trash-nav svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
+.trash-nav:hover,.trash-nav:focus-visible,.trash-nav.active{background:#e4f0e5;border-color:#8fba9b;color:#1d5d47}
+.trash-nav.active{box-shadow:inset 0 0 0 1px #8fba9b}
+@media(max-width:760px){
+ .app-nav-utilities{padding-left:8px}
+ .trash-nav{width:36px;height:36px;border-radius:10px}
+ .trash-nav svg{width:19px;height:19px}
+}
