@@ -152,7 +152,7 @@ async function loadData() {
   if (catalogError) throw catalogError;
   documents = docs || [];
   officialCatalog = catalog || [];
-  selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
+  selected = new Set(documents.filter((doc) => !doc.archived_at && !doc.deleted_at).map((doc) => doc.id));
   journeysList = trips || [];
   journeyProfiles = {};
   if (journeysList.length) {
@@ -162,7 +162,7 @@ async function loadData() {
   }
   const preservedJourney = currentJourney && journeysList.find((journey) => journey.id === currentJourney.id);
   currentJourney = preservedJourney || null;
-  selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id));
+  selected = new Set(documents.filter((doc) => !doc.archived_at && !doc.deleted_at).map((doc) => doc.id));
   render();
 }
 
