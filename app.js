@@ -304,6 +304,8 @@ function lifecycleFor(doc) {
 
 function filterDocuments() {
   return documents.filter((doc) => {
+    if (vaultFilter === 'trash') return Boolean(doc.deleted_at);
+    if (doc.deleted_at) return false;
     const state = lifecycleFor(doc);
     if (vaultFilter === 'archive') return state.key === 'archived';
     if (vaultFilter === 'attention') return !doc.archived_at && ['expired', 'expiring'].includes(state.key);
@@ -315,10 +317,10 @@ function filterDocuments() {
 function renderDocuments() {
   const container = $('#documents');
   const visibleDocuments = filterDocuments();
-  const attentionCount = documents.filter((doc) => !doc.archived_at && ['expired', 'expiring'].includes(lifecycleFor(doc).key)).length;
+  const attentionCount = documents.filter((doc) => !doc.deleted_at && !doc.archived_at && ['expired', 'expiring'].includes(lifecycleFor(doc).key)).length;
   $('#attention-count').textContent = attentionCount ? attentionCount + ' document' + (attentionCount > 1 ? 's' : '') + ' à revoir' : 'Tout est à jour';
   document.querySelectorAll('[data-vault-filter]').forEach((button) => button.classList.toggle('active', button.dataset.vaultFilter === vaultFilter));
-  const titles = { all: ['Tout votre coffre', 'Les documents restent ici, même lorsqu’ils sont utilisés dans une démarche.'], identity: ['Identité & voyage', 'Les documents qui vous accompagnent d’un pays à l’autre.'], residency: ['Séjour', 'Vos titres, autorisations et droits de séjour.'], home: ['Logement', 'Justificatifs de domicile et documents liés à votre adresse.'], family: ['Famille', 'État civil, liens familiaux et pièces partagées.'], attention: ['À surveiller', 'Des documents arrivent à expiration ou doivent être actualisés.'], archive: ['Archives', 'Des documents conservés pour mémoire, hors de vos démarches actives.'] };
+  const titles = { all: ['Tout votre coffre', 'Les documents restent ici, même lorsqu’ils sont utilisés dans une démarche.'], identity: ['Identité & voyage', 'Les documents qui vous accompagnent d’un pays à l’autre.'], residency: ['Séjour', 'Vos titres, autorisations et droits de séjour.'], home: ['Logement', 'Justificatifs de domicile et documents liés à votre adresse.'], family: ['Famille', 'État civil, liens familiaux et pièces partagées.'], attention: ['À surveiller', 'Des documents arrivent à expiration ou doivent être actualisés.'], archive: ['Archives', 'Des documents conservés pour mémoire, hors de vos démarches actives.'], trash: ['Corbeille', 'Vos documents restent récupérables pendant 90 jours avant leur suppression définitive.'] };
   $('#vault-context').innerHTML = '<strong>' + titles[vaultFilter][0] + '</strong><span>' + titles[vaultFilter][1] + '</span>';
 
   if (!visibleDocuments.length) {
@@ -875,11 +877,11 @@ function showUpload(preselectedType) {
 
 async function deleteDocument(id) {
   const documentToDelete = documents.find((doc) => doc.id === id);
-  if (!documentToDelete || !confirm('Supprimer ce document du coffre ? Cette action est définitive.')) return;
-  const { error: storageError } = await supabaseClient.storage.from('jamm-documents').remove([documentToDelete.storage_path]);
-  if (storageError) { alert('Impossible de supprimer le fichier : ' + storageError.message); return; }
-  const { error } = await supabaseClient.from('documents').delete().eq('id', id).eq('owner_id', currentUser.id);
-  if (error) { alert('Le fichier a été supprimé, mais ses informations doivent encore être retirées : ' + error.message); return; }
+  if (!documentToDelete) return;
+  const retentionEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (!confirm('Supprimer ce document ? Il sera placé dans votre corbeille jusqu’au ' + retentionEnd + '. Vous pourrez le restaurer ou le supprimer définitivement à tout moment.')) return;
+  const { error } = await supabaseClient.from('documents').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible de placer ce document dans la corbeille : ' + error.message); return; }
   await loadData();
 }
 
