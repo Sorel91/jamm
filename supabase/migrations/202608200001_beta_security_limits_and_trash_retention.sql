@@ -52,23 +52,3 @@ end;
 $$;
 
 revoke all on function jamm_internal.purge_expired_trash() from public;
-
--- Schedule once daily, at 03:15 UTC.
-do $$
-declare scheduled_job_id bigint;
-begin
-  select jobid into scheduled_job_id
-  from cron.job
-  where jobname = 'jamm-purge-expired-trash';
-
-  if scheduled_job_id is not null then
-    perform cron.unschedule(scheduled_job_id);
-  end if;
-
-  perform cron.schedule(
-    'jamm-purge-expired-trash',
-    '15 3 * * *',
-    $cron$select jamm_internal.purge_expired_trash();$cron$
-  );
-end;
-$$;
