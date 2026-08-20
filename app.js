@@ -941,7 +941,6 @@ function wireUi() {
   document.querySelectorAll('.app-tab').forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)));
   $('#add-document').addEventListener('click', () => currentUser ? showUpload() : showAuth());
   $('#prepare').addEventListener('click', downloadChecklist);
-  $('#select-all').addEventListener('click', () => { selected = new Set(documents.filter((doc) => !doc.archived_at).map((doc) => doc.id)); renderDocuments(); });
   document.querySelectorAll('[data-vault-filter]').forEach((button) => button.addEventListener('click', () => { vaultFilter = button.dataset.vaultFilter; renderDocuments(); }));
   $('#invite').addEventListener('click', () => alert('Le partage familial sécurisé arrive dans une prochaine version.'));
   $('#new-journey').addEventListener('click', showNewJourneyChooser);
