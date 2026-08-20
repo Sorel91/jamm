@@ -448,3 +448,22 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .profile-actions { align-items:stretch; flex-direction:column; gap:14px; }
   .profile-actions .primary { width:100%; }
 }
+
+/* Checklist : une liste unique, sans légende répétitive ni actions qui se chevauchent. */
+.custom-list-note{display:flex;align-items:center;flex-wrap:wrap;gap:7px 13px;padding:14px 16px;margin:13px 0 8px}
+.custom-list-note>strong{font:700 17px/1.25 Fraunces,Georgia,serif}
+.custom-list-note>span{font-size:12px}
+.custom-list-note .link-button{margin:0 0 0 auto}
+.jamm-checklist-summary{justify-content:flex-start;margin:8px 0 3px;padding:8px 4px;border:0;border-radius:0;background:transparent;color:#315d4c}
+.check-row{display:grid;grid-template-columns:27px minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 8px 14px 12px}
+.check-copy small{color:#5e7b6a;font-size:12px}
+.requirement-actions,.ready-actions{display:flex;flex-direction:row;align-items:center;gap:14px;white-space:nowrap}
+.ready-actions .in-vault{display:none}
+@media(max-width:640px){
+  .custom-list-note{align-items:flex-start;padding:13px 14px}
+  .custom-list-note .link-button{width:100%;margin:1px 0 0}
+  .check-row{grid-template-columns:25px minmax(0,1fr);grid-template-areas:"icon copy" "icon actions";align-items:start;gap:7px 10px;padding:14px 8px 14px 10px}
+  .checkmark{grid-area:icon;margin-top:1px}
+  .check-copy{grid-area:copy}
+  .requirement-actions,.ready-actions{grid-area:actions;justify-content:flex-start;flex-direction:row;gap:14px;min-height:30px}
+}
