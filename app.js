@@ -565,12 +565,12 @@ function renderChecklist() {
       const type = requirement.document_type || requirement.category || 'other';
       const pickerData = ' data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '"';
       const attachedName = doc ? '<small>' + escapeHtml(doc.display_name) + '</small>' : '';
-      return '<div class="check-row ' + (doc ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (doc ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedName + '</span>' + (doc ? '<span class="ready-actions"><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Changer</button></span>' : '<span class="requirement-actions"><button class="link-button link-requirement" ' + pickerData + ' type="button">Choisir dans mon coffre</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '" type="button">Ajouter un document</button></span>') + '</div>';
+      return '<div class="check-row ' + (doc ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (doc ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedName + '</span>' + (doc ? '<span class="ready-actions"><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Changer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">Ajouter une pièce</button></span>') + '</div>';
     }).join('');
     const edit = dossierContext?.querySelector('#edit-qualification');
     if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
-    checklist.querySelectorAll('.link-requirement, .change-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement, button.dataset.documentType)));
-    checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload(button.dataset.documentType || 'other')));
+    checklist.querySelectorAll('.change-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement, button.dataset.documentType)));
+    checklist.querySelectorAll('.add-requirement').forEach((button) => button.addEventListener('click', () => showRequirementAddOptions(button.dataset.requirement, button.dataset.documentType)));
     checklist.querySelectorAll('.open-checklist-document').forEach((button) => button.addEventListener('click', () => openChecklistDocument(button.dataset.documentId)));
 
     return;
@@ -588,6 +588,16 @@ function renderChecklist() {
   const statusCopy = isCatalogRouteWithoutChecklist ? 'Le catalogue Essonne est prêt ; cette situation n’a pas encore de checklist détaillée dans Jamm. Vous pouvez changer de situation, ou revenir plus tard après son intégration.' : (isVerified ? 'Jamm a rattaché ce dossier à la publication compétente. Les pièces détaillées seront ajoutées après revue de cette source.' : 'Jamm attend la publication officielle correspondant à votre situation avant de lister des pièces.');
   checklist.innerHTML = '<div class="journey-empty"><span>⌁</span><div><strong>' + statusTitle + '</strong><p><b>Situation :</b> ' + escapeHtml(profile.permit_category) + ' · <b>Lieu :</b> ' + escapeHtml(profile.department) + '.</p><p>' + statusCopy + ' Dernier contrôle : ' + checked + '.</p><p>' + sourceLine + '</p><button class="outline" id="edit-qualification" type="button">' + (isCatalogRouteWithoutChecklist ? 'Choisir un autre parcours' : 'Modifier ma situation') + '</button></div></div>';
   checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
+}
+
+function showRequirementAddOptions(requirement, documentType = 'other') {
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">AJOUTER UNE PIÈCE</p><h2 style="font:600 29px Georgia,serif;margin:8px 0 10px">Comment voulez-vous l’ajouter ?</h2><p style="color:#647069;line-height:1.45">Pour « ' + escapeHtml(requirement) + ' ».</p><div class="requirement-add-options"><button class="journey-card" id="choose-vault-document" type="button"><span class="journey-card-icon">◫</span><span><strong>Choisir depuis mon coffre</strong><em>Utiliser un document déjà enregistré</em></span><b>→</b></button><button class="journey-card" id="upload-new-document" type="button"><span class="journey-card-icon">+</span><span><strong>Ajouter un nouveau document</strong><em>L’importer puis le rattacher à cette pièce</em></span><b>→</b></button></div>');
+  styleModal(node);
+  const options = node.querySelector('.requirement-add-options');
+  if (options) options.style.cssText = 'display:grid;gap:10px;margin-top:20px';
+  node.querySelector('.close').addEventListener('click', () => node.remove());
+  node.querySelector('#choose-vault-document').addEventListener('click', () => { node.remove(); showRequirementPicker(requirement, documentType); });
+  node.querySelector('#upload-new-document').addEventListener('click', () => { node.remove(); showUpload(documentType || 'other'); });
 }
 
 function showRequirementPicker(requirement, documentType = 'other') {
