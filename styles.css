@@ -488,3 +488,9 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 @media(max-width:640px){
   .checklist{margin-top:10px;padding:0 12px;border-radius:14px}
 }
+
+/* Deux voies explicites pour chaque pièce manquante. */
+.requirement-actions .link-button{white-space:normal;text-align:left}
+@media(max-width:640px){
+  .requirement-actions{flex-wrap:wrap;column-gap:16px;row-gap:4px}
+}
