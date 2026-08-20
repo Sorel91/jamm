@@ -269,3 +269,43 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   }
   .document-grid.is-list .status{justify-self:start}
 }
+
+
+/* Responsive coffre : aucune carte ni action ne doit sortir du cadre. */
+.document-grid.is-list .document-card{box-sizing:border-box;overflow:visible}
+@media(max-width:760px){
+  #app-shell{padding:0 16px 36px}
+  .app-nav{
+    height:auto;
+    min-height:0;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:10px;
+    padding:12px 0;
+  }
+  .app-nav .brand{font-size:29px}
+  .app-nav .avatar{grid-column:2;grid-row:1}
+  .app-nav .app-tabs{
+    position:static;
+    transform:none;
+    grid-column:1 / -1;
+    width:100%;
+    display:flex;
+    box-sizing:border-box;
+  }
+  .app-nav .app-tab{flex:1;min-width:0;padding:9px 6px;font-size:12px}
+  .vault-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .vault-filter{min-height:76px;padding:10px}
+  .vault-filter strong{margin-top:7px}
+  .document-grid{grid-template-columns:1fr;gap:10px}
+  .document-card{box-sizing:border-box;width:100%;min-width:0}
+}
+@media(min-width:701px){
+  .document-grid.is-list .document-card{
+    grid-template-columns:42px minmax(0,1fr) auto;
+    grid-template-areas:
+      "icon copy status"
+      ". actions status";
+  }
+  .document-grid.is-list .vault-document-actions{justify-self:start}
+}
