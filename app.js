@@ -37,9 +37,10 @@ const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character]);
 const initials = (email) => email ? email.slice(0, 2).toUpperCase() : 'J';
 const profileName = () => String(currentUser?.user_metadata?.first_name || '').trim();
+const profileFullName = () => [currentUser?.user_metadata?.first_name, currentUser?.user_metadata?.last_name].filter(Boolean).join(' ').trim();
 const profileInitials = () => {
-  const name = profileName();
-  return name ? name.slice(0, 2).toUpperCase() : initials(currentUser?.email);
+  const parts = profileFullName().split(/\s+/).filter(Boolean);
+  return parts.length ? parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase() : initials(currentUser?.email);
 };
 
 function modal(content) {
@@ -66,33 +67,48 @@ function showError(node, message) {
   error.hidden = false;
 }
 
-function showProfile() {
-  if (!currentUser) { showAuth(); return; }
+function renderProfilePage() {
+  if (!currentUser) return;
   const metadata = currentUser.user_metadata || {};
   const passportCountries = ['France', 'Algérie', 'Maroc', 'Tunisie', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'Bénin', 'Gabon', 'Kenya', 'Mauritanie', 'Zimbabwe', 'Burkina Faso', 'République démocratique du Congo', 'République du Congo (Congo-Brazzaville)', 'Guinée', 'Nigeria', 'Éthiopie'];
   const countryOptions = '<option value="">Aucun pays par défaut</option>' + passportCountries.map((country) => '<option value="' + escapeHtml(country) + '"' + (metadata.default_passport_country === country ? ' selected' : '') + '>' + escapeHtml(country) + '</option>').join('');
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">MON PROFIL</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Votre espace Jamm</h2><p style="color:#647069;line-height:1.45">Ces repères servent seulement à personnaliser Jamm et à préparer plus vite vos prochaines démarches.</p><form id="profile-form"><label>Prénom<input id="profile-first-name" autocomplete="given-name" maxlength="60" value="' + escapeHtml(metadata.first_name || '') + '" placeholder="Ex. Mariam"></label><label>Adresse e-mail<input type="email" value="' + escapeHtml(currentUser.email || '') + '" disabled></label><label>Département de résidence par défaut<input id="profile-department" inputmode="numeric" maxlength="3" value="' + escapeHtml(metadata.default_department || '') + '" placeholder="Ex. 91"></label><label>Pays de passeport le plus utilisé<select id="profile-passport-country">' + countryOptions + '</select></label><p style="color:#78847b;font-size:12px;line-height:1.45">Aucun document n’est enregistré dans votre profil. Vous pourrez modifier ces informations à tout moment.</p><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer mon profil <span>→</span></button></form><button id="profile-signout" style="margin-top:16px;border:0;background:none;color:#315d4c;text-decoration:underline;cursor:pointer">Se déconnecter</button>');
-  styleModal(node);
-  node.querySelector('.close').addEventListener('click', () => node.remove());
-  node.querySelector('#profile-signout').addEventListener('click', async () => {
+  $('#profile-view').innerHTML = '<section class="profile-page" aria-labelledby="profile-title">' +
+    '<div class="profile-page-heading"><button class="link-button" id="profile-back" type="button">← Retour à mon coffre</button><p class="eyebrow">MON PROFIL</p><h2 id="profile-title">Vos repères, à votre main.</h2><p>Ils aident Jamm à mieux préparer vos démarches. Ils restent facultatifs et vous pouvez les modifier à tout moment.</p></div>' +
+    '<div class="profile-summary"><span class="profile-avatar-large">' + escapeHtml(profileInitials()) + '</span><div><strong>' + escapeHtml(profileFullName() || 'Votre profil') + '</strong><span>' + escapeHtml(currentUser.email || '') + '</span></div></div>' +
+    '<form id="profile-form" class="profile-form"><section class="profile-section"><div class="profile-section-heading"><p class="eyebrow">REPÈRES POUR MES DÉMARCHES</p><h3>Les informations utiles</h3><p>Jamm ne récupère pas d’informations dans vos documents.</p></div>' +
+    '<div class="profile-fields"><label>Prénom<input id="profile-first-name" autocomplete="given-name" maxlength="60" value="' + escapeHtml(metadata.first_name || '') + '" placeholder="Ex. Mariam"></label><label>Nom<input id="profile-last-name" autocomplete="family-name" maxlength="80" value="' + escapeHtml(metadata.last_name || '') + '" placeholder="Ex. Diallo"></label><label>Département de résidence par défaut<input id="profile-department" inputmode="numeric" maxlength="3" value="' + escapeHtml(metadata.default_department || '') + '" placeholder="Ex. 91"></label><label>Pays de passeport le plus utilisé<select id="profile-passport-country">' + countryOptions + '</select></label></div></section>' +
+    '<section class="profile-section profile-account"><div class="profile-section-heading"><p class="eyebrow">COMPTE ET SÉCURITÉ</p><h3>Connexion</h3></div><div class="profile-account-row"><div><strong>Adresse e-mail</strong><span>' + escapeHtml(currentUser.email || '') + '</span></div><span class="profile-account-note">Modification bientôt disponible</span></div><div class="profile-account-row"><div><strong>Mot de passe</strong><span>Protège l’accès à votre coffre</span></div><span class="profile-account-note">Modification bientôt disponible</span></div></section>' +
+    '<p data-error hidden class="profile-error"></p><p data-status hidden class="profile-status" role="status"></p><div class="profile-actions"><button class="primary" type="submit">Enregistrer les modifications <span>→</span></button><button id="profile-signout" class="link-button" type="button">Se déconnecter</button></div></form></section>';
+  $('#profile-back').addEventListener('click', () => showView('vault'));
+  $('#profile-signout').addEventListener('click', async () => {
     if (confirm('Se déconnecter de Jamm ?')) await supabaseClient.auth.signOut();
-    node.remove();
   });
-  node.querySelector('#profile-form').addEventListener('submit', async (event) => {
+  $('#profile-form').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const button = node.querySelector('[type="submit"]');
+    const button = $('#profile-form [type="submit"]');
+    const status = $('#profile-form [data-status]');
     button.disabled = true;
-    const firstName = node.querySelector('#profile-first-name').value.trim();
-    const department = node.querySelector('#profile-department').value.trim();
-    const passportCountry = node.querySelector('#profile-passport-country').value;
-    const { data, error } = await supabaseClient.auth.updateUser({ data: { ...metadata, first_name: firstName, default_department: department, default_passport_country: passportCountry } });
-    if (error) { showError(node, 'Impossible d’enregistrer le profil : ' + error.message); button.disabled = false; return; }
-    currentUser = data.user || currentUser;
-    node.remove();
+    const data = { ...metadata,
+      first_name: $('#profile-first-name').value.trim(),
+      last_name: $('#profile-last-name').value.trim(),
+      default_department: $('#profile-department').value.trim(),
+      default_passport_country: $('#profile-passport-country').value
+    };
+    const { data: response, error } = await supabaseClient.auth.updateUser({ data });
+    if (error) { showError($('#profile-form'), 'Impossible d’enregistrer le profil : ' + error.message); button.disabled = false; return; }
+    currentUser = response.user || currentUser;
+    status.textContent = 'Vos informations ont été enregistrées.';
+    status.hidden = false;
+    button.disabled = false;
     render();
+    renderProfilePage();
   });
 }
 
+function showProfile() {
+  if (!currentUser) { showAuth(); return; }
+  showView('profile');
+}
 function showAuth(initialLogin = false) {
   const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Bienvenue dans Jamm.</h2><p style="color:#647069;line-height:1.45">Créez un compte pour conserver vos documents dans un espace privé.</p><form id="auth-form"><label>Adresse e-mail<input id="auth-email" type="email" autocomplete="email" required></label><label>Mot de passe<input id="auth-password" type="password" autocomplete="current-password" minlength="8" required></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><p data-status hidden style="color:#245843;font-size:13px;line-height:1.4"></p><button class="primary" id="auth-submit" type="submit">Créer mon compte <span>→</span></button></form><button id="switch-auth" style="margin-top:14px;border:0;background:none;color:#245843;text-decoration:underline;cursor:pointer">J’ai déjà un compte</button><p id="auth-note" style="margin-top:18px;color:#78847b;font-size:12px;line-height:1.4">Utilisez au moins 8 caractères. Nous ne stockons jamais votre mot de passe.</p>');
   styleModal(node);
@@ -183,14 +199,18 @@ function applyAppState() {
 function showView(view) {
   activeView = view;
   const isVault = view === 'vault';
+  const isProfile = view === 'profile';
   $('#vault-view').hidden = !isVault;
-  $('#journeys-view').hidden = isVault;
+  $('#journeys-view').hidden = view !== 'journeys';
+  $('#profile-view').hidden = !isProfile;
+  $('.app-welcome').hidden = isProfile;
   $('#add-document').hidden = !isVault;
   document.querySelectorAll('.app-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
   $('#today').textContent = isVault ? 'VOTRE ESPACE PRIVÉ' : 'VOS DÉMARCHES';
   $('#app-subtitle').textContent = isVault
     ? 'Votre mémoire administrative, organisée et prête.'
     : 'Des dossiers temporaires qui s’appuient sur votre coffre.';
+  if (isProfile) renderProfilePage();
 }
 
 function journeyTitle(journey) {
