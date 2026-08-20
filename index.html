@@ -73,13 +73,13 @@
     <section class="app-view" id="profile-view" hidden></section>
 
     <section class="app-view" id="journeys-view" hidden>
-      <section class="heading journey-heading"><div><p class="eyebrow">VOS DÉMARCHES</p><h2>Préparez un dossier, sans repartir de zéro.</h2><p class="section-description">Commencez par une démarche simple. Jamm précise ensuite votre situation ou organise votre propre liste de pièces.</p></div><button class="primary compact" id="new-journey">+ Nouvelle démarche</button></section>
+      <section class="heading journey-heading"><div><h2>Préparez un dossier, sans repartir de zéro.</h2></div><button class="primary compact" id="new-journey">+ Nouvelle démarche</button></section>
       <section class="journey-board" id="journey-list" aria-label="Liste des démarches"></section>
 
       <section class="dossier" id="demarche">
         <div class="dossier-header"><div class="dossier-context"><p class="eyebrow">ÉTAT DU DOSSIER</p><div id="dossier-context"></div></div><div class="dossier-header-actions"><div class="progress"><strong id="progress-value">0%</strong><span>prêt</span></div><button class="link-button collapse-dossier" id="collapse-dossier" type="button" hidden aria-expanded="true">Réduire la checklist</button></div></div>
         <div class="checklist" id="checklist"></div>
-        <div class="dossier-footer"><p>Jamm ne produit une checklist que lorsque la source officielle liée à votre préfecture est vérifiée. Une liste reste toujours à confronter à votre situation personnelle.</p><div class="journey-actions"><button class="outline" id="complete-journey" hidden>Marquer comme terminée</button><button class="outline" id="reopen-journey" hidden>Rouvrir ce dossier</button><button class="primary" id="prepare">Préparer et télécharger le dossier <span>→</span></button></div></div>
+        <div class="dossier-footer"><div class="journey-actions"><button class="outline" id="complete-journey" hidden>Marquer comme terminée</button><button class="outline" id="reopen-journey" hidden>Rouvrir ce dossier</button><button class="primary" id="prepare">Préparer et télécharger le dossier <span>→</span></button></div></div>
         <div class="success" id="success" hidden></div>
       </section>
     </section>
@@ -88,7 +88,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="app.js?v=unifiedtrash20260820"></script>
+  <script src="app.js?v=journeywording20260820"></script>
   <script src="residence-v1.js?v=20260820"></script>
   <script src="ux-v1.js?v=checklistsimple2_20260820"></script>
   <script src="vault-v1.js?v=responsive20260820"></script>
