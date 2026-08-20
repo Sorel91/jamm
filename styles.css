@@ -355,3 +355,6 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 .check-row.done{border-left:4px solid #4f9971}
 .ready-actions .change-requirement{color:#23634b}
 @media(max-width:640px){.jamm-checklist-summary{align-items:flex-start;flex-direction:column;gap:4px}.ready-actions{flex-wrap:wrap;justify-content:flex-end}}
+
+
+.ready-actions .in-vault{color:#2d7655;font-size:12px;font-weight:700;white-space:nowrap}
