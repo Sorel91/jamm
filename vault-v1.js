@@ -161,7 +161,7 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'delete-vault-document';
-        button.textContent = 'Supprimer définitivement';
+        button.textContent = 'Supprimer';
         button.dataset.id = documentId;
         button.addEventListener('click', () => {
           closeVaultMenus();
