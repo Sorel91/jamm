@@ -346,3 +346,12 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .journey-trash-item{align-items:flex-start;flex-direction:column;padding:14px}
   .journey-trash-actions{justify-content:flex-start}
 }
+
+/* Checklist unique : état lisible de chaque pièce. */
+.jamm-checklist-summary{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:12px 0 6px;padding:11px 13px;border:1px solid #d8e4d8;border-radius:10px;background:#f3f8f2;color:#285b45}
+.jamm-checklist-summary strong{font-size:13px}.jamm-checklist-summary span{color:#687b6d;font-size:12px}
+.check-row.missing-piece{border-left:4px solid #d9a246;background:#fffaf0}
+.check-row.missing-piece .checkmark{border-color:#d9a246;color:#a66f18;background:#fff0cf}
+.check-row.done{border-left:4px solid #4f9971}
+.ready-actions .change-requirement{color:#23634b}
+@media(max-width:640px){.jamm-checklist-summary{align-items:flex-start;flex-direction:column;gap:4px}.ready-actions{flex-wrap:wrap;justify-content:flex-end}}
