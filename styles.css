@@ -479,3 +479,12 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .dossier-header{gap:14px}
   #dossier-context .link-button{width:100%;margin-left:0;text-align:left}
 }
+
+/* La checklist forme un seul bloc, comme les autres espaces de Jamm. */
+.checklist{margin-top:12px;padding:0 16px;border:1px solid #dce5de;border-radius:16px;background:#fff;overflow:hidden}
+.checklist .jamm-checklist-summary{margin:0;padding:12px 0 7px}
+.checklist .check-row:first-of-type{border-top:1px solid #edf0eb}
+.checklist .check-row{margin:0}
+@media(max-width:640px){
+  .checklist{margin-top:10px;padding:0 12px;border-radius:14px}
+}
