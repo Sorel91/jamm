@@ -43,7 +43,7 @@
       return;
     }
     const links = profile.situation_answers?.requirement_links || {};
-    const documentFor = (requirement) => documents.find((doc) => !doc.archived_at && documentMatchesRequirement(doc, requirement, links));
+    const documentFor = (requirement) => linkedDocumentForRequirement(requirement, links);
     const rows = requirements.map((requirement) => {
       const doc = documentFor(requirement);
       return '<li class="' + (doc ? 'ready' : 'missing') + '"><span>' + (doc ? '✓' : '!') + '</span><div><strong>' + esc(requirement.label) + '</strong><small>' + (doc ? esc(doc.display_name) : 'À ajouter ou à rattacher') + '</small></div></li>';
