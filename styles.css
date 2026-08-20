@@ -467,3 +467,15 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .check-copy{grid-area:copy}
   .requirement-actions,.ready-actions{grid-area:actions;justify-content:flex-start;flex-direction:row;gap:14px;min-height:30px}
 }
+
+/* La source de la checklist appartient à l’en-tête du dossier, pas à une seconde carte. */
+.dossier-context{min-width:0}
+#dossier-context{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:5px}
+#dossier-context strong{font:700 17px/1.25 Fraunces,Georgia,serif;color:#22382e}
+#dossier-context span{font-size:12px;color:#66756c}
+#dossier-context a{color:#1f664f;font-weight:700;text-underline-offset:3px}
+#dossier-context .link-button{margin-left:auto;padding:4px 0;font-size:12px}
+@media(max-width:640px){
+  .dossier-header{gap:14px}
+  #dossier-context .link-button{width:100%;margin-left:0;text-align:left}
+}
