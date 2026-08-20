@@ -231,7 +231,8 @@ function render() {
   $('#profile-button').textContent = currentUser ? profileInitials() : '—';
   $('#person-one').textContent = currentUser ? profileInitials().slice(0, 1) : 'J';
   const journey = currentJourney ? journeys[currentJourney.code] : null;
-  $('#dossier-title').textContent = journey ? journeyTitle(currentJourney) : 'Choisissez votre démarche';
+  const dossierTitle = $('#dossier-title');
+  if (dossierTitle) dossierTitle.textContent = journey ? journeyTitle(currentJourney) : 'Choisissez votre démarche';
   renderDocuments();
   renderJourneys();
   renderChecklist();
