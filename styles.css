@@ -217,3 +217,14 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .document-grid.is-list .status{justify-self:start;margin-top:2px}
   .document-grid.is-list .vault-document-actions{justify-self:start;margin-top:8px}
 }
+
+
+/* Corbeille : statut et actions de récupération. */
+.trash-filter{border-color:#dfd1c8}
+.trash-filter span{color:#9b4e38}
+.status.trashed{background:#f7ece7;color:#97472f;white-space:nowrap}
+.document-grid.is-list .document-card:has(.status.trashed){border-color:#e5d9d3;background:#fffdfc}
+.document-grid.is-list .restore-trashed-document{white-space:nowrap}
+@media(max-width:700px){
+  .document-grid.is-list .restore-trashed-document{min-height:42px}
+}
