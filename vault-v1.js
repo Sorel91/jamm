@@ -135,19 +135,49 @@
     } else if (empty) empty.remove();
   }
 
+  function closeVaultMenus(except) {
+    document.querySelectorAll('details.vault-more[open]').forEach((menu) => {
+      if (menu !== except) menu.removeAttribute('open');
+    });
+  }
+
   function addReplacementAction() {
     $('#documents')?.querySelectorAll('.vault-more-menu').forEach((menu) => {
-      if (menu.querySelector('.replace-vault-document')) return;
       const existing = menu.querySelector('.edit-vault-document');
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'replace-vault-document';
-      button.textContent = 'Remplacer le fichier';
-      button.dataset.id = existing?.dataset.id || '';
-      button.addEventListener('click', () => showDocumentReplacement(button.dataset.id));
-      menu.insertBefore(button, existing || null);
+      const documentId = existing?.dataset.id || '';
+      if (!menu.querySelector('.replace-vault-document')) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'replace-vault-document';
+        button.textContent = 'Remplacer le fichier';
+        button.dataset.id = documentId;
+        button.addEventListener('click', () => {
+          closeVaultMenus();
+          showDocumentReplacement(button.dataset.id);
+        });
+        menu.insertBefore(button, existing || null);
+      }
+      if (!menu.querySelector('.delete-vault-document')) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'delete-vault-document';
+        button.textContent = 'Supprimer définitivement';
+        button.dataset.id = documentId;
+        button.addEventListener('click', () => {
+          closeVaultMenus();
+          deleteDocument(button.dataset.id);
+        });
+        menu.appendChild(button);
+      }
+      const details = menu.closest('details.vault-more');
+      if (details && !details.dataset.vaultMenuBound) {
+        details.dataset.vaultMenuBound = 'true';
+        details.addEventListener('toggle', () => {
+          if (details.open) closeVaultMenus(details);
+        });
+      }
     });
-    // Archiving is recoverable. Remove the irreversible deletion affordance from the vault.
+    // Keep deletion in the “Plus” menu only; it should never be a one-click card action.
     $('#documents')?.querySelectorAll('.delete-document').forEach((button) => button.remove());
   }
 
@@ -224,6 +254,16 @@
         pendingToast = '';
       }
     };
+
+    document.addEventListener('pointerdown', (event) => {
+      document.querySelectorAll('details.vault-more[open]').forEach((menu) => {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+      });
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeVaultMenus();
+    });
 
     document.addEventListener('submit', (event) => {
       if (event.target?.id !== 'upload-form') return;
