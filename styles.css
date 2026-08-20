@@ -568,3 +568,31 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .jamm-confirm-actions { align-items:stretch; flex-direction:column-reverse; }
   .jamm-confirm-actions button { width:100%; }
 }
+
+
+/* Profile controls: fixed avatar centring and consistent button geometry */
+.profile-summary .profile-avatar-large { flex:0 0 52px; width:52px; height:52px; display:grid; place-items:center; line-height:1; overflow:hidden; }
+.profile-actions .primary,
+.profile-actions .profile-signout {
+  margin-top:0;
+  min-height:50px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+}
+.profile-actions .profile-signout { padding:0 17px; }
+.jamm-confirm-actions > button {
+  min-height:50px;
+  min-width:180px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  margin-top:0;
+  line-height:1.15;
+}
+@media (max-width:640px) {
+  .profile-actions .profile-signout { width:100%; }
+  .jamm-confirm-actions > button { min-width:0; }
+}
