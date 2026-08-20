@@ -542,3 +542,7 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
  .trash-nav{width:36px;height:36px;border-radius:10px}
  .trash-nav svg{width:19px;height:19px}
 }
+
+/* Dans le coffre, l’ajout est l’action principale. */
+.app-welcome .vault-add{margin:0;min-height:48px;padding:13px 19px;font-size:15px;white-space:nowrap}
+@media(max-width:760px){.app-welcome .vault-add{width:100%;min-height:50px}}
