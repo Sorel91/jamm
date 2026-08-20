@@ -520,6 +520,8 @@ function compatibleDocumentsForRequirement(requirement) {
 function renderChecklist() {
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   const checklist = $('#checklist');
+  const dossierContext = $('#dossier-context');
+  if (dossierContext) dossierContext.innerHTML = '';
   if (!journey) {
     checklist.innerHTML = '<div class="journey-empty"><span>→</span><div><strong>Choisissez une démarche au-dessus.</strong><p>Jamm vous demandera ensuite votre situation, puis préparera le dossier.</p></div></div>';
     $('#progress-value').textContent = '0%';
@@ -534,6 +536,7 @@ function renderChecklist() {
   $('#complete-journey').hidden = currentJourney.status !== 'active';
   $('#reopen-journey').hidden = currentJourney.status !== 'completed';
   if (!profile) {
+    if (dossierContext) dossierContext.innerHTML = '<strong>Précisez votre situation</strong><span>Jamm préparera ensuite la liste des pièces.</span>';
     $('#progress-value').textContent = '—';
     checklist.innerHTML = '<div class="journey-empty"><span>!</span><div><strong>Précisez votre situation.</strong><p>Jamm ne propose pas de liste générique : nous avons besoin de comprendre votre démarche.</p><button class="outline" id="qualify-current-journey" type="button">Préciser ma situation</button></div></div>';
     checklist.querySelector('#qualify-current-journey').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
@@ -555,7 +558,8 @@ function renderChecklist() {
     const heading = isPersonal
       ? (isHomePurchase ? '<strong>Votre checklist — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>Liste à compléter avec votre banque, votre notaire et les documents du bien.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>' : '<strong>Votre liste personnelle</strong><span>Les pièces que vous avez indiquées.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>')
       : '<strong>' + (isNationalBase ? 'Checklist nationale — ' : 'Checklist officielle — ') + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
-    checklist.innerHTML = '<div class="custom-list-note">' + heading + '</div>' + requirements.map((requirement) => {
+    if (dossierContext) dossierContext.innerHTML = heading;
+    checklist.innerHTML = requirements.map((requirement) => {
       const doc = linked(requirement);
       const compatible = compatibleDocumentsForRequirement(requirement);
       const type = requirement.document_type || requirement.category || 'other';
@@ -566,7 +570,7 @@ function renderChecklist() {
         : '';
       return '<div class="check-row ' + (doc ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (doc ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedName + '</span>' + (doc ? '<span class="ready-actions"><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Changer</button></span>' : '<span class="requirement-actions">' + missingActions + '<button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '" type="button">Ajouter</button></span>') + '</div>';
     }).join('');
-    const edit = checklist.querySelector('#edit-qualification');
+    const edit = dossierContext?.querySelector('#edit-qualification');
     if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
     checklist.querySelectorAll('.link-requirement, .change-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement, button.dataset.documentType)));
     checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload(button.dataset.documentType || 'other')));
