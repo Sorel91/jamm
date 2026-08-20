@@ -209,7 +209,8 @@ function showView(view) {
   $('#add-document').hidden = !isVault;
   document.querySelectorAll('.app-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
   $('#trash-button').classList.toggle('active', isTrash);
-  $('#today').textContent = isVault ? 'VOTRE ESPACE PRIVÉ' : 'VOS DÉMARCHES';
+  const today = $('#today');
+  if (today) today.textContent = isVault ? 'VOTRE ESPACE PRIVÉ' : 'VOS DÉMARCHES';
   $('#app-subtitle').textContent = isVault
     ? 'Votre mémoire administrative, organisée et prête.'
     : 'Des dossiers temporaires qui s’appuient sur votre coffre.';
