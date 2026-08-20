@@ -408,3 +408,43 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .completed-item .completed-journey{padding-right:92px;padding-bottom:14px}
   .completed-item .completed-action{margin-right:26px}
 }
+
+
+/* Profile: dedicated account page, kept separate from the document vault */
+.profile-page { max-width: 860px; margin: 0 auto 76px; }
+.profile-page-heading { margin: 12px 0 26px; max-width: 680px; }
+.profile-page-heading .link-button { margin: 0 0 28px; }
+.profile-page-heading h2 { font: 600 clamp(34px, 5vw, 54px)/1.05 Georgia,serif; margin: 8px 0 12px; color:#152c23; }
+.profile-page-heading > p:not(.eyebrow) { color:#61726a; font-size:18px; line-height:1.55; margin:0; }
+.profile-summary { display:flex; align-items:center; gap:16px; padding:20px 22px; background:#e6f1e8; border:1px solid #c8dfcc; border-radius:18px; margin-bottom:24px; }
+.profile-avatar-large { width:52px; height:52px; border-radius:50%; background:#1f6a54; color:#fff; display:grid; place-items:center; font-weight:800; letter-spacing:.04em; }
+.profile-summary strong,.profile-summary span { display:block; }
+.profile-summary strong { color:#173126; font-size:18px; }
+.profile-summary div span { color:#61726a; margin-top:3px; }
+.profile-form { display:grid; gap:22px; }
+.profile-section { background:#fff; border:1px solid #dce5de; border-radius:18px; padding:28px; }
+.profile-section-heading { margin-bottom:22px; }
+.profile-section-heading h3 { font:600 26px/1.15 Georgia,serif; margin:7px 0; color:#173126; }
+.profile-section-heading > p:not(.eyebrow) { color:#69786f; margin:0; font-size:15px; }
+.profile-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 20px; }
+.profile-fields label { display:grid; gap:8px; font-weight:700; color:#233229; }
+.profile-fields input,.profile-fields select { width:100%; min-height:50px; padding:10px 12px; border:1px solid #b7c9bd; border-radius:8px; background:#fff; font:inherit; color:#18261f; }
+.profile-account { padding-bottom:10px; }
+.profile-account-row { display:flex; align-items:center; justify-content:space-between; gap:22px; border-top:1px solid #e3eae4; padding:18px 0; }
+.profile-account-row strong,.profile-account-row span { display:block; }
+.profile-account-row div span { margin-top:4px; color:#66766d; }
+.profile-account-note { color:#66766d; font-size:14px; text-align:right; }
+.profile-actions { display:flex; align-items:center; gap:22px; }
+.profile-error { color:#aa3425; margin:0; }
+.profile-status { color:#245843; margin:0; font-weight:700; }
+@media (max-width:640px) {
+  .profile-page { margin-bottom:42px; }
+  .profile-page-heading { margin-top:0; }
+  .profile-page-heading .link-button { margin-bottom:20px; }
+  .profile-section { padding:22px 18px; border-radius:14px; }
+  .profile-fields { grid-template-columns:1fr; gap:16px; }
+  .profile-account-row { align-items:flex-start; flex-direction:column; gap:8px; }
+  .profile-account-note { text-align:left; }
+  .profile-actions { align-items:stretch; flex-direction:column; gap:14px; }
+  .profile-actions .primary { width:100%; }
+}
