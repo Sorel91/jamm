@@ -557,7 +557,7 @@ function renderChecklist() {
     const isHomePurchase = currentJourney.code === 'home_purchase';
     const heading = isPersonal
       ? (isHomePurchase ? '<strong>Votre checklist — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>Liste à compléter avec votre banque, votre notaire et les documents du bien.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>' : '<strong>Votre liste personnelle</strong><span>Les pièces que vous avez indiquées.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>')
-      : '<strong>' + (isNationalBase ? 'Checklist nationale — ' : 'Checklist officielle — ') + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
+      : '<strong>' + (isNationalBase ? 'Checklist nationale' : 'Checklist officielle') + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     if (dossierContext) dossierContext.innerHTML = heading;
     checklist.innerHTML = requirements.map((requirement) => {
       const doc = linked(requirement);
