@@ -87,7 +87,7 @@
   function addAttentionAction() {
     const old = document.querySelector('#jamm-attention-action');
     if (old) old.remove();
-    const attention = documents.filter((doc) => !doc.archived_at && ['expired', 'expiring'].includes(lifecycleFor(doc).key));
+    const attention = documents.filter((doc) => !doc.deleted_at && !doc.archived_at && ['expired', 'expiring'].includes(lifecycleFor(doc).key));
     if (vaultFilter !== 'all' || !attention.length) return;
     const panel = document.createElement('section');
     panel.id = 'jamm-attention-action';
@@ -276,6 +276,7 @@
         status.className = 'status trashed';
         status.textContent = days ? days + ' j restants' : 'Purge en cours';
       }
+      card.querySelector('.delete-document')?.remove();
       const actions = card.querySelector('.vault-document-actions');
       if (!actions) return;
       actions.innerHTML = '<button class="outline restore-trashed-document" type="button">Restaurer</button><details class="vault-more"><summary>Plus</summary><div class="vault-more-menu"><button class="delete-vault-document" type="button">Supprimer définitivement</button></div></details>';
