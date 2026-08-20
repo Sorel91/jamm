@@ -382,3 +382,29 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
     transform:translateY(-50%);
   }
 }
+
+
+/* « À reprendre » : reprendre et supprimer sur le même axe. */
+@media(min-width:641px){
+  .resume-item .journey-trash-button{
+    top:50%;
+    bottom:auto;
+    transform:translateY(-50%);
+  }
+  .resume-item .resume-journey{padding-right:126px}
+  .resume-item .resume-action{margin-right:46px}
+}
+@media(max-width:640px){
+  .resume-item .resume-journey{padding-right:92px}
+  .resume-item .resume-action{margin-right:26px;font-size:0}
+  .resume-item .resume-action b{font-size:18px}
+  .resume-item .journey-trash-button,
+  .completed-item .journey-trash-button{
+    top:50%;
+    bottom:auto;
+    transform:translateY(-50%);
+    right:12px;
+  }
+  .completed-item .completed-journey{padding-right:92px;padding-bottom:14px}
+  .completed-item .completed-action{margin-right:26px}
+}
