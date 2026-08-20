@@ -475,7 +475,7 @@ function renderChecklist() {
   const profile = journeyProfiles[currentJourney.id];
   const prepareButton = $('#prepare');
   prepareButton.disabled = false;
-  prepareButton.innerHTML = 'Préparer et télécharger le dossier <span>→</span>';
+  prepareButton.innerHTML = currentJourney.status === 'completed' ? 'Télécharger le dossier <span>→</span>' : 'Télécharger le dossier de préparation <span>→</span>';
   $('#complete-journey').hidden = currentJourney.status !== 'active';
   $('#reopen-journey').hidden = currentJourney.status !== 'completed';
   if (!profile) {
@@ -588,7 +588,7 @@ function showQualification(code, existingJourney = null, customResidence = false
   const commonResidenceEntries = commonResidenceProcedureCodes.map((procedureCode) => nationalResidenceEntries.find((entry) => entry.procedure_code === procedureCode)).filter(Boolean);
   const passportCountries = ['France', 'Algérie', 'Maroc', 'Tunisie', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'Bénin', 'Gabon', 'Kenya', 'Mauritanie', 'Zimbabwe', 'Burkina Faso', 'République démocratique du Congo', 'République du Congo (Congo-Brazzaville)', 'Guinée', 'Nigeria', 'Éthiopie', 'Autre pays'];
   const passportEntries = officialCatalog.filter((entry) => entry.theme === 'passport_renewal');
-  const officialOption = (entry, fallbackSource) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : ' + escapeHtml(entry.source_label || fallbackSource) + ' ↗</small>' + (entry.theme === 'passport_renewal' && entry.notes ? '<small style="line-height:1.35;opacity:.82">' + escapeHtml(entry.notes) + '</small>' : '') + '</button>';
+  const officialOption = (entry) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong></button>';
   const catalogueNote = '<p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>';
   const passportField = '<label>Pays du passeport<select id="journey-passport-country" required><option value="">Choisir un pays</option>' + passportCountries.map((country) => '<option value="' + escapeHtml(country) + '">' + escapeHtml(country) + '</option>').join('') + '</select></label><div id="passport-situation" hidden aria-live="polite"></div><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">';
   const residenceField = '<section class="residence-family-step"><strong style="display:block;font:700 14px Arial;margin:12px 0 8px">Situation la plus proche de votre titre actuel</strong><p style="margin:0 0 10px;color:#647069;font-size:13px;line-height:1.45">Ces parcours nationaux fréquents servent à préparer votre dossier. La checklist affichera toujours sa source officielle.</p><div class="journey-option-picker">' + commonResidenceEntries.map((entry) => officialOption(entry, 'Service-Public.fr')).join('') + '<button class="journey-option" id="custom-residence-route" type="button"><strong>Autre situation de titre de séjour</strong><small style="font-weight:600;opacity:.78">Créez votre propre liste de pièces si votre situation n’apparaît pas ici.</small></button></div></section><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">' + catalogueNote;
@@ -898,7 +898,7 @@ async function downloadChecklist() {
     $('#success').hidden = false;
     $('#success').textContent = 'La checklist de cette démarche n’est pas encore vérifiée par la source officielle compétente : aucun dossier n’a été téléchargé.';
     button.disabled = false;
-    button.innerHTML = 'Préparer et télécharger le dossier <span>→</span>';
+    button.innerHTML = currentJourney?.status === 'completed' ? 'Télécharger le dossier <span>→</span>' : 'Télécharger le dossier de préparation <span>→</span>';
     return;
   }
   const links = profile.situation_answers?.requirement_links || {};
