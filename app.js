@@ -60,6 +60,8 @@ function styleModal(node) {
 }
 function showError(node, message) {
   const error = node.querySelector('[data-error]');
+  error.setAttribute('role', 'alert');
+  error.setAttribute('aria-live', 'assertive');
   error.textContent = message;
   error.hidden = false;
 }
