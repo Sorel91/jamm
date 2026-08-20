@@ -546,3 +546,25 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 /* Dans le coffre, l’ajout est l’action principale. */
 .app-welcome .vault-add{margin:0;min-height:48px;padding:13px 19px;font-size:15px;white-space:nowrap}
 @media(max-width:760px){.app-welcome .vault-add{width:100%;min-height:50px}}
+
+/* Beta authentication and confirmation flow */
+.jamm-confirm-dialog .jamm-modal-card { width:min(460px,100%) !important; padding:32px !important; }
+.jamm-confirm-content { text-align:left; }
+.jamm-confirm-icon, .email-confirmation-icon { width:48px; height:48px; display:grid; place-items:center; border-radius:16px; background:#e5f1e9; color:#1f664f; font-size:24px; font-weight:800; margin-bottom:18px; }
+.jamm-confirm-content h2, .email-confirmation h2 { font:600 clamp(28px,4vw,34px) Georgia,serif; letter-spacing:-.03em; line-height:1.06; margin:7px 0 14px; color:#1e2924; }
+.jamm-confirm-content > p:not(.eyebrow), .email-confirmation > p { color:#617168; line-height:1.55; margin:0 0 14px; }
+.jamm-confirm-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; margin-top:25px; }
+.danger-button { appearance:none; border:0; border-radius:10px; background:#a73e30; color:#fff; padding:12px 16px; font-weight:800; cursor:pointer; font-size:15px; }
+.danger-button:hover { background:#8b3025; }
+.email-confirmation { padding-right:4px; }
+.email-confirmation-address { display:block; overflow-wrap:anywhere; padding:12px 14px; margin:12px 0 17px; background:#eef5ef; border-radius:10px; color:#1e5f49; font-size:16px; }
+.email-confirmation ol { margin:0 0 16px 20px; padding:0; color:#38483f; line-height:1.65; }
+.email-confirmation-hint { font-size:14px; }
+.email-confirmation-actions { display:flex; flex-direction:column; align-items:flex-start; gap:12px; margin-top:22px; }
+.email-confirmation-status { margin:0 0 3px; padding:10px 12px; border-radius:8px; background:#eef5ef; color:#1f664f; font-weight:700; line-height:1.4; }
+@media (max-width:560px) {
+  .jamm-confirm-dialog { padding:16px !important; }
+  .jamm-confirm-dialog .jamm-modal-card { padding:26px 22px !important; }
+  .jamm-confirm-actions { align-items:stretch; flex-direction:column-reverse; }
+  .jamm-confirm-actions button { width:100%; }
+}
