@@ -228,3 +228,44 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 @media(max-width:700px){
   .document-grid.is-list .restore-trashed-document{min-height:42px}
 }
+
+/* Vue liste compacte : les actions suivent le libellé, pas le bord droit. */
+.document-grid.is-list .document-card{
+  min-height:104px;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  grid-template-areas:
+    "icon copy status"
+    ". actions status";
+  align-content:center;
+  gap:6px 12px;
+  padding:13px 16px;
+}
+.document-grid.is-list .doc-icon{width:34px;height:34px}
+.document-grid.is-list .document-copy{margin:0;padding:0}
+.document-grid.is-list .document-copy small{line-height:1.25}
+.document-grid.is-list .status{position:static;justify-self:end;align-self:start;margin:0}
+.document-grid.is-list .vault-document-actions{
+  position:static;
+  justify-self:start;
+  align-self:end;
+  margin:0;
+}
+.document-grid.is-list .vault-more-menu{
+  left:0;
+  right:auto;
+  top:calc(100% + 6px);
+  bottom:auto;
+}
+@media(max-width:700px){
+  .document-grid.is-list .document-card{
+    min-height:0;
+    grid-template-columns:42px minmax(0,1fr);
+    grid-template-areas:
+      "icon copy"
+      ". status"
+      ". actions";
+    gap:6px 10px;
+    padding:13px;
+  }
+  .document-grid.is-list .status{justify-self:start}
+}
