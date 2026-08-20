@@ -5,41 +5,19 @@
   function checklistEnhancements() {
     const checklist = $('#checklist');
     const profile = currentJourney && journeyProfiles[currentJourney.id];
-    if (!checklist || !profile) return;
-
+    if (!checklist || !profile || checklist.dataset.jammOrganised === 'true') return;
     const rows = Array.from(checklist.querySelectorAll(':scope > .check-row'));
-    if (!rows.length || checklist.dataset.jammOrganised === 'true') return;
+    if (!rows.length) return;
     checklist.dataset.jammOrganised = 'true';
-
-    const ready = rows.filter((row) => row.classList.contains('done'));
-    const needed = rows.filter((row) => !row.classList.contains('done'));
+    const ready = rows.filter((row) => row.classList.contains('done')).length;
+    const missing = rows.length - ready;
+    const summary = document.createElement('div');
+    summary.className = 'jamm-checklist-summary';
+    summary.setAttribute('aria-label', 'Résumé de la checklist');
+    summary.innerHTML = '<strong>' + ready + ' pièce' + (ready > 1 ? 's' : '') + ' prête' + (ready > 1 ? 's' : '') + ' · ' + missing + ' à compléter</strong><span>Vert : déjà rattaché · Ambre : à choisir ou à ajouter</span>';
     const note = checklist.querySelector(':scope > .custom-list-note');
-    const next = needed[0];
-    const action = document.createElement('section');
-    action.className = 'jamm-next-action';
-    action.setAttribute('aria-label', 'Prochaine action');
-    action.innerHTML = needed.length
-      ? '<p class="eyebrow">PROCHAINE ACTION</p><strong>' + esc(next.querySelector('.check-copy strong')?.textContent) + '</strong><p>Choisissez un document déjà présent ou ajoutez-le à votre coffre.</p><button type="button" class="primary compact">Choisir ou ajouter ce document <span>→</span></button>'
-      : '<p class="eyebrow">DOSSIER PRÊT À PRÉPARER</p><strong>Toutes les pièces de votre checklist sont dans votre coffre.</strong><p>Vérifiez la source officielle, puis téléchargez votre dossier de préparation.</p>';
-    if (needed.length) action.querySelector('button').addEventListener('click', () => {
-      next.querySelector('.link-requirement, .upload-requirement')?.click();
-    });
-
-    const group = (title, description, items, variant) => {
-      if (!items.length) return null;
-      const section = document.createElement('section');
-      section.className = 'jamm-check-group ' + variant;
-      section.innerHTML = '<div class="jamm-check-group-heading"><div><h3>' + title + '</h3><p>' + description + '</p></div><span>' + items.length + '</span></div>';
-      items.forEach((item) => section.appendChild(item));
-      return section;
-    };
-    const missingGroup = group('À ajouter ou à rattacher', 'Ces pièces sont nécessaires pour compléter votre dossier.', needed, 'needed');
-    const readyGroup = group('Déjà dans votre coffre', 'Jamm les utilisera sans les déplacer ni les dupliquer.', ready, 'ready');
-
-    if (note) note.insertAdjacentElement('afterend', action);
-    else checklist.prepend(action);
-    if (missingGroup) checklist.appendChild(missingGroup);
-    if (readyGroup) checklist.appendChild(readyGroup);
+    if (note) note.insertAdjacentElement('afterend', summary);
+    else checklist.prepend(summary);
   }
 
   function emptyVaultEnhancement() {
