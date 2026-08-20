@@ -406,7 +406,7 @@ function journeyProgress(journey) {
   const requirements = personal.length ? normalizedRequirements(personal) : (Array.isArray(catalogEntry?.requirements) ? catalogEntry.requirements : []);
   if (!requirements.length) return null;
   const links = profile.situation_answers?.requirement_links || {};
-  const ready = requirements.filter((requirement) => documents.some((doc) => !doc.archived_at && documentMatchesRequirement(doc, requirement, links))).length;
+  const ready = requirements.filter((requirement) => Boolean(linkedDocumentForRequirement(requirement, links))).length;
   return { ready, total: requirements.length };
 }
 
@@ -485,6 +485,17 @@ function renderJourneys() {
   board.querySelectorAll('[data-delete-journey]').forEach((button) => button.addEventListener('click', () => permanentlyDeleteJourney(button.dataset.deleteJourney)));
   board.querySelectorAll('[data-start-journey]').forEach((button) => button.addEventListener('click', () => chooseJourney(button.dataset.startJourney, true)));
 }
+function linkedDocumentForRequirement(requirement, links = {}) {
+  const linkedId = links[requirement.label];
+  if (linkedId) return documents.find((doc) => doc.id === linkedId && !doc.archived_at && !doc.deleted_at) || null;
+  const compatible = documents.filter((doc) => !doc.archived_at && !doc.deleted_at && documentMatchesRequirement(doc, requirement, {}));
+  return compatible.length === 1 ? compatible[0] : null;
+}
+
+function compatibleDocumentsForRequirement(requirement) {
+  return documents.filter((doc) => !doc.archived_at && !doc.deleted_at && documentMatchesRequirement(doc, requirement, {}));
+}
+
 function renderChecklist() {
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   const checklist = $('#checklist');
@@ -514,7 +525,7 @@ function renderChecklist() {
   const requirements = isPersonal ? normalizedRequirements(personalRequirements) : officialRequirements;
   const links = profile.situation_answers?.requirement_links || {};
   if (requirements.length) {
-    const linked = (requirement) => documents.find((doc) => !doc.archived_at && documentMatchesRequirement(doc, requirement, links));
+    const linked = (requirement) => linkedDocumentForRequirement(requirement, links);
     const ready = requirements.filter(linked).length;
     $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
     const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
@@ -528,11 +539,15 @@ function renderChecklist() {
       : '<strong>' + (isNationalBase ? 'Base nationale — ' : 'Checklist officielle — ') + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>' + (isNationalBase ? 'Pièces communes issues de la source nationale. Confirmez le canal de dépôt et les pièces conditionnelles auprès de votre préfecture.' : 'Pièces vérifiées à partir de la source officielle compétente.') + '</span>' + logistics + '<span>' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     checklist.innerHTML = '<div class="custom-list-note">' + heading + '</div>' + requirements.map((requirement) => {
       const doc = linked(requirement);
-      return '<div class="check-row ' + (doc ? 'done' : '') + '"><span class="checkmark">' + (doc ? '✓' : '') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : 'À rattacher depuis votre coffre ou à ajouter') + '</small></span>' + (doc ? '<span class="ready-actions"><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button download-checklist-document" data-document-id="' + doc.id + '" type="button">Télécharger</button><em>Prêt</em></span>' : '<span class="requirement-actions"><button class="add link-requirement" data-requirement="' + escapeHtml(requirement.label) + '" type="button">Choisir</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(requirement.document_type || requirement.category || 'other') + '" type="button">Ajouter</button></span>') + '</div>';
+      const compatible = compatibleDocumentsForRequirement(requirement);
+      const type = requirement.document_type || requirement.category || 'other';
+      const pickerData = ' data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '"';
+      const missingText = compatible.length > 1 ? compatible.length + ' documents compatibles dans votre coffre — choisissez celui à utiliser' : 'À rattacher depuis votre coffre ou à ajouter';
+      return '<div class="check-row ' + (doc ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (doc ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : missingText) + '</small></span>' + (doc ? '<span class="ready-actions"><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button download-checklist-document" data-document-id="' + doc.id + '" type="button">Télécharger</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Changer</button><em>Prêt</em></span>' : '<span class="requirement-actions"><button class="add link-requirement" ' + pickerData + ' type="button">' + (compatible.length > 1 ? 'Choisir (' + compatible.length + ')' : 'Choisir') + '</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '" type="button">Ajouter</button></span>') + '</div>';
     }).join('');
     const edit = checklist.querySelector('#edit-qualification');
     if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
-    checklist.querySelectorAll('.link-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement)));
+    checklist.querySelectorAll('.link-requirement, .change-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement, button.dataset.documentType)));
     checklist.querySelectorAll('.upload-requirement').forEach((button) => button.addEventListener('click', () => showUpload(button.dataset.documentType || 'other')));
     checklist.querySelectorAll('.open-checklist-document').forEach((button) => button.addEventListener('click', () => openChecklistDocument(button.dataset.documentId)));
     checklist.querySelectorAll('.download-checklist-document').forEach((button) => button.addEventListener('click', () => downloadChecklistDocument(button.dataset.documentId)));
@@ -553,9 +568,11 @@ function renderChecklist() {
   checklist.querySelector('#edit-qualification').addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
 }
 
-function showRequirementPicker(requirement) {
-  const available = documents.filter((doc) => !doc.archived_at);
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE</p><h2 style="font:600 29px Georgia,serif;margin:8px 0 10px">Rattacher une pièce</h2><p style="color:#647069;line-height:1.45">Choisissez le document qui correspond à « ' + escapeHtml(requirement) + ' ».</p><div id="requirement-documents">' + (available.length ? available.map((doc) => '<button class="journey-card" data-document-id="' + doc.id + '" type="button"><span class="journey-card-icon">◫</span><span><strong>' + escapeHtml(doc.display_name) + '</strong><em>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + '</em></span><b>→</b></button>').join('') : '<p>Votre coffre est vide. Ajoutez d’abord ce document, puis revenez le rattacher.</p>') + '</div>');
+function showRequirementPicker(requirement, documentType = 'other') {
+  const allAvailable = documents.filter((doc) => !doc.archived_at && !doc.deleted_at);
+  const definition = { label: requirement, document_type: documentType === 'other' ? null : documentType };
+  const compatible = documentType === 'other' ? allAvailable : compatibleDocumentsForRequirement(definition);
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE</p><h2 style="font:600 29px Georgia,serif;margin:8px 0 10px">Choisir le document à utiliser</h2><p style="color:#647069;line-height:1.45">Choisissez le document qui correspond à « ' + escapeHtml(requirement) + ' ». Seuls les documents compatibles sont proposés.</p><div id="requirement-documents">' + (compatible.length ? compatible.map((doc) => '<button class="journey-card" data-document-id="' + doc.id + '" type="button"><span class="journey-card-icon">◫</span><span><strong>' + escapeHtml(doc.display_name) + '</strong><em>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + '</em></span><b>→</b></button>').join('') : '<p>Aucun document compatible n’est actuellement dans votre coffre. Ajoutez-le, puis revenez le rattacher.</p>') + '</div>');
   styleModal(node);
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelectorAll('[data-document-id]').forEach((button) => button.addEventListener('click', async () => {
