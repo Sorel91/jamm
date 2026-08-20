@@ -494,3 +494,7 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 @media(max-width:640px){
   .requirement-actions{flex-wrap:wrap;column-gap:16px;row-gap:4px}
 }
+
+/* Une action calme dans la checklist ; les choix détaillés arrivent après le clic. */
+.requirement-actions .add-requirement{min-height:34px;padding:6px 11px;font-size:12px;white-space:nowrap}
+@media(max-width:640px){.requirement-actions .add-requirement{width:auto}}
