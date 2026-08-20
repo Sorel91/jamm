@@ -931,7 +931,7 @@ async function downloadChecklist() {
     $('#success').textContent = 'Impossible de préparer le dossier. Vérifiez votre connexion et réessayez.';
   } finally {
     button.disabled = false;
-    button.innerHTML = 'Préparer et télécharger le dossier <span>→</span>';
+    button.innerHTML = currentJourney?.status === 'completed' ? 'Télécharger le dossier <span>→</span>' : 'Télécharger le dossier de préparation <span>→</span>';
   }
 }
 
