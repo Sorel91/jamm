@@ -577,23 +577,29 @@ function showQualification(code, existingJourney = null) {
     { title: 'Signer le compromis ou la promesse', requirements: [{ label: 'Offre d’achat ou avant-contrat signé', document_type: 'other' }, { label: 'Annexes et diagnostics remis avec le contrat', document_type: 'other' }, { label: 'Dossier de demande de prêt', document_type: 'other' }, { label: 'Justificatif du dépôt de garantie, si versé', document_type: 'other' }] },
     { title: 'Finaliser l’achat', requirements: [{ label: 'Offre de prêt acceptée', document_type: 'other' }, { label: 'Assurance emprunteur', document_type: 'other' }, { label: 'Appel de fonds ou décompte du notaire', document_type: 'other' }, { label: 'Attestation de propriété puis acte authentique', document_type: 'other' }] }
   ];
-  const essonneEntries = officialCatalog.filter((entry) => entry.authority_code === '91' && entry.theme === 'residence_renewal');
+  const residenceDepartments = [
+    ['01','Ain'],['02','Aisne'],['03','Allier'],['04','Alpes-de-Haute-Provence'],['05','Hautes-Alpes'],['06','Alpes-Maritimes'],['07','Ardèche'],['08','Ardennes'],['09','Ariège'],['10','Aube'],['11','Aude'],['12','Aveyron'],['13','Bouches-du-Rhône'],['14','Calvados'],['15','Cantal'],['16','Charente'],['17','Charente-Maritime'],['18','Cher'],['19','Corrèze'],['2A','Corse-du-Sud'],['2B','Haute-Corse'],['21','Côte-d’Or'],['22','Côtes-d’Armor'],['23','Creuse'],['24','Dordogne'],['25','Doubs'],['26','Drôme'],['27','Eure'],['28','Eure-et-Loir'],['29','Finistère'],['30','Gard'],['31','Haute-Garonne'],['32','Gers'],['33','Gironde'],['34','Hérault'],['35','Ille-et-Vilaine'],['36','Indre'],['37','Indre-et-Loire'],['38','Isère'],['39','Jura'],['40','Landes'],['41','Loir-et-Cher'],['42','Loire'],['43','Haute-Loire'],['44','Loire-Atlantique'],['45','Loiret'],['46','Lot'],['47','Lot-et-Garonne'],['48','Lozère'],['49','Maine-et-Loire'],['50','Manche'],['51','Marne'],['52','Haute-Marne'],['53','Mayenne'],['54','Meurthe-et-Moselle'],['55','Meuse'],['56','Morbihan'],['57','Moselle'],['58','Nièvre'],['59','Nord'],['60','Oise'],['61','Orne'],['62','Pas-de-Calais'],['63','Puy-de-Dôme'],['64','Pyrénées-Atlantiques'],['65','Hautes-Pyrénées'],['66','Pyrénées-Orientales'],['67','Bas-Rhin'],['68','Haut-Rhin'],['69','Rhône'],['70','Haute-Saône'],['71','Saône-et-Loire'],['72','Sarthe'],['73','Savoie'],['74','Haute-Savoie'],['75','Paris'],['76','Seine-Maritime'],['77','Seine-et-Marne'],['78','Yvelines'],['79','Deux-Sèvres'],['80','Somme'],['81','Tarn'],['82','Tarn-et-Garonne'],['83','Var'],['84','Vaucluse'],['85','Vendée'],['86','Vienne'],['87','Haute-Vienne'],['88','Vosges'],['89','Yonne'],['90','Territoire de Belfort'],['91','Essonne'],['92','Hauts-de-Seine'],['93','Seine-Saint-Denis'],['94','Val-de-Marne'],['95','Val-d’Oise'],['971','Guadeloupe'],['972','Martinique'],['973','Guyane'],['974','La Réunion'],['976','Mayotte']
+  ];
+  const localResidenceEntries = officialCatalog.filter((entry) => entry.authority_code !== 'national' && entry.theme === 'residence_renewal' && entry.coverage_scope === 'local');
+  const nationalResidenceEntries = officialCatalog.filter((entry) => entry.authority_code === 'national' && entry.theme === 'residence_renewal' && entry.coverage_scope === 'national');
   const passportCountries = ['France', 'Algérie', 'Maroc', 'Tunisie', 'Sénégal', 'Mali', 'Côte d’Ivoire', 'Cameroun', 'Bénin', 'Gabon', 'Kenya', 'Mauritanie', 'Zimbabwe', 'Burkina Faso', 'République démocratique du Congo', 'République du Congo (Congo-Brazzaville)', 'Guinée', 'Nigeria', 'Éthiopie', 'Autre pays'];
   const passportEntries = officialCatalog.filter((entry) => entry.theme === 'passport_renewal');
   const officialOption = (entry, fallbackSource) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title) + '</strong><small style="font-weight:600;opacity:.78">Source : ' + escapeHtml(entry.source_label || fallbackSource) + ' ↗</small>' + (entry.theme === 'passport_renewal' && entry.notes ? '<small style="line-height:1.35;opacity:.82">' + escapeHtml(entry.notes) + '</small>' : '') + '</button>';
-  const catalogueNote = definition.kind === 'residence' ? '<p class="catalogue-note">Catalogue pilote Essonne · sources contrôlées le 19 août 2026. Les intitulés proviennent des sources officielles indiquées.</p><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>' : '<p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>';
+  const catalogueNote = '<p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p>';
   const passportField = '<label>Pays du passeport<select id="journey-passport-country" required><option value="">Choisir un pays</option>' + passportCountries.map((country) => '<option value="' + escapeHtml(country) + '">' + escapeHtml(country) + '</option>').join('') + '</select></label><div id="passport-situation" hidden aria-live="polite"></div><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">';
-  const residenceField = '<label>Votre situation pour le renouvellement<select id="journey-residence-route" required><option value="">Choisir une situation</option>' + essonneEntries.map((entry) => '<option value="' + escapeHtml(entry.id) + '">' + escapeHtml(entry.title.replace(/^Renouvellement\s*:\s*/i, '')) + '</option>').join('') + '</select></label><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">' + catalogueNote;
+  const residenceField = '<div id="residence-situation" hidden aria-live="polite"></div><input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden">' + catalogueNote;
   const homeField = '<label>Type de bien<select id="home-property-type"><option value="apartment">Appartement</option><option value="house">Maison</option><option value="new_build">Logement neuf (VEFA)</option></select></label><label>Achetez-vous seul ou à plusieurs ?<select id="home-purchase-mode"><option value="solo">J’achète seul</option><option value="joint">J’achète à deux ou plus</option></select></label><label>Où en êtes-vous dans votre achat ?<input id="journey-category" type="hidden" required><input id="journey-catalog-id" type="hidden"><div class="journey-option-picker">' + homePurchaseSteps.map((step) => '<button class="journey-option" data-category="' + escapeHtml(step.title) + '" type="button"><strong>' + escapeHtml(step.title) + '</strong><small style="font-weight:600;opacity:.78">Préparer les documents de cette étape</small></button>').join('') + '</div><p id="selected-route-confirmation" hidden style="margin:10px 0 0;color:#1f664f;font-size:13px;font-weight:700"></p></label>';
   const situationField = isPassport ? passportField : (isHome ? homeField : residenceField);
   const authorityLabel = isPassport ? 'Ville ou consulat où vous ferez la démarche' : definition.authorityLabel;
   const authorityPlaceholder = isPassport ? 'Ex. Consulat du Sénégal à Paris' : definition.authorityPlaceholder;
   const defaultDepartment = String(currentUser?.user_metadata?.default_department || '').trim();
-  const authorityField = '<label>' + authorityLabel + '<input id="journey-department" required placeholder="' + authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : (isPassport ? '' : defaultDepartment)) + '"></label>';
+  const authorityField = definition.kind === 'residence'
+    ? '<label>Département où vous habitez<select id="journey-department" required><option value="">Choisir votre département</option>' + residenceDepartments.map(([code, name]) => '<option value="' + code + '"' + ((profile ? profile.department : defaultDepartment) === code ? ' selected' : '') + '>' + code + ' — ' + escapeHtml(name) + '</option>').join('') + '</select></label>'
+    : '<label>' + authorityLabel + '<input id="journey-department" required placeholder="' + authorityPlaceholder + '" value="' + escapeHtml(profile ? profile.department : (isPassport ? '' : defaultDepartment)) + '"></label>';
   const noteField = '<label>Élément important pour votre cas<textarea id="journey-note" rows="3" placeholder="Ex. changement d’employeur, achat en indivision, enfant concerné…"></textarea></label>';
   const customDetails = '<section id="custom-step-details"><p class="custom-step-label">ÉTAPE 1 SUR 2 · DÉCRIRE</p>' + authorityField + '<label>Nom de votre démarche<input id="journey-custom-title" required placeholder="Ex. Acheter un terrain au pays"></label>' + noteField + '<p id="custom-step-error" hidden style="color:#aa3425;font-size:13px"></p><button class="primary" id="custom-next-step" type="button">Continuer vers les documents <span>→</span></button></section>';
   const customDocuments = '<section id="custom-step-documents" hidden><p class="custom-step-label">ÉTAPE 2 SUR 2 · DOCUMENTS</p><div class="custom-requirements-field"><strong>Quels documents sont nécessaires ?</strong><p>Ajoutez une pièce par ligne. Jamm cherchera ensuite les correspondances dans votre coffre.</p><div id="custom-requirements-list"></div><button class="outline" id="add-custom-requirement" type="button">+ Ajouter une pièce</button></div><button class="link-button" id="custom-back-step" type="button">← Modifier la démarche</button></section>';
-  const intro = isCustom ? 'Commencez par décrire votre besoin. Vous constituerez ensuite votre liste de pièces personnalisée.' : (isHome ? 'Jamm vous aide à organiser les documents selon votre étape. Cette liste est une aide à compléter avec votre banque, votre notaire et les documents du bien.' : (definition.kind === 'residence' ? 'Ce premier catalogue couvre les personnes domiciliées en Essonne (91). Le lien officiel sera conservé dans votre dossier.' : 'Choisissez d’abord le pays, puis la situation exacte de votre passeport.'));
+  const intro = isCustom ? 'Commencez par décrire votre besoin. Vous constituerez ensuite votre liste de pièces personnalisée.' : (isHome ? 'Jamm vous aide à organiser les documents selon votre étape. Cette liste est une aide à compléter avec votre banque, votre notaire et les documents du bien.' : (definition.kind === 'residence' ? 'Choisissez votre département, puis votre situation. Jamm distingue les parcours vérifiés localement des bases nationales à confirmer auprès de la préfecture.' : 'Choisissez d’abord le pays, puis la situation exacte de votre passeport.'));
   const formFields = isCustom ? customDetails + customDocuments : (isPassport ? situationField + authorityField : authorityField + situationField);
   const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">PRÉPARER MA DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">' + definition.title + '</h2><p style="color:#647069;line-height:1.45">' + intro + '</p><form id="qualification-form">' + formFields + (isCustom || isHome ? '' : '<label>Date d’expiration (si connue)<input id="journey-expiry" type="date" value="' + (profile && profile.expiry_date ? profile.expiry_date : '') + '"></label>') + (isCustom ? '' : noteField) + '<div class="qualification-submit-bar"><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer et préparer <span>→</span></button></div></form>');
   styleModal(node);
@@ -672,19 +678,27 @@ function showQualification(code, existingJourney = null) {
   if (catalogueNoteNode) catalogueNoteNode.style.cssText = 'margin:10px 0 0;color:#69766e;font-size:12px;line-height:1.4';
   wireRouteButtons();
   const countrySelect = node.querySelector('#journey-passport-country');
-  const residenceSelect = node.querySelector('#journey-residence-route');
+  const residenceDepartmentSelect = definition.kind === 'residence' ? node.querySelector('#journey-department') : null;
   const situation = node.querySelector('#passport-situation');
-  const showResidenceRoute = (entryId) => {
-    const entry = essonneEntries.find((item) => item.id === entryId);
-    if (!entry) return;
-    if (category) category.value = entry.title;
-    if (catalogId) catalogId.value = entry.id;
-    const confirmation = node.querySelector('#selected-route-confirmation');
-    if (confirmation) {
-      confirmation.textContent = 'Parcours sélectionné : ' + entry.title + ' · Source : ' + (entry.source_label || 'Préfecture de l’Essonne') + ' ↗';
-      confirmation.hidden = false;
-    }
-    if (submit) submit.innerHTML = 'Continuer avec ce parcours <span>→</span>';
+  const residenceSituation = node.querySelector('#residence-situation');
+  const showResidenceRoutes = (departmentCode) => {
+    if (!residenceSituation) return;
+    if (category) category.value = '';
+    if (catalogId) catalogId.value = '';
+    const localEntries = localResidenceEntries.filter((entry) => entry.authority_code === departmentCode);
+    const entries = localEntries.length ? localEntries : nationalResidenceEntries;
+    const departmentName = residenceDepartments.find(([code]) => code === departmentCode)?.[1] || departmentCode;
+    const isLocal = localEntries.length > 0;
+    residenceSituation.hidden = false;
+    residenceSituation.style.cssText = 'display:grid;gap:8px;margin:14px 0 4px';
+    const status = isLocal
+      ? '<div role="status" style="border:1px solid #b7d4c3;background:#edf7ef;color:#245843;border-radius:10px;padding:11px 12px;font:13px/1.45 Arial"><strong>✓ Parcours vérifiés localement</strong><br>Sources contrôlées pour la préfecture de l’' + escapeHtml(departmentName) + '. La date et la source seront conservées dans votre dossier.</div>'
+      : '<div role="status" style="border:1px solid #e7c77d;background:#fff7e7;color:#694c16;border-radius:10px;padding:11px 12px;font:13px/1.45 Arial"><strong>Base nationale à confirmer</strong><br>Jamm vous aide à préparer les pièces communes, mais le canal de dépôt et les pièces conditionnelles restent à vérifier auprès de la préfecture de l’' + escapeHtml(departmentName) + '.</div>';
+    const scopeLabel = isLocal ? 'Parcours vérifié · Préfecture' : 'Base nationale · Service-Public / ANEF';
+    residenceSituation.innerHTML = status + '<strong style="font:700 14px Arial;margin-top:4px">Quelle est votre situation ?</strong><div class="journey-option-picker">' + entries.map((entry) => '<button class="journey-option" data-category="' + escapeHtml(entry.title) + '" data-catalog-id="' + entry.id + '" type="button"><strong>' + escapeHtml(entry.title.replace(/^Renouvellement\s*:\s*/i, '')) + '</strong><small style="font-weight:600;opacity:.78">' + scopeLabel + ' · Source : ' + escapeHtml(entry.source_label || 'Source officielle') + ' ↗</small></button>').join('') + '</div>';
+    const picker = residenceSituation.querySelector('.journey-option-picker');
+    if (picker) picker.style.cssText = 'display:grid;grid-template-columns:1fr;gap:6px';
+    wireRouteButtons(residenceSituation);
   };
   const showPassportSituations = (country) => {
     if (!situation) return;
@@ -733,12 +747,11 @@ function showQualification(code, existingJourney = null) {
     if (countrySelect.value) showPassportSituations(countrySelect.value);
     else if (situation) { situation.hidden = true; situation.innerHTML = ''; }
   });
-  if (residenceSelect) residenceSelect.addEventListener('change', () => {
-    if (category) category.value = '';
-    if (catalogId) catalogId.value = '';
+  if (residenceDepartmentSelect) residenceDepartmentSelect.addEventListener('change', () => {
     const confirmation = node.querySelector('#selected-route-confirmation');
     if (confirmation) confirmation.hidden = true;
-    if (residenceSelect.value) showResidenceRoute(residenceSelect.value);
+    if (residenceDepartmentSelect.value) showResidenceRoutes(residenceDepartmentSelect.value);
+    else if (residenceSituation) { residenceSituation.hidden = true; residenceSituation.innerHTML = ''; }
   });
   if (!profile && isPassport && countrySelect) {
     const preferredCountry = String(currentUser?.user_metadata?.default_passport_country || '');
@@ -757,11 +770,13 @@ function showQualification(code, existingJourney = null) {
         const selectedOption = Array.from(node.querySelectorAll('[data-category]')).find((button) => button.dataset.category === existingTitle);
         if (selectedOption) selectedOption.click();
       }
-    } else if (definition.kind === 'residence' && residenceSelect) {
-      const selectedEntry = essonneEntries.find((entry) => entry.title === profile.permit_category);
-      if (selectedEntry) {
-        residenceSelect.value = selectedEntry.id;
-        showResidenceRoute(selectedEntry.id);
+    } else if (definition.kind === 'residence' && residenceDepartmentSelect) {
+      const storedDepartment = String(profile.department || '');
+      if (residenceDepartments.some(([code]) => code === storedDepartment)) {
+        residenceDepartmentSelect.value = storedDepartment;
+        showResidenceRoutes(storedDepartment);
+        const selectedOption = Array.from(node.querySelectorAll('[data-category]')).find((button) => button.dataset.category === profile.permit_category);
+        if (selectedOption) selectedOption.click();
       }
     } else if (category) {
       category.value = profile.permit_category;
@@ -787,7 +802,6 @@ function showQualification(code, existingJourney = null) {
     if (!isCustom && !category.value) { showError(node, isPassport ? 'Choisissez d’abord le pays puis votre situation.' : 'Choisissez une option pour continuer.'); submit.disabled = false; return; }
     const customRequirements = isCustom ? Array.from(node.querySelectorAll('.custom-requirement-input')).map((input) => input.value.trim()).filter(Boolean) : [];
     if (isCustom && !customRequirements.length) { showError(node, 'Ajoutez au moins un document nécessaire pour créer cette démarche.'); submit.disabled = false; return; }
-    if (definition.kind === 'residence' && !/(^|\\D)91(\\D|$)|essonne/i.test(authority)) { showError(node, 'Le catalogue pilote couvre actuellement uniquement les démarches auprès de la Préfecture de l’Essonne (91).'); submit.disabled = false; return; }
     let journey = existingJourney;
     if (!journey) {
       const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
