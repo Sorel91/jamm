@@ -309,3 +309,10 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   }
   .document-grid.is-list .vault-document-actions{justify-self:start}
 }
+
+
+/* Le menu « Plus » doit toujours passer devant les cartes suivantes. */
+.document-grid{isolation:isolate;overflow:visible}
+.document-card{overflow:visible}
+.document-card:has(.vault-more[open]){z-index:60}
+.document-card:has(.vault-more[open]) .vault-more-menu{z-index:61}
