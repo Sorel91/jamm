@@ -178,10 +178,22 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    const original = showJourneyQualification;
-    showJourneyQualification = function(code, existingJourney) {
+    const original = showQualification;
+    showQualification = function(code, existingJourney) {
       if (code === 'residence_renewal' && !existingJourney) return showResidenceV1();
       return original(code, existingJourney);
+    };
+    const originalRenderChecklist = renderChecklist;
+    renderChecklist = function() {
+      originalRenderChecklist();
+      const profile = currentJourney && journeyProfiles[currentJourney.id];
+      if (currentJourney?.code !== 'residence_renewal' || !profile?.situation_answers?.common_route) return;
+      const note = document.querySelector('#checklist .custom-list-note');
+      if (!note || note.querySelector('.jamm-v1-source')) return;
+      const source = document.createElement('span');
+      source.className = 'jamm-v1-source';
+      source.innerHTML = '<a href="' + RESIDENCE_SOURCE + '" target="_blank" rel="noopener">Consulter la source officielle ↗</a><small style="display:block;margin-top:5px">Cette checklist est un repère commun : confirmez les pièces et le canal de dépôt avec votre préfecture.</small>';
+      note.appendChild(source);
     };
   });
 })();
