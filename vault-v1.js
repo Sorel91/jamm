@@ -230,10 +230,67 @@
     });
   }
 
+  async function restoreTrashedDocument(id) {
+    const documentToRestore = documents.find((doc) => doc.id === id);
+    if (!documentToRestore) return;
+    const { error } = await supabaseClient.from('documents').update({ deleted_at: null }).eq('id', id).eq('owner_id', currentUser.id);
+    if (error) { alert('Impossible de restaurer ce document : ' + error.message); return; }
+    pendingToast = documentToRestore.display_name + ' a été restauré dans votre coffre.';
+    await loadData();
+  }
+
+  async function permanentlyDeleteTrashedDocument(id) {
+    const documentToDelete = documents.find((doc) => doc.id === id);
+    if (!documentToDelete || !confirm('Supprimer définitivement ce document ? Cette action est irréversible.')) return;
+    const { error: storageError } = await supabaseClient.storage.from('jamm-documents').remove([documentToDelete.storage_path]);
+    if (storageError) { alert('Impossible de supprimer le fichier : ' + storageError.message); return; }
+    const { error } = await supabaseClient.from('documents').delete().eq('id', id).eq('owner_id', currentUser.id);
+    if (error) { alert('Le fichier a été supprimé, mais ses informations doivent encore être retirées : ' + error.message); return; }
+    pendingToast = documentToDelete.display_name + ' a été supprimé définitivement.';
+    await loadData();
+  }
+
+  async function purgeExpiredTrash() {
+    const retention = 90 * 24 * 60 * 60 * 1000;
+    const expired = documents.filter((doc) => doc.deleted_at && Date.now() - new Date(doc.deleted_at).getTime() >= retention);
+    let purged = 0;
+    for (const documentToDelete of expired) {
+      const { error: storageError } = await supabaseClient.storage.from('jamm-documents').remove([documentToDelete.storage_path]);
+      if (storageError) continue;
+      const { error } = await supabaseClient.from('documents').delete().eq('id', documentToDelete.id).eq('owner_id', currentUser.id);
+      if (!error) purged += 1;
+    }
+    return purged;
+  }
+
+  function enhanceTrashActions() {
+    if (vaultFilter !== 'trash') return;
+    $('#documents')?.querySelectorAll('.document-card').forEach((card) => {
+      const id = card.querySelector('[data-id]')?.dataset.id;
+      const doc = documents.find((item) => item.id === id);
+      if (!doc) return;
+      const expiry = new Date(new Date(doc.deleted_at).getTime() + 90 * 24 * 60 * 60 * 1000);
+      const days = Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+      const status = card.querySelector('.status');
+      if (status) {
+        status.className = 'status trashed';
+        status.textContent = days ? days + ' j restants' : 'Purge en cours';
+      }
+      const actions = card.querySelector('.vault-document-actions');
+      if (!actions) return;
+      actions.innerHTML = '<button class="outline restore-trashed-document" type="button">Restaurer</button><details class="vault-more"><summary>Plus</summary><div class="vault-more-menu"><button class="delete-vault-document" type="button">Supprimer définitivement</button></div></details>';
+      actions.querySelector('.restore-trashed-document').addEventListener('click', () => restoreTrashedDocument(id));
+      actions.querySelector('.delete-vault-document').addEventListener('click', () => permanentlyDeleteTrashedDocument(id));
+      const details = actions.querySelector('details.vault-more');
+      details.addEventListener('toggle', () => { if (details.open) closeVaultMenus(details); });
+    });
+  }
+
   function enhanceVault() {
     installToolbar();
     addAttentionAction();
-    addReplacementAction();
+    if (vaultFilter !== 'trash') addReplacementAction();
+    enhanceTrashActions();
     applyVaultTools();
   }
 
@@ -249,6 +306,8 @@
     const originalLoadData = loadData;
     loadData = async function() {
       await originalLoadData();
+      const purged = await purgeExpiredTrash();
+      if (purged) await originalLoadData();
       if (pendingToast) {
         showVaultToast(pendingToast);
         pendingToast = '';
