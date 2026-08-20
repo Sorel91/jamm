@@ -358,3 +358,17 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 
 
 .ready-actions .in-vault{color:#2d7655;font-size:12px;font-weight:700;white-space:nowrap}
+
+
+/* Démarches terminées : distinguer consultation et suppression. */
+.completed-item .journey-trash-button{
+  right:18px;
+  bottom:8px;
+  padding-left:14px;
+  border-left:1px solid #e1d8d2;
+}
+.completed-item .completed-journey{padding-right:120px}
+@media(max-width:640px){
+  .completed-item .completed-journey{padding-right:18px;padding-bottom:36px}
+  .completed-item .journey-trash-button{right:12px;bottom:7px}
+}
