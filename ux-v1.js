@@ -14,7 +14,7 @@
     const summary = document.createElement('div');
     summary.className = 'jamm-checklist-summary';
     summary.setAttribute('aria-label', 'Résumé de la checklist');
-    summary.innerHTML = '<strong>' + ready + ' pièce' + (ready > 1 ? 's' : '') + ' prête' + (ready > 1 ? 's' : '') + ' · ' + missing + ' à compléter</strong><span>Vert : déjà rattaché · Ambre : à choisir ou à ajouter</span>';
+    summary.innerHTML = '<strong>' + ready + ' pièce' + (ready > 1 ? 's' : '') + ' prête' + (ready > 1 ? 's' : '') + ' · ' + missing + ' à compléter</strong>';
     const note = checklist.querySelector(':scope > .custom-list-note');
     if (note) note.insertAdjacentElement('afterend', summary);
     else checklist.prepend(summary);
