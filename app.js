@@ -160,7 +160,14 @@ async function loadData() {
     if (profilesError) throw profilesError;
     journeyProfiles = Object.fromEntries((profiles || []).map((profile) => [profile.journey_id, profile]));
   }
-  const preservedJourney = currentJourney && journeysList.find((journey) => journey.id === currentJourney.id);
+  const expiredTrashedJourneys = journeysList.filter((journey) => journey.deleted_at && Date.now() - new Date(journey.deleted_at).getTime() >= 90 * 24 * 60 * 60 * 1000);
+  let purgedJourneyCount = 0;
+  for (const journey of expiredTrashedJourneys) {
+    const { error } = await supabaseClient.from('journeys').delete().eq('id', journey.id).eq('owner_id', currentUser.id);
+    if (!error) purgedJourneyCount += 1;
+  }
+  if (purgedJourneyCount) return loadData();
+  const preservedJourney = currentJourney && journeysList.find((journey) => journey.id === currentJourney.id && !journey.deleted_at);
   currentJourney = preservedJourney || null;
   selected = new Set(documents.filter((doc) => !doc.archived_at && !doc.deleted_at).map((doc) => doc.id));
   render();
@@ -852,6 +859,38 @@ async function reopenJourney() {
   $('#success').hidden = false;
   $('#success').textContent = 'Dossier rouvert : vous pouvez reprendre sa checklist.';
   requestAnimationFrame(() => $('#demarche')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+}
+
+async function trashJourney(id) {
+  const journey = journeysList.find((item) => item.id === id);
+  if (!journey) return;
+  const retentionEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (!confirm('Supprimer cette démarche ? Elle sera placée dans la corbeille jusqu’au ' + retentionEnd + '. Vos documents du coffre ne seront pas supprimés.')) return;
+  const { error } = await supabaseClient.from('journeys').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible de placer cette démarche dans la corbeille : ' + error.message); return; }
+  if (currentJourney?.id === id) currentJourney = null;
+  await loadData();
+  showView('journeys');
+}
+
+async function restoreTrashedJourney(id) {
+  const journey = journeysList.find((item) => item.id === id);
+  if (!journey) return;
+  const { error } = await supabaseClient.from('journeys').update({ deleted_at: null }).eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible de restaurer cette démarche : ' + error.message); return; }
+  await loadData();
+  showView('journeys');
+  $('#success').hidden = false;
+  $('#success').textContent = 'Démarche restaurée.';
+}
+
+async function permanentlyDeleteJourney(id) {
+  const journey = journeysList.find((item) => item.id === id);
+  if (!journey || !confirm('Supprimer définitivement cette démarche ? Cette action est irréversible. Les documents de votre coffre seront conservés.')) return;
+  const { error } = await supabaseClient.from('journeys').delete().eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible de supprimer cette démarche : ' + error.message); return; }
+  await loadData();
+  showView('journeys');
 }
 
 function showUpload(preselectedType) {
