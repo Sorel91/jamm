@@ -414,8 +414,9 @@ function journeyStatusLabel(journey) {
 function renderJourneys() {
   const board = $('#journey-list');
   const dossier = $('#demarche');
-  const activeJourneys = journeysList.filter((journey) => journey.status === 'active');
-  const completedJourneys = journeysList.filter((journey) => journey.status === 'completed');
+  const activeJourneys = journeysList.filter((journey) => !journey.deleted_at && journey.status === 'active');
+  const completedJourneys = journeysList.filter((journey) => !journey.deleted_at && journey.status === 'completed');
+  const trashedJourneys = journeysList.filter((journey) => journey.deleted_at);
   const activeCodes = new Set(activeJourneys.map((journey) => journey.code));
   const activeCard = (journey) => {
     const profile = journeyProfiles[journey.id];
@@ -424,7 +425,7 @@ function renderJourneys() {
     const situation = hasDetailedTitle ? '' : (profile?.permit_category ? escapeHtml(profile.permit_category) + ' · ' : 'Situation à préciser · ');
     const progressText = progress ? progress.ready + '/' + progress.total + ' pièces prêtes' : journeyStatusLabel(journey);
     const expanded = currentJourney?.id === journey.id;
-    return '<article class="resume-item' + (expanded ? ' is-open' : '') + '"><button class="resume-journey" data-resume-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="resume-icon">' + (expanded ? '⌃' : '→') + '</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + progressText + '</em></span><span class="resume-action">' + (expanded ? 'Réduire' : 'Reprendre') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button>' + (expanded ? '<div class="inline-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + '</article>';
+    return '<article class="resume-item' + (expanded ? ' is-open' : '') + '"><button class="resume-journey" data-resume-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="resume-icon">' + (expanded ? '⌃' : '→') + '</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + progressText + '</em></span><span class="resume-action">' + (expanded ? 'Réduire' : 'Reprendre') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button><button class="journey-trash-button" data-trash-journey="' + journey.id + '" type="button">Supprimer</button>' + (expanded ? '<div class="inline-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + '</article>';
   };
   const completedCard = (journey) => {
     const profile = journeyProfiles[journey.id];
@@ -433,6 +434,11 @@ function renderJourneys() {
     const situation = detailedTitle ? '' : (profile?.permit_category ? escapeHtml(profile.permit_category) + ' · ' : 'Dossier archivé · ');
     const completedAt = journey.updated_at ? new Date(journey.updated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     return '<article class="completed-item' + (expanded ? ' is-open' : '') + '"><button class="completed-journey" data-completed-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="completed-icon">✓</span><span class="completed-copy"><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + (completedAt ? 'Terminé le ' + completedAt : 'Terminé') + '</em></span><span class="completed-action">' + (expanded ? 'Réduire' : 'Consulter') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button>' + (expanded ? '<div class="inline-dossier-slot completed-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + '</article>';
+  };
+  const trashCard = (journey) => {
+    const expiry = new Date(new Date(journey.deleted_at).getTime() + 90 * 24 * 60 * 60 * 1000);
+    const days = Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+    return '<article class="journey-trash-item"><div><small>CORBEILLE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + (days ? days + ' jours avant suppression définitive' : 'Suppression définitive en cours') + '</em></div><div class="journey-trash-actions"><button class="outline" data-restore-journey="' + journey.id + '" type="button">Restaurer</button><button class="link-button danger" data-delete-journey="' + journey.id + '" type="button">Supprimer définitivement</button></div></article>';
   };
   const suggestions = Object.entries(journeys)
     .filter(([, definition]) => !definition.legacy)
@@ -443,9 +449,12 @@ function renderJourneys() {
   const completedSection = completedJourneys.length
     ? '<section class="completed-journeys"><div class="completed-heading"><div><p class="journey-group-title">VOS DÉMARCHES TERMINÉES</p><p>Vos dossiers restent consultables, sans encombrer les démarches en cours.</p></div><span class="completed-count">' + completedJourneys.length + '</span></div><div class="completed-list">' + completedJourneys.map(completedCard).join('') + '</div></section>'
     : '';
+  const trashSection = trashedJourneys.length
+    ? '<section class="journey-trash"><div class="journey-section-heading"><p class="journey-group-title">CORBEILLE DES DÉMARCHES</p><span>Restaurables pendant 90 jours</span></div><div class="journey-trash-list">' + trashedJourneys.map(trashCard).join('') + '</div></section>'
+    : '';
   board.innerHTML = resumeSection +
     '<section class="journey-group journey-new"><div class="journey-section-heading"><p class="journey-group-title">COMMENCER UNE DÉMARCHE</p><span>Préparez un nouveau dossier</span></div><div class="start-journey-grid">' + suggestions + '</div></section>' +
-    completedSection;
+    completedSection + trashSection;
   const slot = currentJourney && board.querySelector('[data-dossier-slot="' + currentJourney.id + '"]');
   if (slot && dossier) slot.appendChild(dossier);
   else if (dossier) board.insertAdjacentElement('afterend', dossier);
@@ -464,6 +473,9 @@ function renderJourneys() {
   };
   board.querySelectorAll('[data-resume-id]').forEach((button) => button.addEventListener('click', () => toggleJourney(button.dataset.resumeId)));
   board.querySelectorAll('[data-completed-id]').forEach((button) => button.addEventListener('click', () => toggleJourney(button.dataset.completedId)));
+  board.querySelectorAll('[data-trash-journey]').forEach((button) => button.addEventListener('click', () => trashJourney(button.dataset.trashJourney)));
+  board.querySelectorAll('[data-restore-journey]').forEach((button) => button.addEventListener('click', () => restoreTrashedJourney(button.dataset.restoreJourney)));
+  board.querySelectorAll('[data-delete-journey]').forEach((button) => button.addEventListener('click', () => permanentlyDeleteJourney(button.dataset.deleteJourney)));
   board.querySelectorAll('[data-start-journey]').forEach((button) => button.addEventListener('click', () => chooseJourney(button.dataset.startJourney, true)));
 }
 function renderChecklist() {
