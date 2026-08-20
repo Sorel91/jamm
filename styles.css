@@ -372,3 +372,13 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .completed-item .completed-journey{padding-right:18px;padding-bottom:36px}
   .completed-item .journey-trash-button{right:12px;bottom:7px}
 }
+
+
+/* Même ligne d’action pour les dossiers terminés. */
+@media(min-width:641px){
+  .completed-item .journey-trash-button{
+    top:50%;
+    bottom:auto;
+    transform:translateY(-50%);
+  }
+}
