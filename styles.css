@@ -316,3 +316,33 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 .document-card{overflow:visible}
 .document-card:has(.vault-more[open]){z-index:60}
 .document-card:has(.vault-more[open]) .vault-more-menu{z-index:61}
+
+
+/* Corbeille des démarches : séparation nette du travail en cours. */
+.resume-item,.completed-item{position:relative}
+.journey-trash-button{
+  position:absolute;
+  right:18px;
+  bottom:10px;
+  border:0;
+  background:transparent;
+  color:#8f5545;
+  padding:5px;
+  font:700 12px Arial,sans-serif;
+  cursor:pointer;
+}
+.journey-trash-button:hover,.journey-trash-button:focus-visible{color:#9f3426;text-decoration:underline}
+.journey-trash{margin-top:30px;padding-top:23px;border-top:1px solid #e3d9d4}
+.journey-trash-list{display:grid;gap:9px;margin-top:12px}
+.journey-trash-item{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 17px;border:1px solid #e5d8d3;border-radius:12px;background:#fffdfc}
+.journey-trash-item small,.journey-trash-item strong,.journey-trash-item em{display:block}
+.journey-trash-item small{color:#9d5a47;font:700 10px Arial,sans-serif;letter-spacing:.08em}
+.journey-trash-item strong{margin-top:4px;color:#26382e;font-size:15px}
+.journey-trash-item em{margin-top:4px;color:#89766e;font-size:12px;font-style:normal}
+.journey-trash-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.journey-trash-actions .danger{color:#9f3426}
+@media(max-width:700px){
+  .journey-trash-button{right:12px;bottom:8px}
+  .journey-trash-item{align-items:flex-start;flex-direction:column;padding:14px}
+  .journey-trash-actions{justify-content:flex-start}
+}
