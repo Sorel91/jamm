@@ -452,9 +452,6 @@ function renderTrashPage() {
   const view = $('#trash-view');
   const trashedDocuments = documents.filter((doc) => doc.deleted_at);
   const trashedJourneys = journeysList.filter((journey) => journey.deleted_at);
-  const count = trashedDocuments.length + trashedJourneys.length;
-  const badge = $('#trash-count');
-  if (badge) { badge.hidden = !count; badge.textContent = count > 99 ? '99+' : String(count); }
   if (!view) return;
   const documentRows = trashedDocuments.length ? trashedDocuments.map((doc) => {
     const days = trashDaysLeft(doc.deleted_at);
