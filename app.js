@@ -549,21 +549,21 @@ function renderChecklist() {
     const ready = requirements.filter(linked).length;
     $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
     const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
-    const logistics = !isPersonal && catalogEntry?.notes
-      ? '<span><b>' + (catalogEntry?.theme === 'passport_renewal' ? 'Modalité' : 'À savoir') + ' :</b> ' + escapeHtml(catalogEntry.notes) + '</span>'
-      : '';
     const isNationalBase = !isPersonal && catalogEntry?.coverage_scope === 'national';
     const isHomePurchase = currentJourney.code === 'home_purchase';
     const heading = isPersonal
-      ? (isHomePurchase ? '<strong>Checklist de préparation — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>À compléter avec votre banque, votre notaire et les documents du bien. Jamm organise les pièces sans les valider.</span><button class="link-button" id="edit-qualification" type="button">Changer d’étape</button>' : '<strong>Votre liste personnelle</strong><span>Ajoutée par vous — Jamm organise les pièces sans en valider le contenu.</span><button class="link-button" id="edit-qualification" type="button">Modifier la liste</button>')
-      : '<strong>' + (isNationalBase ? 'Base nationale — ' : 'Checklist officielle — ') + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>' + (isNationalBase ? 'Pièces communes issues de la source nationale. Confirmez le canal de dépôt et les pièces conditionnelles auprès de votre préfecture.' : 'Pièces vérifiées à partir de la source officielle compétente.') + '</span>' + logistics + '<span>' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
+      ? (isHomePurchase ? '<strong>Votre checklist — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>Liste à compléter avec votre banque, votre notaire et les documents du bien.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>' : '<strong>Votre liste personnelle</strong><span>Les pièces que vous avez indiquées.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>')
+      : '<strong>' + (isNationalBase ? 'Checklist nationale — ' : 'Checklist officielle — ') + escapeHtml(catalogEntry?.title || journey.title) + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     checklist.innerHTML = '<div class="custom-list-note">' + heading + '</div>' + requirements.map((requirement) => {
       const doc = linked(requirement);
       const compatible = compatibleDocumentsForRequirement(requirement);
       const type = requirement.document_type || requirement.category || 'other';
       const pickerData = ' data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '"';
-      const missingText = compatible.length > 1 ? compatible.length + ' documents compatibles dans votre coffre — choisissez celui à utiliser' : 'À rattacher depuis votre coffre ou à ajouter';
-      return '<div class="check-row ' + (doc ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (doc ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong><small>' + (doc ? escapeHtml(doc.display_name) + ' est rattaché à cette pièce' : missingText) + '</small></span>' + (doc ? '<span class="ready-actions"><span class="in-vault">Déjà dans votre coffre</span><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Changer</button></span>' : '<span class="requirement-actions"><button class="add link-requirement" ' + pickerData + ' type="button">' + (compatible.length > 1 ? 'Choisir (' + compatible.length + ')' : 'Choisir') + '</button><button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '" type="button">Ajouter</button></span>') + '</div>';
+      const attachedName = doc ? '<small>' + escapeHtml(doc.display_name) + '</small>' : '';
+      const missingActions = compatible.length
+        ? '<button class="link-button link-requirement" ' + pickerData + ' type="button">Choisir' + (compatible.length > 1 ? ' (' + compatible.length + ')' : '') + '</button>'
+        : '';
+      return '<div class="check-row ' + (doc ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (doc ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedName + '</span>' + (doc ? '<span class="ready-actions"><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Changer</button></span>' : '<span class="requirement-actions">' + missingActions + '<button class="link-button upload-requirement" data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '" type="button">Ajouter</button></span>') + '</div>';
     }).join('');
     const edit = checklist.querySelector('#edit-qualification');
     if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
