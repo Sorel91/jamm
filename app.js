@@ -974,7 +974,7 @@ async function downloadChecklist() {
     return;
   }
   const links = profile.situation_answers?.requirement_links || {};
-  const documentFor = (requirement) => documents.find((doc) => !doc.archived_at && documentMatchesRequirement(doc, requirement, links));
+  const documentFor = (requirement) => linkedDocumentForRequirement(requirement, links);
   const relevantDocuments = requirementItems.map(documentFor).filter(Boolean);
   const lines = ['JAMM — ' + journeyTitle(currentJourney), '', isPersonal ? 'Liste de préparation personnelle' : 'Checklist officielle de préparation', '------------------------------'];
   requirementItems.forEach((requirement) => lines.push((documentFor(requirement) ? '[x] ' : '[ ] ') + requirement.label));
