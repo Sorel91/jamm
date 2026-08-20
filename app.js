@@ -200,17 +200,21 @@ function showView(view) {
   activeView = view;
   const isVault = view === 'vault';
   const isProfile = view === 'profile';
+  const isTrash = view === 'trash';
   $('#vault-view').hidden = !isVault;
   $('#journeys-view').hidden = view !== 'journeys';
   $('#profile-view').hidden = !isProfile;
-  $('.app-welcome').hidden = isProfile;
+  $('#trash-view').hidden = !isTrash;
+  $('.app-welcome').hidden = isProfile || isTrash;
   $('#add-document').hidden = !isVault;
   document.querySelectorAll('.app-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
+  $('#trash-button').classList.toggle('active', isTrash);
   $('#today').textContent = isVault ? 'VOTRE ESPACE PRIVÉ' : 'VOS DÉMARCHES';
   $('#app-subtitle').textContent = isVault
     ? 'Votre mémoire administrative, organisée et prête.'
     : 'Des dossiers temporaires qui s’appuient sur votre coffre.';
   if (isProfile) renderProfilePage();
+  if (isTrash) renderTrashPage();
 }
 
 function journeyTitle(journey) {
@@ -235,6 +239,7 @@ function render() {
   if (dossierTitle) dossierTitle.textContent = journey ? journeyTitle(currentJourney) : 'Choisissez votre démarche';
   renderDocuments();
   renderJourneys();
+  renderTrashPage();
   renderChecklist();
   updateDossierCollapse();
 }
@@ -332,7 +337,6 @@ function lifecycleFor(doc) {
 
 function filterDocuments() {
   return documents.filter((doc) => {
-    if (vaultFilter === 'trash') return Boolean(doc.deleted_at);
     if (doc.deleted_at) return false;
     const state = lifecycleFor(doc);
     if (vaultFilter === 'archive') return state.key === 'archived';
@@ -348,7 +352,7 @@ function renderDocuments() {
   const attentionCount = documents.filter((doc) => !doc.deleted_at && !doc.archived_at && ['expired', 'expiring'].includes(lifecycleFor(doc).key)).length;
   $('#attention-count').textContent = attentionCount ? attentionCount + ' document' + (attentionCount > 1 ? 's' : '') + ' à revoir' : 'Tout est à jour';
   document.querySelectorAll('[data-vault-filter]').forEach((button) => button.classList.toggle('active', button.dataset.vaultFilter === vaultFilter));
-  const titles = { all: ['Tout votre coffre', 'Les documents restent ici, même lorsqu’ils sont utilisés dans une démarche.'], identity: ['Identité & voyage', 'Les documents qui vous accompagnent d’un pays à l’autre.'], residency: ['Séjour', 'Vos titres, autorisations et droits de séjour.'], home: ['Logement', 'Justificatifs de domicile et documents liés à votre adresse.'], family: ['Famille', 'État civil, liens familiaux et pièces partagées.'], attention: ['À surveiller', 'Des documents arrivent à expiration ou doivent être actualisés.'], archive: ['Archives', 'Des documents conservés pour mémoire, hors de vos démarches actives.'], trash: ['Corbeille', 'Vos documents restent récupérables pendant 90 jours avant leur suppression définitive.'] };
+  const titles = { all: ['Tout votre coffre', 'Les documents restent ici, même lorsqu’ils sont utilisés dans une démarche.'], identity: ['Identité & voyage', 'Les documents qui vous accompagnent d’un pays à l’autre.'], residency: ['Séjour', 'Vos titres, autorisations et droits de séjour.'], home: ['Logement', 'Justificatifs de domicile et documents liés à votre adresse.'], family: ['Famille', 'État civil, liens familiaux et pièces partagées.'], attention: ['À surveiller', 'Des documents arrivent à expiration ou doivent être actualisés.'], archive: ['Archives', 'Des documents conservés pour mémoire, hors de vos démarches actives.'] };
   $('#vault-context').innerHTML = '<strong>' + titles[vaultFilter][0] + '</strong><span>' + titles[vaultFilter][1] + '</span>';
 
   if (!visibleDocuments.length) {
@@ -439,6 +443,56 @@ function journeyStatusLabel(journey) {
   return 'Source à vérifier';
 }
 
+function trashDaysLeft(deletedAt) {
+  const expiry = new Date(new Date(deletedAt).getTime() + 90 * 24 * 60 * 60 * 1000);
+  return Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+}
+
+function renderTrashPage() {
+  const view = $('#trash-view');
+  const trashedDocuments = documents.filter((doc) => doc.deleted_at);
+  const trashedJourneys = journeysList.filter((journey) => journey.deleted_at);
+  const count = trashedDocuments.length + trashedJourneys.length;
+  const badge = $('#trash-count');
+  if (badge) { badge.hidden = !count; badge.textContent = count > 99 ? '99+' : String(count); }
+  if (!view) return;
+  const documentRows = trashedDocuments.length ? trashedDocuments.map((doc) => {
+    const days = trashDaysLeft(doc.deleted_at);
+    return '<article class="trash-page-item"><span class="trash-page-icon">◫</span><div><small>DOCUMENT</small><strong>' + escapeHtml(doc.display_name) + '</strong><em>' + (days ? days + ' jours avant suppression définitive' : 'Suppression définitive en cours') + '</em></div><div class="trash-page-actions"><button class="outline" data-trash-restore-document="' + doc.id + '" type="button">Restaurer</button><button class="link-button danger" data-trash-delete-document="' + doc.id + '" type="button">Supprimer définitivement</button></div></article>';
+  }).join('') : '<p class="trash-empty">Aucun document dans la corbeille.</p>';
+  const journeyRows = trashedJourneys.length ? trashedJourneys.map((journey) => {
+    const days = trashDaysLeft(journey.deleted_at);
+    return '<article class="trash-page-item"><span class="trash-page-icon">→</span><div><small>DÉMARCHE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + (days ? days + ' jours avant suppression définitive' : 'Suppression définitive en cours') + '</em></div><div class="trash-page-actions"><button class="outline" data-trash-restore-journey="' + journey.id + '" type="button">Restaurer</button><button class="link-button danger" data-trash-delete-journey="' + journey.id + '" type="button">Supprimer définitivement</button></div></article>';
+  }).join('') : '<p class="trash-empty">Aucune démarche dans la corbeille.</p>';
+  view.innerHTML = '<section class="trash-page"><div class="trash-page-heading"><p class="eyebrow">CORBEILLE</p><h2>Éléments supprimés</h2><p>Les éléments restent récupérables pendant 90 jours. Vous pouvez aussi les supprimer définitivement.</p></div><section class="trash-page-section"><div class="trash-page-section-heading"><h3>Documents</h3><span>' + trashedDocuments.length + '</span></div>' + documentRows + '</section><section class="trash-page-section"><div class="trash-page-section-heading"><h3>Démarches</h3><span>' + trashedJourneys.length + '</span></div>' + journeyRows + '</section></section>';
+  view.querySelectorAll('[data-trash-restore-document]').forEach((button) => button.addEventListener('click', () => restoreTrashedDocument(button.dataset.trashRestoreDocument)));
+  view.querySelectorAll('[data-trash-delete-document]').forEach((button) => button.addEventListener('click', () => permanentlyDeleteTrashedDocument(button.dataset.trashDeleteDocument)));
+  view.querySelectorAll('[data-trash-restore-journey]').forEach((button) => button.addEventListener('click', () => restoreTrashedJourney(button.dataset.trashRestoreJourney)));
+  view.querySelectorAll('[data-trash-delete-journey]').forEach((button) => button.addEventListener('click', () => permanentlyDeleteJourney(button.dataset.trashDeleteJourney)));
+}
+
+async function restoreTrashedDocument(id) {
+  const documentToRestore = documents.find((doc) => doc.id === id && doc.deleted_at);
+  if (!documentToRestore) return;
+  const { error } = await supabaseClient.from('documents').update({ deleted_at: null }).eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible de restaurer ce document : ' + error.message); return; }
+  await loadData();
+  showView('trash');
+}
+
+async function permanentlyDeleteTrashedDocument(id) {
+  const documentToDelete = documents.find((doc) => doc.id === id && doc.deleted_at);
+  if (!documentToDelete || !confirm('Supprimer définitivement ce document ? Cette action est irréversible.')) return;
+  const { error } = await supabaseClient.from('documents').delete().eq('id', id).eq('owner_id', currentUser.id);
+  if (error) { alert('Impossible de supprimer ce document : ' + error.message); return; }
+  if (documentToDelete.storage_path) {
+    const { error: storageError } = await supabaseClient.storage.from('jamm-documents').remove([documentToDelete.storage_path]);
+    if (storageError) console.warn('Le document a été supprimé de la base, mais pas encore du stockage.', storageError.message);
+  }
+  await loadData();
+  showView('trash');
+}
+
 function renderJourneys() {
   const board = $('#journey-list');
   const dossier = $('#demarche');
@@ -477,12 +531,9 @@ function renderJourneys() {
   const completedSection = completedJourneys.length
     ? '<section class="completed-journeys"><div class="completed-heading"><div><p class="journey-group-title">VOS DÉMARCHES TERMINÉES</p><p>Vos dossiers restent consultables, sans encombrer les démarches en cours.</p></div><span class="completed-count">' + completedJourneys.length + '</span></div><div class="completed-list">' + completedJourneys.map(completedCard).join('') + '</div></section>'
     : '';
-  const trashSection = trashedJourneys.length
-    ? '<section class="journey-trash"><div class="journey-section-heading"><p class="journey-group-title">CORBEILLE DES DÉMARCHES</p><span>Restaurables pendant 90 jours</span></div><div class="journey-trash-list">' + trashedJourneys.map(trashCard).join('') + '</div></section>'
-    : '';
   board.innerHTML = resumeSection +
     '<section class="journey-group journey-new"><div class="journey-section-heading"><p class="journey-group-title">COMMENCER UNE DÉMARCHE</p><span>Préparez un nouveau dossier</span></div><div class="start-journey-grid">' + suggestions + '</div></section>' +
-    completedSection + trashSection;
+    completedSection;
   const slot = currentJourney && board.querySelector('[data-dossier-slot="' + currentJourney.id + '"]');
   if (slot && dossier) slot.appendChild(dossier);
   else if (dossier) board.insertAdjacentElement('afterend', dossier);
@@ -926,7 +977,7 @@ async function restoreTrashedJourney(id) {
   const { error } = await supabaseClient.from('journeys').update({ deleted_at: null }).eq('id', id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible de restaurer cette démarche : ' + error.message); return; }
   await loadData();
-  showView('journeys');
+  showView('trash');
   $('#success').hidden = false;
   $('#success').textContent = 'Démarche restaurée.';
 }
@@ -937,7 +988,7 @@ async function permanentlyDeleteJourney(id) {
   const { error } = await supabaseClient.from('journeys').delete().eq('id', id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible de supprimer cette démarche : ' + error.message); return; }
   await loadData();
-  showView('journeys');
+  showView('trash');
 }
 
 function showUpload(preselectedType) {
@@ -1049,6 +1100,7 @@ function wireUi() {
   $('#complete-journey').addEventListener('click', completeJourney);
   $('#reopen-journey').addEventListener('click', reopenJourney);
   $('#profile-button').addEventListener('click', () => showProfile());
+  $('#trash-button').addEventListener('click', () => showView('trash'));
   document.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => $('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' })));
 }
 
