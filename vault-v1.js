@@ -3,7 +3,7 @@
   let vaultSearch = '';
   let vaultSort = 'recent';
   let vaultListView = false;
-  let pendingUploadName = '';
+  let pendingToast = '';
   let toastTimer;
 
   const esc = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
@@ -191,7 +191,7 @@
           throw archiveError;
         }
         node.remove();
-        pendingUploadName = file.name + ' a remplacé l’ancienne version. Celle-ci est disponible dans vos archives.';
+        pendingToast = file.name + ' a remplacé l’ancienne version. Celle-ci est disponible dans vos archives.';
         await loadData();
       } catch (error) {
         showError(node, 'Impossible de remplacer ce fichier. Réessayez dans un instant.');
@@ -219,16 +219,16 @@
     const originalLoadData = loadData;
     loadData = async function() {
       await originalLoadData();
-      if (pendingUploadName) {
-        showVaultToast(pendingUploadName + ' est maintenant disponible dans votre coffre.');
-        pendingUploadName = '';
+      if (pendingToast) {
+        showVaultToast(pendingToast);
+        pendingToast = '';
       }
     };
 
     document.addEventListener('submit', (event) => {
       if (event.target?.id !== 'upload-form') return;
       const file = event.target.querySelector('#upload-file')?.files?.[0];
-      pendingUploadName = file?.name || '';
+      pendingToast = file ? file.name + ' est maintenant disponible dans votre coffre.' : '';
     }, true);
   });
 })();
