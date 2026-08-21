@@ -34,6 +34,7 @@ let vaultFilter = 'all';
 let dossierCollapsed = false;
 
 const $ = (selector) => document.querySelector(selector);
+const authRedirectUrl = () => window.location.origin + window.location.pathname;
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character]);
 const initials = (email) => email ? email.slice(0, 2).toUpperCase() : 'J';
 const profileName = () => String(currentUser?.user_metadata?.first_name || '').trim();
@@ -111,7 +112,7 @@ function showEmailConfirmation(node, email) {
     const button = event.currentTarget;
     const status = card.querySelector('[data-email-status]');
     button.disabled = true;
-    const { error } = await supabaseClient.auth.resend({ type: 'signup', email, options: { emailRedirectTo: window.location.href } });
+    const { error } = await supabaseClient.auth.resend({ type: 'signup', email, options: { emailRedirectTo: authRedirectUrl() } });
     status.textContent = error ? 'Impossible de renvoyer le lien. Réessayez dans un instant.' : 'Un nouvel e-mail vient d’être envoyé à cette adresse.';
     status.hidden = false;
     button.disabled = false;
@@ -180,11 +181,12 @@ function showAuth(initialLogin = false, prefilledEmail = '') {
     const button = node.querySelector('#auth-submit');
     button.disabled = true;
     if (loginMode) {
+      activeView = 'vault';
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) { showError(node, error.message); button.disabled = false; return; }
       node.remove();
     } else {
-      const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { emailRedirectTo: window.location.href } });
+      const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl() } });
       if (error) { showError(node, error.message); button.disabled = false; return; }
       if (!data.session) {
         showEmailConfirmation(node, email);
@@ -1152,12 +1154,14 @@ async function boot() {
   wireUi();
   const { data: { session } } = await supabaseClient.auth.getSession();
   currentUser = session ? session.user : null;
+  if (currentUser) activeView = 'vault';
   applyAppState();
   if (currentUser) {
     try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
   }
-  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     currentUser = session ? session.user : null;
+    if (currentUser && event === 'SIGNED_IN') activeView = 'vault';
     applyAppState();
     if (currentUser) {
       try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
