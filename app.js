@@ -165,18 +165,34 @@ function showProfile() {
   showView('profile');
 }
 function showAuth(initialLogin = false, prefilledEmail = '') {
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Bienvenue dans Jamlio.</h2><p style="color:#647069;line-height:1.45">Créez un compte pour conserver vos documents dans un espace privé.</p><form id="auth-form"><label>Adresse e-mail<input id="auth-email" type="email" autocomplete="email" value="' + escapeHtml(prefilledEmail) + '" required></label><label>Mot de passe<input id="auth-password" type="password" autocomplete="current-password" minlength="12" required></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><p data-status hidden style="color:#245843;font-size:13px;line-height:1.4"></p><button class="primary" id="auth-submit" type="submit">Créer mon compte <span>→</span></button></form><button id="switch-auth" style="margin-top:14px;border:0;background:none;color:#245843;text-decoration:underline;cursor:pointer">J’ai déjà un compte</button><p id="auth-note" style="margin-top:18px;color:#78847b;font-size:12px;line-height:1.4">Utilisez au moins 12 caractères. Nous ne stockons jamais votre mot de passe.</p>');
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Bienvenue dans Jamlio.</h2><p style="color:#647069;line-height:1.45">Créez un compte pour conserver vos documents dans un espace privé.</p><form id="auth-form"><label>Adresse e-mail<input id="auth-email" type="email" autocomplete="email" value="' + escapeHtml(prefilledEmail) + '" required></label><label>Mot de passe<input id="auth-password" type="password" autocomplete="current-password" required></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><p data-status hidden style="color:#245843;font-size:13px;line-height:1.4"></p><button class="primary" id="auth-submit" type="submit">Créer mon compte <span>→</span></button></form><button id="forgot-password" style="margin-top:12px;border:0;background:none;color:#245843;text-decoration:underline;cursor:pointer">Mot de passe oublié ?</button><button id="switch-auth" style="margin:14px 0 0;border:0;background:none;color:#245843;text-decoration:underline;cursor:pointer">J’ai déjà un compte</button><p id="auth-note" style="margin-top:18px;color:#78847b;font-size:12px;line-height:1.4">Utilisez au moins 12 caractères. Nous ne stockons jamais votre mot de passe.</p>');
   styleModal(node);
   let loginMode = initialLogin;
   const updateMode = () => {
     $('#auth-submit').textContent = loginMode ? 'Se connecter →' : 'Créer mon compte →';
     $('#switch-auth').textContent = loginMode ? 'Créer un compte' : 'J’ai déjà un compte';
-    $('#auth-note').textContent = loginMode ? 'Connectez-vous pour retrouver votre coffre privé.' : 'Utilisez au moins 12 caractères. Nous ne stockons jamais votre mot de passe.';
+    $('#auth-note').textContent = loginMode ? 'Saisissez le mot de passe associé à votre compte.' : 'Utilisez au moins 12 caractères. Nous ne stockons jamais votre mot de passe.';
     $('#auth-password').autocomplete = loginMode ? 'current-password' : 'new-password';
+    $('#auth-password').minLength = loginMode ? 1 : 12;
+    $('#forgot-password').hidden = !loginMode;
   };
   updateMode();
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelector('#switch-auth').addEventListener('click', () => { loginMode = !loginMode; updateMode(); });
+  node.querySelector('#forgot-password').addEventListener('click', async () => {
+    const email = node.querySelector('#auth-email').value.trim();
+    if (!email) { showError(node, 'Indiquez votre adresse e-mail, puis choisissez « Mot de passe oublié ? ».'); return; }
+    const button = node.querySelector('#forgot-password');
+    button.disabled = true;
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
+    if (error) showError(node, 'Impossible d’envoyer le lien pour le moment. Réessayez dans un instant.');
+    else {
+      const status = node.querySelector('[data-status]');
+      status.textContent = 'Si cette adresse correspond à un compte, un lien de réinitialisation vient d’être envoyé.';
+      status.hidden = false;
+    }
+    button.disabled = false;
+  });
   node.querySelector('#auth-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const email = node.querySelector('#auth-email').value.trim();
@@ -186,7 +202,12 @@ function showAuth(initialLogin = false, prefilledEmail = '') {
     if (loginMode) {
       activeView = 'vault';
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) { showError(node, error.message); button.disabled = false; return; }
+      if (error) {
+        const needsReset = error.code === 'weak_password' || /weak password|password.*weak|at least 12/i.test(error.message || '');
+        showError(node, needsReset ? 'Ce mot de passe doit être renouvelé pour respecter les règles de sécurité. Utilisez « Mot de passe oublié ? ».' : 'Adresse e-mail ou mot de passe incorrect.');
+        button.disabled = false;
+        return;
+      }
       node.remove();
     } else {
       const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl() } });
@@ -195,6 +216,22 @@ function showAuth(initialLogin = false, prefilledEmail = '') {
         showEmailConfirmation(node, email);
       } else node.remove();
     }
+  });
+}
+
+function showPasswordReset() {
+  const node = modal('<p class="eyebrow">SÉCURITÉ DU COMPTE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Choisissez un nouveau mot de passe.</h2><p style="color:#647069;line-height:1.45">Utilisez au moins 12 caractères. Votre ancien mot de passe ne sera plus utilisable.</p><form id="password-reset-form"><label>Nouveau mot de passe<input id="password-reset-value" type="password" autocomplete="new-password" minlength="12" required></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Enregistrer le mot de passe <span>→</span></button></form>');
+  styleModal(node);
+  node.querySelector('#password-reset-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const password = node.querySelector('#password-reset-value').value;
+    const button = node.querySelector('button[type="submit"]');
+    button.disabled = true;
+    const { error } = await supabaseClient.auth.updateUser({ password });
+    if (error) { showError(node, error.message); button.disabled = false; return; }
+    node.remove();
+    activeView = 'vault';
+    applyAppState();
   });
 }
 
@@ -1184,6 +1221,7 @@ async function boot() {
     applyAppState();
     if (currentUser) {
       try { await loadData(); } catch (error) { alert('Impossible de charger votre coffre : ' + error.message); }
+      if (event === 'PASSWORD_RECOVERY') showPasswordReset();
     } else { currentVault = null; documents = []; currentJourney = null; selected = new Set(); }
   });
 }
