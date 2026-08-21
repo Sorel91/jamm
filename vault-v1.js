@@ -1,4 +1,4 @@
-/* Jamm coffre V1.2 — retrieval, safe replacement and accessible actions. */
+/* Jamlio coffre V1.2 — retrieval, safe replacement and accessible actions. */
 (() => {
   let vaultSearch = '';
   let vaultSort = 'recent';
