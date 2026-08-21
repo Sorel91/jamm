@@ -130,11 +130,8 @@ function renderProfilePage() {
     '<form id="profile-form" class="profile-form"><section class="profile-section"><div class="profile-section-heading"><p class="eyebrow">REPÈRES POUR MES DÉMARCHES</p><h3>Les informations utiles</h3><p>Jamlio ne récupère pas d’informations dans vos documents.</p></div>' +
     '<div class="profile-fields"><label>Prénom<input id="profile-first-name" autocomplete="given-name" maxlength="60" value="' + escapeHtml(metadata.first_name || '') + '" placeholder="Ex. Mariam"></label><label>Nom<input id="profile-last-name" autocomplete="family-name" maxlength="80" value="' + escapeHtml(metadata.last_name || '') + '" placeholder="Ex. Diallo"></label><label>Département de résidence par défaut<input id="profile-department" inputmode="numeric" maxlength="3" value="' + escapeHtml(metadata.default_department || '') + '" placeholder="Ex. 91"></label><label>Pays de passeport le plus utilisé<select id="profile-passport-country">' + countryOptions + '</select></label></div></section>' +
     '<section class="profile-section profile-account"><div class="profile-section-heading"><p class="eyebrow">COMPTE ET SÉCURITÉ</p><h3>Connexion</h3></div><div class="profile-account-row"><div><strong>Adresse e-mail</strong><span>' + escapeHtml(currentUser.email || '') + '</span></div><span class="profile-account-note">Modification bientôt disponible</span></div><div class="profile-account-row"><div><strong>Mot de passe</strong><span>Protège l’accès à votre coffre</span></div><span class="profile-account-note">Modification bientôt disponible</span></div></section>' +
-    '<p data-error hidden class="profile-error"></p><p data-status hidden class="profile-status" role="status"></p><div class="profile-actions"><button class="primary" type="submit">Enregistrer les modifications <span>→</span></button><button id="profile-signout" class="outline profile-signout" type="button">Se déconnecter</button></div></form></section>';
+    '<p data-error hidden class="profile-error"></p><p data-status hidden class="profile-status" role="status"></p><div class="profile-actions"><button class="primary" type="submit">Enregistrer les modifications <span>→</span></button></div></form></section>';
   $('#profile-back').addEventListener('click', () => showView('vault'));
-  $('#profile-signout').addEventListener('click', async () => {
-    if (await showConfirmDialog({ title: 'Se déconnecter de Jamlio ?', message: 'Vous pourrez vous reconnecter à tout moment.', confirmLabel: 'Se déconnecter' })) await supabaseClient.auth.signOut();
-  });
   $('#profile-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const button = $('#profile-form [type="submit"]');
@@ -155,6 +152,12 @@ function renderProfilePage() {
     render();
     renderProfilePage();
   });
+}
+
+async function signOutFromJamlio() {
+  if (await showConfirmDialog({ title: 'Se déconnecter de Jamlio ?', message: 'Vous pourrez vous reconnecter à tout moment.', confirmLabel: 'Se déconnecter' })) {
+    await supabaseClient.auth.signOut();
+  }
 }
 
 function showProfile() {
@@ -1145,8 +1148,24 @@ function wireUi() {
   $('#new-journey').addEventListener('click', showNewJourneyChooser);
   $('#complete-journey').addEventListener('click', completeJourney);
   $('#reopen-journey').addEventListener('click', reopenJourney);
-  $('#profile-button').addEventListener('click', () => showProfile());
-  $('#trash-button').addEventListener('click', () => showView('trash'));
+  const accountMenu = $('.account-menu');
+  const accountMenuButton = $('#account-menu-button');
+  const accountMenuPanel = $('#account-menu-panel');
+  const closeAccountMenu = () => {
+    accountMenuPanel.hidden = true;
+    accountMenuButton.setAttribute('aria-expanded', 'false');
+  };
+  accountMenuButton.addEventListener('click', () => {
+    const opening = accountMenuPanel.hidden;
+    accountMenuPanel.hidden = !opening;
+    accountMenuButton.setAttribute('aria-expanded', String(opening));
+  });
+  $('#account-menu-profile').addEventListener('click', () => { closeAccountMenu(); showProfile(); });
+  $('#account-menu-signout').addEventListener('click', async () => { closeAccountMenu(); await signOutFromJamlio(); });
+  document.addEventListener('click', (event) => { if (!accountMenu.contains(event.target)) closeAccountMenu(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeAccountMenu(); });
+  $('#profile-button').addEventListener('click', () => { closeAccountMenu(); showProfile(); });
+  $('#trash-button').addEventListener('click', () => { closeAccountMenu(); showView('trash'); });
   document.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => $('#' + button.dataset.scroll).scrollIntoView({ behavior: 'smooth' })));
 }
 
