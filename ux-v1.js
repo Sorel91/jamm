@@ -1,4 +1,4 @@
-/* Jamm V1.1 — UX refinements without changing the current journey creation flow. */
+/* Jamlio V1.1 — UX refinements without changing the current journey creation flow. */
 (() => {
   const esc = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 
@@ -55,7 +55,7 @@
       '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">' + (currentJourney.status === 'completed' ? 'Votre dossier' : 'Votre dossier de préparation') + '</h2>' +
       '<p style="color:#647069;line-height:1.45">' + readyCount + ' pièce' + (readyCount > 1 ? 's' : '') + ' prête' + (readyCount > 1 ? 's' : '') + ' sur ' + requirements.length + '.</p>' +
       '<ul class="jamm-review-list">' + rows + '</ul>' +
-      (sourceUrl ? '<p class="jamm-review-source"><a href="' + esc(sourceUrl) + '" target="_blank" rel="noopener">Consulter la source officielle ↗</a><br><small>Le dépôt de la demande se fait sur le site officiel, pas sur Jamm.</small></p>' : '<p class="jamm-review-source"><small>Cette liste a été créée par vous. Vérifiez toujours les pièces avant le dépôt.</small></p>') +
+      (sourceUrl ? '<p class="jamm-review-source"><a href="' + esc(sourceUrl) + '" target="_blank" rel="noopener">Consulter la source officielle ↗</a><br><small>Le dépôt de la demande se fait sur le site officiel, pas sur Jamlio.</small></p>' : '<p class="jamm-review-source"><small>Cette liste a été créée par vous. Vérifiez toujours les pièces avant le dépôt.</small></p>') +
       '<p data-error hidden style="color:#aa3425;font-size:13px"></p>' +
       '<button class="primary" type="button" id="jamm-confirm-download">' + (currentJourney.status === 'completed' ? 'Télécharger le dossier' : 'Télécharger le dossier de préparation') + ' <span>→</span></button>'
     );
