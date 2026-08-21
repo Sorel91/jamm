@@ -658,3 +658,17 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 .account-menu-panel #account-menu-signout{color:#9a3428}
 .account-menu-panel #account-menu-signout:hover,.account-menu-panel #account-menu-signout:focus-visible{background:#f9ece8}
 @media(max-width:760px){.account-menu-button{width:36px;height:36px;border-radius:10px;font-size:16px}.account-menu-panel{right:0;min-width:172px}}
+
+
+/* Landing-page clarity and keyboard access */
+.skip-link{position:absolute;z-index:9999;left:18px;top:-80px;padding:11px 15px;border-radius:8px;background:var(--green);color:#fff;font-weight:700;text-decoration:none;box-shadow:var(--shadow)}
+.skip-link:focus{top:15px}
+#main-content:focus{outline:0}
+.hero-beta-note{margin:13px 0 0;color:#486457;font-size:13px;font-weight:700}
+.hero-reassurance{margin-top:11px;max-width:545px}
+.hero-reassurance .hero-note{margin:0}
+.hero-reassurance a{display:inline-block;margin-top:6px;color:var(--green);font-size:13px;font-weight:700;text-underline-offset:3px}
+@media(max-width:760px){
+  .hero-beta-note{font-size:12px}
+  .hero-reassurance a{font-size:12px}
+}
