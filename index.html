@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Jamlio — vos papiers, prêts quand il faut</title>
   <meta name="description" content="Jamlio organise vos documents importants et prépare vos démarches, ici et là-bas." />
-  <link rel="stylesheet" href="styles.css?v=mobilelogin20260821" />
+  <link rel="stylesheet" href="styles.css?v=accountmenu20260821" />
 </head>
 <body>
   <main id="marketing">
@@ -44,7 +44,7 @@
     <nav class="app-nav">
       <a class="brand" href="#top"><span>j</span>amlio</a>
       <div class="app-tabs" role="navigation" aria-label="Navigation principale"><button class="app-tab active" data-view="vault"><span class="tab-icon">◫</span>Mon coffre</button><button class="app-tab" data-view="journeys"><span class="tab-icon">→</span>Mes démarches</button></div>
-      <div class="app-nav-utilities"><button class="trash-nav" id="trash-button" type="button" aria-label="Ouvrir la corbeille" title="Corbeille"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg></button><button class="avatar" id="profile-button" aria-label="Ouvrir le profil">—</button></div>
+      <div class="app-nav-utilities"><button class="trash-nav" id="trash-button" type="button" aria-label="Ouvrir la corbeille" title="Corbeille"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg></button><button class="avatar" id="profile-button" aria-label="Ouvrir le profil">—</button><div class="account-menu"><button class="account-menu-button" id="account-menu-button" type="button" aria-label="Ouvrir le menu du compte" aria-haspopup="menu" aria-expanded="false">•••</button><div class="account-menu-panel" id="account-menu-panel" role="menu" hidden><button type="button" role="menuitem" id="account-menu-profile">Mon profil</button><button type="button" role="menuitem" id="account-menu-signout">Se déconnecter</button></div></div></div>
     </nav>
 
     <section class="app-welcome" id="top">
@@ -88,7 +88,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="app.js?v=legalbrand20260821"></script>
+  <script src="app.js?v=accountmenu20260821"></script>
   <script src="residence-v1.js?v=20260820"></script>
   <script src="ux-v1.js?v=checklistsimple2_20260820"></script>
   <script src="vault-v1.js?v=responsive20260820"></script>
