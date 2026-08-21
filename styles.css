@@ -596,3 +596,34 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
   .profile-actions .profile-signout { width:100%; }
   .jamm-confirm-actions > button { min-width:0; }
 }
+
+
+/* Jamlio public information pages */
+.site-footer{display:flex;justify-content:space-between;align-items:center;gap:20px;text-align:left;margin-top:48px;padding:24px 0 0;border-top:1px solid var(--line);color:#758078;font-size:12px;line-height:1.5}
+.site-footer nav{display:flex;align-items:center;gap:17px}
+.site-footer a{color:var(--green-dark);font-weight:700;text-decoration:none}
+.site-footer a:hover,.site-footer a:focus-visible{text-decoration:underline}
+.legal-shell{max-width:920px;margin:0 auto;padding:0 34px 68px}
+.legal-nav{height:92px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.legal-nav .brand{font-size:31px}
+.legal-back{font-size:14px;color:var(--green-dark);font-weight:700;text-decoration:none}
+.legal-back:hover,.legal-back:focus-visible{text-decoration:underline}
+.legal-hero{padding:68px 0 38px;max-width:720px}
+.legal-hero h1{font:700 clamp(42px,6vw,68px)/1.04 Fraunces,Georgia,serif;letter-spacing:-.045em;margin:12px 0 18px;color:var(--ink)}
+.legal-hero p:not(.eyebrow){margin:0;color:var(--muted);font-size:18px;line-height:1.55}
+.legal-content{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:42px 46px;box-shadow:var(--shadow)}
+.legal-content h2{font:700 28px/1.15 Fraunces,Georgia,serif;margin:38px 0 12px;color:var(--ink)}
+.legal-content h2:first-child{margin-top:0}
+.legal-content h3{font-size:16px;margin:22px 0 7px;color:var(--ink)}
+.legal-content p,.legal-content li{color:#56665d;line-height:1.65}
+.legal-content ul{padding-left:21px}
+.legal-content a{color:var(--green-dark);font-weight:700}
+.legal-note{margin:24px 0;padding:17px 18px;border-radius:12px;background:#fcf2d9;border:1px solid #efd9a8;color:#70511d}
+.legal-card{padding:20px;border:1px solid var(--line);border-radius:14px;background:#f7faf5;margin:17px 0}
+.legal-card strong{display:block;color:var(--ink);margin-bottom:5px}
+.support-options{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}
+.support-option{padding:22px;border:1px solid var(--line);border-radius:16px;background:#f7faf5}
+.support-option h2{margin:0 0 8px;font:700 23px/1.15 Fraunces,Georgia,serif}
+.support-option p{margin:0 0 15px}
+.support-option .primary{display:inline-flex;text-decoration:none}
+@media(max-width:640px){.site-footer{display:block;padding-top:22px}.site-footer nav{margin-top:12px;flex-wrap:wrap;gap:10px 16px}.legal-shell{padding:0 18px 40px}.legal-nav{height:76px}.legal-nav .brand{font-size:27px}.legal-hero{padding:42px 0 26px}.legal-content{padding:26px 22px;border-radius:17px}.legal-content h2{font-size:25px}.support-options{grid-template-columns:1fr}}
