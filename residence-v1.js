@@ -1,4 +1,4 @@
-/* Jamm V1 — parcours titre de séjour communs.
+/* Jamlio V1 — parcours titre de séjour communs.
    The core app remains responsible for vault matching and checklist rendering. */
 (() => {
   const RESIDENCE_SOURCE = 'https://www.service-public.gouv.fr/particuliers/vosdroits/N110';
