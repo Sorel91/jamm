@@ -23,8 +23,7 @@ const number = (value) => new Intl.NumberFormat('fr-FR').format(Number(value || 
 
 function sourceIsDue(entry) {
   if (entry.source_status === 'to_review') return true;
-  if (!entry.review_due_at) return true;
-  return new Date(entry.review_due_at).getTime() <= Date.now();
+  return Boolean(entry.review_due_at) && new Date(entry.review_due_at).getTime() <= Date.now();
 }
 
 function statusTag(status) {
@@ -102,8 +101,8 @@ function statsCards() {
   return '<div class="stats-grid">' +
     '<article class="stat-card"><span>Utilisateurs avec un coffre</span><strong>' + number(metrics.vault_count) + '</strong><small>indicateur agrégé</small></article>' +
     '<article class="stat-card"><span>Documents actifs</span><strong>' + number(metrics.document_count) + '</strong><small>hors corbeille</small></article>' +
-    '<article class="stat-card"><span>Dossiers actifs</span><strong>' + number(metrics.active_journey_count) + '</strong><small>en préparation</small></article>' +
-    '<article class="stat-card attention"><span>Sources à contrôler</span><strong>' + number(metrics.due_review_count) + '</strong><small>action recommandée</small></article>' +
+    '<article class="stat-card"><span>Démarches en cours</span><strong>' + number(metrics.active_journey_count) + '</strong><small>à reprendre ou à préparer</small></article>' +
+    '<article class="stat-card"><span>Démarches terminées</span><strong>' + number(metrics.completed_journey_count) + '</strong><small>hors corbeille</small></article>' +
     '</div>';
 }
 
@@ -126,7 +125,7 @@ function overview() {
   const recent = audit.slice(0, 6);
   navigation('<header class="page-heading"><div><p class="eyebrow">VUE D’ENSEMBLE</p><h1>Le site, d’un coup d’œil.</h1><p>Suivez la couverture du catalogue et les contrôles à effectuer. Les données d’usage restent agrégées.</p></div><button class="button primary" id="new-entry">+ Ajouter une source</button></header>' +
     statsCards() +
-    '<div class="dashboard-grid"><section class="inset-card"><div class="section-heading"><div><p class="eyebrow">PRIORITÉ</p><h2>Sources à contrôler</h2></div><button class="text-button" data-go="review">Voir tout</button></div>' +
+    '<div class="dashboard-grid"><section class="inset-card"><div class="section-heading"><div><p class="eyebrow">PRIORITÉ</p><h2>Sources à vérifier</h2><p class="muted">' + number(metrics.sources_without_review_date) + ' source(s) vérifiée(s) sans date de prochaine revue : à planifier, pas à vérifier.</p></div><button class="text-button" data-go="review">Voir tout</button></div>' +
       (due.length ? due.map((entry) => sourceRow(entry, true)).join('') : '<div class="empty"><strong>Tout est à jour.</strong><p>Aucune source n’attend de contrôle.</p></div>') +
     '</section><section class="inset-card"><div class="section-heading"><div><p class="eyebrow">TRAÇABILITÉ</p><h2>Dernières modifications</h2></div><button class="text-button" data-go="audit">Voir le journal</button></div>' +
       (recent.length ? recent.map((event) => '<div class="audit-line"><strong>' + ({ created: 'Création', updated: 'Mise à jour', deleted: 'Suppression' }[event.action] || event.action) + '</strong><span>' + escapeHtml(event.entry_title || 'Fiche retirée') + '</span><small>' + longDate(event.occurred_at) + '</small></div>').join('') : '<div class="empty"><strong>Pas encore d’activité.</strong></div>') +
@@ -161,7 +160,7 @@ function catalogView() {
 
 function reviewView() {
   const queue = catalog.filter(sourceIsDue).sort((a, b) => String(a.review_due_at || '').localeCompare(String(b.review_due_at || '')));
-  navigation('<header class="page-heading"><div><p class="eyebrow">QUALITÉ DES SOURCES</p><h1>À contrôler</h1><p>Une source est ici lorsqu’elle est signalée « à contrôler », sans date de revue, ou arrivée à échéance.</p></div><button class="button secondary" id="show-catalog">Voir le catalogue</button></header><section class="review-intro"><strong>' + number(queue.length) + ' source' + (queue.length > 1 ? 's' : '') + ' nécessitent une action.</strong><p>Après vérification sur le site officiel, actualisez la date de contrôle et la prochaine revue avant de passer la fiche à « Vérifié ».</p></section><div class="source-list">' + (queue.length ? queue.map((entry) => sourceRow(entry)).join('') : '<div class="empty"><strong>Tout est à jour.</strong><p>Le catalogue ne comporte aucune source à revoir.</p></div>') + '</div>');
+  navigation('<header class="page-heading"><div><p class="eyebrow">QUALITÉ DES SOURCES</p><h1>À contrôler</h1><p>Une source est ici lorsqu’elle est signalée « à contrôler » ou que sa date de revue est dépassée.</p></div><button class="button secondary" id="show-catalog">Voir le catalogue</button></header><section class="review-intro"><strong>' + number(queue.length) + ' source' + (queue.length > 1 ? 's' : '') + ' nécessitent une action.</strong><p>Après vérification sur le site officiel, actualisez la date de contrôle et la prochaine revue avant de passer la fiche à « Vérifié ».</p><p class="muted">' + number(metrics.sources_without_review_date) + ' source(s) vérifiée(s) n’ont pas encore de prochaine date de revue : c’est une planification à compléter, pas une alerte sur leur fiabilité.</p></section><div class="source-list">' + (queue.length ? queue.map((entry) => sourceRow(entry)).join('') : '<div class="empty"><strong>Tout est à jour.</strong><p>Le catalogue ne comporte aucune source à revoir.</p></div>') + '</div>');
   document.querySelector('#show-catalog').addEventListener('click', () => { view = 'catalog'; render(); });
   bindEditors(app);
 }
@@ -169,7 +168,7 @@ function reviewView() {
 
 function supportUserRow(account) {
   const confirmed = account.email_confirmed_at ? 'Adresse vérifiée' : 'Adresse non vérifiée';
-  return '<article class="support-user-row"><div><strong>' + escapeHtml(account.email) + '</strong><p>' + confirmed + ' · ' + number(account.document_count) + ' document(s) · ' + number(account.active_journey_count) + ' démarche(s) active(s)</p><small>Dernière connexion : ' + longDate(account.last_sign_in_at) + '</small></div><button class="button secondary" data-support-user="' + account.user_id + '">Ouvrir le dossier</button></article>';
+  return '<article class="support-user-row"><div><strong>' + escapeHtml(account.email) + '</strong><p>' + confirmed + ' · ' + number(account.document_count) + ' document(s) · ' + number(account.journey_count) + ' démarche(s) au total, dont ' + number(account.active_journey_count) + ' en cours</p><small>Dernière connexion : ' + longDate(account.last_sign_in_at) + '</small></div><button class="button secondary" data-support-user="' + account.user_id + '">Ouvrir le dossier</button></article>';
 }
 
 function supportView() {
