@@ -86,7 +86,7 @@ function navigation(content) {
   const links = [
     ['overview', 'Vue d’ensemble'],
     ['catalog', 'Catalogue'],
-    ['review', 'À contrôler'],
+    ['review', 'À vérifier'],
     ['support', 'Support bêta'],
     ['audit', 'Journal']
   ];
@@ -160,7 +160,7 @@ function catalogView() {
 
 function reviewView() {
   const queue = catalog.filter(sourceIsDue).sort((a, b) => String(a.review_due_at || '').localeCompare(String(b.review_due_at || '')));
-  navigation('<header class="page-heading"><div><p class="eyebrow">QUALITÉ DES SOURCES</p><h1>À contrôler</h1><p>Une source est ici lorsqu’elle est signalée « à contrôler » ou que sa date de revue est dépassée.</p></div><button class="button secondary" id="show-catalog">Voir le catalogue</button></header><section class="review-intro"><strong>' + number(queue.length) + ' source' + (queue.length > 1 ? 's' : '') + ' nécessitent une action.</strong><p>Après vérification sur le site officiel, actualisez la date de contrôle et la prochaine revue avant de passer la fiche à « Vérifié ».</p><p class="muted">' + number(metrics.sources_without_review_date) + ' source(s) vérifiée(s) n’ont pas encore de prochaine date de revue : c’est une planification à compléter, pas une alerte sur leur fiabilité.</p></section><div class="source-list">' + (queue.length ? queue.map((entry) => sourceRow(entry)).join('') : '<div class="empty"><strong>Tout est à jour.</strong><p>Le catalogue ne comporte aucune source à revoir.</p></div>') + '</div>');
+  navigation('<header class="page-heading"><div><p class="eyebrow">QUALITÉ DES SOURCES</p><h1>À vérifier</h1><p>Une source est ici lorsqu’elle est signalée « à contrôler » ou que sa date de revue est dépassée.</p></div><button class="button secondary" id="show-catalog">Voir le catalogue</button></header><section class="review-intro"><strong>' + number(queue.length) + ' source' + (queue.length > 1 ? 's' : '') + ' nécessitent une action.</strong><p>Après vérification sur le site officiel, actualisez la date de contrôle et la prochaine revue avant de passer la fiche à « Vérifié ».</p><p class="muted">' + number(metrics.sources_without_review_date) + ' source(s) vérifiée(s) n’ont pas encore de prochaine date de revue : c’est une planification à compléter, pas une alerte sur leur fiabilité.</p></section><div class="source-list">' + (queue.length ? queue.map((entry) => sourceRow(entry)).join('') : '<div class="empty"><strong>Tout est à jour.</strong><p>Le catalogue ne comporte aucune source à revoir.</p></div>') + '</div>');
   document.querySelector('#show-catalog').addEventListener('click', () => { view = 'catalog'; render(); });
   bindEditors(app);
 }
@@ -168,7 +168,10 @@ function reviewView() {
 
 function supportUserRow(account) {
   const confirmed = account.email_confirmed_at ? 'Adresse vérifiée' : 'Adresse non vérifiée';
-  return '<article class="support-user-row"><div><strong>' + escapeHtml(account.email) + '</strong><p>' + confirmed + ' · ' + number(account.document_count) + ' document(s) · ' + number(account.journey_count) + ' démarche(s) au total, dont ' + number(account.active_journey_count) + ' en cours</p><small>Dernière connexion : ' + longDate(account.last_sign_in_at) + '</small></div><button class="button secondary" data-support-user="' + account.user_id + '">Ouvrir le dossier</button></article>';
+  const documentLabel = number(account.document_count) + ' document' + (Number(account.document_count) > 1 ? 's' : '');
+  const journeyLabel = number(account.journey_count) + ' démarche' + (Number(account.journey_count) > 1 ? 's' : '');
+  const activeLabel = number(account.active_journey_count) + ' en cours';
+  return '<article class="support-user-row"><div><strong>' + escapeHtml(account.email) + '</strong><p>' + confirmed + ' · ' + documentLabel + ' · ' + journeyLabel + ' au total, dont ' + activeLabel + '</p><small>Dernière connexion : ' + longDate(account.last_sign_in_at) + '</small></div><button class="button secondary" data-support-user="' + account.user_id + '">Ouvrir le dossier</button></article>';
 }
 
 function supportView() {
