@@ -768,7 +768,7 @@ function renderChecklist() {
   // Les tout premiers dossiers n’avaient ni identifiant ni intitulé normalisé :
   // les libellés de leurs pièces permettent néanmoins de retrouver le parcours.
   if (!inferredLegacyRoute) {
-    const labels = requirements.map((requirement) => String(requirement.label || '').toLowerCase()).join(' | ');
+    const labels = requirements.map((requirement) => JSON.stringify(requirement || {}).toLowerCase()).join(' | ');
     if (/carte de résident arrivant à expiration/.test(labels)) inferredLegacyRoute = 'resident_10';
     else if (/inscription ou préinscription|relevés de notes/.test(labels)) inferredLegacyRoute = 'student';
     else if (/engagement de ne pas travailler|couverture maladie/.test(labels)) inferredLegacyRoute = 'visitor';
