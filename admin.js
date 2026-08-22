@@ -9,6 +9,8 @@ let catalog = [];
 let audit = [];
 let metrics = {};
 let view = 'overview';
+let supportUsers = [];
+let selectedSupportUser = null;
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 const today = () => new Date().toISOString().slice(0, 10);
@@ -86,6 +88,7 @@ function navigation(content) {
     ['overview', 'Vue d’ensemble'],
     ['catalog', 'Catalogue'],
     ['review', 'À contrôler'],
+    ['support', 'Support bêta'],
     ['audit', 'Journal']
   ];
   app.innerHTML = '<div class="console"><aside class="sidebar"><a class="console-brand" href="./"><span>j</span>amlio <small>Administration</small></a><p class="eyebrow">PILOTAGE</p><nav>' + links.map(([id, label]) => '<button class="nav-button ' + (view === id ? 'active' : '') + '" data-view="' + id + '">' + label + '</button>').join('') + '</nav><div class="sidebar-note"><strong>Confidentialité</strong><p>Les indicateurs sont agrégés. Aucun nom, fichier ni contenu privé n’est accessible ici.</p></div><p class="role">Rôle : ' + escapeHtml(role) + '</p></aside><section class="main-panel" id="content">' + content + '</section></div>';
@@ -163,6 +166,91 @@ function reviewView() {
   bindEditors(app);
 }
 
+
+function supportUserRow(account) {
+  const confirmed = account.email_confirmed_at ? 'Adresse vérifiée' : 'Adresse non vérifiée';
+  return '<article class="support-user-row"><div><strong>' + escapeHtml(account.email) + '</strong><p>' + confirmed + ' · ' + number(account.document_count) + ' document(s) · ' + number(account.active_journey_count) + ' démarche(s) active(s)</p><small>Dernière connexion : ' + longDate(account.last_sign_in_at) + '</small></div><button class="button secondary" data-support-user="' + account.user_id + '">Ouvrir le dossier</button></article>';
+}
+
+function supportView() {
+  navigation('<header class="page-heading"><div><p class="eyebrow">SUPPORT BÊTA</p><h1>Assister un bêta-testeur</h1><p>Accès étendu et strictement en lecture seule pendant la bêta. Toute consultation de compte ou de document est journalisée.</p></div></header><section class="support-notice"><strong>Accès sensible.</strong><p>Utilisez cet espace seulement pour résoudre une demande utilisateur. Ne téléchargez aucun fichier sans nécessité. Cet accès sera remplacé par un partage temporaire et consenti avant le lancement public.</p></section><section class="support-search"><label>Rechercher par adresse e-mail<input id="support-search-input" type="search" placeholder="ex. prenom@exemple.fr"></label><button class="button primary" id="support-search-button">Rechercher</button></section><section id="support-results" class="support-results"></section><section id="support-detail"></section>');
+  const input = document.querySelector('#support-search-input');
+  const results = document.querySelector('#support-results');
+  const detail = document.querySelector('#support-detail');
+
+  const drawUsers = () => {
+    results.innerHTML = supportUsers.length
+      ? '<p class="support-count">' + number(supportUsers.length) + ' compte(s) trouvé(s)</p><div class="support-user-list">' + supportUsers.map(supportUserRow).join('') + '</div>'
+      : '<div class="empty"><strong>Aucun compte trouvé.</strong><p>Essayez une adresse e-mail complète ou partielle.</p></div>';
+    results.querySelectorAll('[data-support-user]').forEach((button) => button.addEventListener('click', () => openSupportUser(button.dataset.supportUser)));
+  };
+
+  const search = async () => {
+    const button = document.querySelector('#support-search-button');
+    button.disabled = true;
+    results.innerHTML = '<div class="empty"><strong>Recherche en cours…</strong></div>';
+    const { data, error } = await client.rpc('jamlio_beta_support_users', { search_term: input.value.trim() || null });
+    button.disabled = false;
+    if (error) {
+      results.innerHTML = '<div class="empty"><strong>Impossible de rechercher les comptes.</strong><p>' + escapeHtml(error.message) + '</p></div>';
+      return;
+    }
+    supportUsers = data || [];
+    drawUsers();
+  };
+
+  const openSupportUser = async (userId) => {
+    detail.innerHTML = '<div class="empty"><strong>Ouverture du dossier…</strong></div>';
+    const { data, error } = await client.rpc('jamlio_beta_support_detail', { target_user_id: userId });
+    if (error) {
+      detail.innerHTML = '<div class="empty"><strong>Impossible d’ouvrir ce dossier.</strong><p>' + escapeHtml(error.message) + '</p></div>';
+      return;
+    }
+    selectedSupportUser = data;
+    const { data: auditData } = await client.rpc('jamlio_beta_support_audit', { target_user_id: userId });
+    renderSupportDetail(data, auditData || []);
+  };
+
+  const renderSupportDetail = (data, auditRows) => {
+    const account = data.account || {};
+    const documents = Array.isArray(data.documents) ? data.documents : [];
+    const journeys = Array.isArray(data.journeys) ? data.journeys : [];
+    detail.innerHTML = '<section class="support-detail"><div class="section-heading"><div><p class="eyebrow">COMPTE SÉLECTIONNÉ</p><h2>' + escapeHtml(account.email || '') + '</h2></div><span class="tag ' + (account.email_confirmed_at ? 'verified' : 'to_review') + '">' + (account.email_confirmed_at ? 'E-mail vérifié' : 'E-mail non vérifié') + '</span></div><div class="support-account-meta"><span>Créé le <strong>' + longDate(account.created_at) + '</strong></span><span>Dernière connexion <strong>' + longDate(account.last_sign_in_at) + '</strong></span></div><div class="support-columns"><section><h3>Documents (' + number(documents.length) + ')</h3>' + (documents.length ? '<div class="support-docs">' + documents.map((doc) => '<article class="support-document"><div><strong>' + escapeHtml(doc.display_name) + '</strong><p>' + escapeHtml(doc.document_type) + (doc.expires_at ? ' · expire le ' + shortDate(doc.expires_at) : '') + (doc.deleted_at ? ' · dans la corbeille' : '') + '</p><small>' + escapeHtml(doc.content_type || 'Type inconnu') + ' · ' + number(doc.byte_size) + ' octets</small></div><div class="row-actions"><button class="text-button" data-doc-open="' + doc.id + '">Ouvrir</button><button class="text-button" data-doc-download="' + doc.id + '">Télécharger</button></div></article>').join('') + '</div>' : '<p class="muted">Aucun document.</p>') + '</section><section><h3>Démarches (' + number(journeys.length) + ')</h3>' + (journeys.length ? '<div class="support-journeys">' + journeys.map((journey) => '<article class="support-journey"><strong>' + escapeHtml(journey.code) + '</strong><p>' + escapeHtml(journey.status) + (journey.deleted_at ? ' · dans la corbeille' : '') + '</p>' + (journey.profile ? '<small>' + escapeHtml(journey.profile.permit_category || '') + (journey.profile.department ? ' · département ' + escapeHtml(journey.profile.department) : '') + '</small>' : '') + '</article>').join('') + '</div>' : '<p class="muted">Aucune démarche.</p>') + '</section></div><section class="support-audit"><h3>Journal d’accès support</h3>' + (auditRows.length ? auditRows.map((row) => '<div><strong>' + escapeHtml(({account_view:'Consultation du compte',document_open:'Ouverture du document',document_download:'Téléchargement du document'}[row.action] || row.action)) + '</strong><span>' + escapeHtml(row.document_name || '') + '</span><small>' + longDate(row.event_at) + '</small></div>').join('') : '<p class="muted">Aucun accès enregistré.</p>') + '</section></section>';
+
+    detail.querySelectorAll('[data-doc-open],[data-doc-download]').forEach((button) => button.addEventListener('click', async () => {
+      const isDownload = Boolean(button.dataset.docDownload);
+      const documentId = button.dataset.docOpen || button.dataset.docDownload;
+      const doc = documents.find((item) => item.id === documentId);
+      if (!doc) return;
+      button.disabled = true;
+      const action = isDownload ? 'document_download' : 'document_open';
+      const { error: logError } = await client.rpc('jamlio_beta_support_record_access', {
+        target_user_id: account.id,
+        access_action: action,
+        target_document_id: documentId,
+        access_reason: 'Assistance bêta'
+      });
+      if (logError) {
+        button.disabled = false;
+        alert('Impossible d’enregistrer cet accès : ' + logError.message);
+        return;
+      }
+      const { data: urlData, error: urlError } = await client.storage.from('jamm-documents').createSignedUrl(doc.storage_path, 300, { download: isDownload });
+      button.disabled = false;
+      if (urlError || !urlData?.signedUrl) {
+        alert('Impossible d’ouvrir ce document.');
+        return;
+      }
+      window.open(urlData.signedUrl, '_blank', 'noopener');
+      openSupportUser(account.id);
+    }));
+  };
+
+  document.querySelector('#support-search-button').addEventListener('click', search);
+  input.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); search(); } });
+  search();
+}
+
 function auditView() {
   navigation('<header class="page-heading"><div><p class="eyebrow">TRAÇABILITÉ</p><h1>Journal des changements</h1><p>Chaque action sur le catalogue est enregistrée. Aucun document privé n’est inclus dans ce journal.</p></div></header><section class="audit-list">' + (audit.length ? audit.map((event) => '<article class="audit-card"><div><strong>' + ({ created: 'Création', updated: 'Mise à jour', deleted: 'Suppression' }[event.action] || event.action) + '</strong><p>' + escapeHtml(event.entry_title || 'Fiche retirée') + '</p></div><time>' + longDate(event.occurred_at) + '</time></article>').join('') : '<div class="empty"><strong>Aucun changement enregistré.</strong></div>') + '</section>');
 }
@@ -172,6 +260,7 @@ function render() {
     if (view === 'overview') overview();
     else if (view === 'catalog') catalogView();
     else if (view === 'review') reviewView();
+    else if (view === 'support') supportView();
     else auditView();
   } catch (error) {
     app.innerHTML = '<section class="login-panel"><p class="eyebrow">ERREUR</p><h1>Impossible d’afficher la console.</h1><p>' + escapeHtml(error.message) + '</p><button class="button primary" onclick="location.reload()">Réessayer</button></section>';
