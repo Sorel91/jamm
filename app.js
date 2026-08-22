@@ -752,17 +752,19 @@ function renderChecklist() {
     : [];
   const routeIdFromProfile = profile.situation_answers?.common_route;
   const routeTitle = String(profile.permit_category || profile.situation_answers?.custom_title || '').toLowerCase();
-  const inferredLegacyRoute = routeIdFromProfile
-    || (/résident.{0,30}10 ans|10 ans.{0,30}résident/.test(routeTitle) ? 'resident_10'
-      : (/longue durée.{0,10}(ue|union européenne)/.test(routeTitle) ? 'long_term_eu'
-        : (/étudiant/.test(routeTitle) ? 'student'
-          : (/conjoint.{0,30}français|vie privée.*familiale.*conjoint/.test(routeTitle) ? 'spouse_french'
-            : (/parent.{0,40}enfant français/.test(routeTitle) ? 'parent_french_child'
-              : (/visiteur/.test(routeTitle) ? 'visitor'
-                : (/saisonnier/.test(routeTitle) ? 'seasonal'
-                  : (/retraité/.test(routeTitle) ? 'retired'
-                    : (/perte|vol|duplicata/.test(routeTitle) ? 'lost_or_stolen'
-                      : (/salarié|travailleur temporaire/.test(routeTitle) ? 'employee_cdi' : null)))))))));
+  let inferredLegacyRoute = routeIdFromProfile || null;
+  if (!inferredLegacyRoute) {
+    if (/résident.{0,30}10 ans|10 ans.{0,30}résident/.test(routeTitle)) inferredLegacyRoute = 'resident_10';
+    else if (/longue durée.{0,10}(ue|union européenne)/.test(routeTitle)) inferredLegacyRoute = 'long_term_eu';
+    else if (/étudiant/.test(routeTitle)) inferredLegacyRoute = 'student';
+    else if (/conjoint.{0,30}français|vie privée.*familiale.*conjoint/.test(routeTitle)) inferredLegacyRoute = 'spouse_french';
+    else if (/parent.{0,40}enfant français/.test(routeTitle)) inferredLegacyRoute = 'parent_french_child';
+    else if (/visiteur/.test(routeTitle)) inferredLegacyRoute = 'visitor';
+    else if (/saisonnier/.test(routeTitle)) inferredLegacyRoute = 'seasonal';
+    else if (/retraité/.test(routeTitle)) inferredLegacyRoute = 'retired';
+    else if (/perte|vol|duplicata/.test(routeTitle)) inferredLegacyRoute = 'lost_or_stolen';
+    else if (/salarié|travailleur temporaire/.test(routeTitle)) inferredLegacyRoute = 'employee_cdi';
+  }
   const routeGuidance = savedRouteGuidance.length
     ? savedRouteGuidance
     : (legacyResidenceGuidance[inferredLegacyRoute] || (currentJourney.code === 'residence_renewal'
