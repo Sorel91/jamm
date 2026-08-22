@@ -808,6 +808,26 @@ function renderChecklist() {
         : '';
       return '<div class="check-row ' + (linkedDocuments.length ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (linkedDocuments.length ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedNames + '</span>' + (linkedDocuments.length ? '<span class="ready-actions">' + documentActions + '<button class="link-button add-requirement" ' + pickerData + ' type="button">Ajouter</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Gérer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">Ajouter une pièce</button></span>') + '</div>';
     }).join('');
+
+    // Anciennes démarches : certains profils stockaient les pièces sous un format
+    // non normalisé. On lit donc la checklist rendue, qui est la source visible fiable.
+    if (currentJourney.code === 'residence_renewal') {
+      const renderedChecklist = String(checklist.textContent || '').toLowerCase();
+      let renderedRoute = null;
+      if (/carte de résident arrivant à expiration/.test(renderedChecklist)) renderedRoute = 'resident_10';
+      else if (/inscription ou préinscription|relevés de notes/.test(renderedChecklist)) renderedRoute = 'student';
+      else if (/engagement de ne pas travailler|couverture maladie/.test(renderedChecklist)) renderedRoute = 'visitor';
+      else if (/justificatifs du lien familial et de la vie commune/.test(renderedChecklist)) renderedRoute = 'spouse_french';
+      else if (/contribution.*entretien.*éducation/.test(renderedChecklist)) renderedRoute = 'parent_french_child';
+      else if (/travailleur saisonnier|six mois/.test(renderedChecklist)) renderedRoute = 'seasonal';
+      else if (/perte ou vol|déclaration de perte/.test(renderedChecklist)) renderedRoute = 'lost_or_stolen';
+      else if (/salarié|travailleur temporaire/.test(renderedChecklist)) renderedRoute = 'employee_cdi';
+      const renderedGuidance = legacyResidenceGuidance[renderedRoute];
+      const guidanceList = checklist.querySelector('.checklist-guidance ul');
+      if (renderedGuidance?.length && guidanceList) {
+        guidanceList.innerHTML = renderedGuidance.map((item) => '<li>' + escapeHtml(item) + '</li>').join('');
+      }
+    }
     const edit = dossierContext?.querySelector('#edit-qualification');
     if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
     checklist.querySelectorAll('.change-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement, button.dataset.documentType)));
