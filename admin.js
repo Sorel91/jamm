@@ -100,7 +100,7 @@ function navigation(content) {
 
 function statsCards() {
   return '<div class="stats-grid">' +
-    '<article class="stat-card"><span>Coffres créés</span><strong>' + number(metrics.vault_count) + '</strong><small>indicateur agrégé</small></article>' +
+    '<article class="stat-card"><span>Utilisateurs avec un coffre</span><strong>' + number(metrics.vault_count) + '</strong><small>indicateur agrégé</small></article>' +
     '<article class="stat-card"><span>Documents actifs</span><strong>' + number(metrics.document_count) + '</strong><small>hors corbeille</small></article>' +
     '<article class="stat-card"><span>Dossiers actifs</span><strong>' + number(metrics.active_journey_count) + '</strong><small>en préparation</small></article>' +
     '<article class="stat-card attention"><span>Sources à contrôler</span><strong>' + number(metrics.due_review_count) + '</strong><small>action recommandée</small></article>' +
