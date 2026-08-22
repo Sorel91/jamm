@@ -43,12 +43,13 @@
       return;
     }
     const links = profile.situation_answers?.requirement_links || {};
-    const documentFor = (requirement) => linkedDocumentForRequirement(requirement, links);
+    const documentsFor = (requirement) => linkedDocumentsForRequirement(requirement, links);
     const rows = requirements.map((requirement) => {
-      const doc = documentFor(requirement);
-      return '<li class="' + (doc ? 'ready' : 'missing') + '"><span>' + (doc ? '✓' : '!') + '</span><div><strong>' + esc(requirement.label) + '</strong><small>' + (doc ? esc(doc.display_name) : 'À ajouter ou à rattacher') + '</small></div></li>';
+      const docs = documentsFor(requirement);
+      const names = docs.length ? docs.map((doc) => esc(doc.display_name)).join(' · ') : 'À ajouter ou à rattacher';
+      return '<li class="' + (docs.length ? 'ready' : 'missing') + '"><span>' + (docs.length ? '✓' : '!') + '</span><div><strong>' + esc(requirement.label) + '</strong><small>' + names + '</small></div></li>';
     }).join('');
-    const readyCount = requirements.filter(documentFor).length;
+    const readyCount = requirements.filter((requirement) => documentsFor(requirement).length > 0).length;
     const node = modal(
       '<button class="close" aria-label="Fermer">×</button>' +
       '<p class="eyebrow">VÉRIFIER MON DOSSIER</p>' +
