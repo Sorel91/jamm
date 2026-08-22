@@ -235,13 +235,45 @@ function showPasswordReset() {
   });
 }
 
+let vaultInitializationPromise = null;
+
 async function ensureVault() {
-  const { data, error } = await supabaseClient.from('vaults').select('*').eq('owner_id', currentUser.id).limit(1);
-  if (error) throw error;
-  if (data[0]) return data[0];
-  const { data: created, error: createError } = await supabaseClient.from('vaults').insert({ owner_id: currentUser.id, name: 'Mon coffre Jamlio' }).select().single();
-  if (createError) throw createError;
-  return created;
+  if (vaultInitializationPromise) return vaultInitializationPromise;
+
+  vaultInitializationPromise = (async () => {
+    const { data, error } = await supabaseClient.from('vaults').select('*').eq('owner_id', currentUser.id).limit(1);
+    if (error) throw error;
+    if (data[0]) return data[0];
+
+    const { data: created, error: createError } = await supabaseClient
+      .from('vaults')
+      .insert({ owner_id: currentUser.id, name: 'Mon coffre Jamlio' })
+      .select()
+      .single();
+
+    // The database uniqueness constraint remains the final safeguard if two
+    // browser events try to initialise the same account at once.
+    if (createError) {
+      if (createError.code === '23505') {
+        const { data: existing, error: retryError } = await supabaseClient
+          .from('vaults')
+          .select('*')
+          .eq('owner_id', currentUser.id)
+          .limit(1)
+          .single();
+        if (retryError) throw retryError;
+        return existing;
+      }
+      throw createError;
+    }
+    return created;
+  })();
+
+  try {
+    return await vaultInitializationPromise;
+  } finally {
+    vaultInitializationPromise = null;
+  }
 }
 
 async function loadData() {
