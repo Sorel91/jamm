@@ -675,11 +675,26 @@ function renderJourneys() {
   board.querySelectorAll('[data-delete-journey]').forEach((button) => button.addEventListener('click', () => permanentlyDeleteJourney(button.dataset.deleteJourney)));
   board.querySelectorAll('[data-start-journey]').forEach((button) => button.addEventListener('click', () => chooseJourney(button.dataset.startJourney, true)));
 }
-function linkedDocumentForRequirement(requirement, links = {}) {
-  const linkedId = links[requirement.label];
-  if (linkedId) return documents.find((doc) => doc.id === linkedId && !doc.archived_at && !doc.deleted_at) || null;
+function linkedDocumentsForRequirement(requirement, links = {}) {
+  const hasExplicitLinks = Object.prototype.hasOwnProperty.call(links, requirement.label);
+  const rawLinkedIds = hasExplicitLinks ? links[requirement.label] : null;
+  const linkedIds = Array.isArray(rawLinkedIds) ? rawLinkedIds : (rawLinkedIds ? [rawLinkedIds] : []);
+  const explicitDocuments = linkedIds
+    .map((id) => documents.find((doc) => doc.id === id && !doc.archived_at && !doc.deleted_at))
+    .filter(Boolean);
+  if (hasExplicitLinks) return explicitDocuments;
   const compatible = documents.filter((doc) => !doc.archived_at && !doc.deleted_at && documentMatchesRequirement(doc, requirement, {}));
-  return compatible.length === 1 ? compatible[0] : null;
+  return compatible.length === 1 ? compatible : [];
+}
+
+function linkedDocumentForRequirement(requirement, links = {}) {
+  return linkedDocumentsForRequirement(requirement, links)[0] || null;
+}
+
+function updatedRequirementLinks(links, requirement, documentId, remove = false) {
+  const existing = Array.isArray(links[requirement]) ? links[requirement] : (links[requirement] ? [links[requirement]] : []);
+  const next = remove ? existing.filter((id) => id !== documentId) : Array.from(new Set([...existing, documentId]));
+  return { ...links, [requirement]: next };
 }
 
 function compatibleDocumentsForRequirement(requirement) {
@@ -718,8 +733,8 @@ function renderChecklist() {
   const requirements = isPersonal ? normalizedRequirements(personalRequirements) : officialRequirements;
   const links = profile.situation_answers?.requirement_links || {};
   if (requirements.length) {
-    const linked = (requirement) => linkedDocumentForRequirement(requirement, links);
-    const ready = requirements.filter(linked).length;
+    const linked = (requirement) => linkedDocumentsForRequirement(requirement, links);
+    const ready = requirements.filter((requirement) => linked(requirement).length > 0).length;
     $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
     const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
     const isNationalBase = !isPersonal && catalogEntry?.coverage_scope === 'national';
@@ -729,12 +744,16 @@ function renderChecklist() {
       : '<strong>' + (isNationalBase ? 'Checklist nationale' : 'Checklist officielle') + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     if (dossierContext) dossierContext.innerHTML = heading;
     checklist.innerHTML = requirements.map((requirement) => {
-      const doc = linked(requirement);
-      const compatible = compatibleDocumentsForRequirement(requirement);
+      const linkedDocuments = linked(requirement);
       const type = requirement.document_type || requirement.category || 'other';
       const pickerData = ' data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '"';
-      const attachedName = doc ? '<small>' + escapeHtml(doc.display_name) + '</small>' : '';
-      return '<div class="check-row ' + (doc ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (doc ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedName + '</span>' + (doc ? '<span class="ready-actions"><button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Changer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">Ajouter une pièce</button></span>') + '</div>';
+      const attachedNames = linkedDocuments.length
+        ? '<small>' + linkedDocuments.map((doc) => escapeHtml(doc.display_name)).join(' · ') + '</small>'
+        : '';
+      const documentActions = linkedDocuments.length
+        ? linkedDocuments.map((doc) => '<button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button>').join('')
+        : '';
+      return '<div class="check-row ' + (linkedDocuments.length ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (linkedDocuments.length ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedNames + '</span>' + (linkedDocuments.length ? '<span class="ready-actions">' + documentActions + '<button class="link-button add-requirement" ' + pickerData + ' type="button">Ajouter</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Gérer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">Ajouter une pièce</button></span>') + '</div>';
     }).join('');
     const edit = dossierContext?.querySelector('#edit-qualification');
     if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
@@ -766,17 +785,22 @@ function showRequirementAddOptions(requirement, documentType = 'other') {
   if (options) options.style.cssText = 'display:grid;gap:10px;margin-top:20px';
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelector('#choose-vault-document').addEventListener('click', () => { node.remove(); showRequirementPicker(requirement, documentType); });
-  node.querySelector('#upload-new-document').addEventListener('click', () => { node.remove(); showUpload(documentType || 'other'); });
+  node.querySelector('#upload-new-document').addEventListener('click', () => { node.remove(); showUpload(documentType || 'other', requirement); });
 }
 
 function showRequirementPicker(requirement, documentType = 'other') {
   const allAvailable = documents.filter((doc) => !doc.archived_at && !doc.deleted_at);
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE</p><h2 style="font:600 29px Georgia,serif;margin:8px 0 10px">Choisir dans mon coffre</h2><p style="color:#647069;line-height:1.45">Sélectionnez le document à utiliser pour « ' + escapeHtml(requirement) + ' ».</p><div id="requirement-documents">' + (allAvailable.length ? allAvailable.map((doc) => '<button class="journey-card" data-document-id="' + doc.id + '" type="button"><span class="journey-card-icon">◫</span><span><strong>' + escapeHtml(doc.display_name) + '</strong><em>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + '</em></span><b>→</b></button>').join('') : '<p>Votre coffre ne contient pas encore de document. Ajoutez-en un, puis revenez le rattacher.</p>') + '</div>');
+  const profile = journeyProfiles[currentJourney.id];
+  const currentLinks = profile?.situation_answers?.requirement_links || {};
+  const selectedIds = new Set(Array.isArray(currentLinks[requirement]) ? currentLinks[requirement] : (currentLinks[requirement] ? [currentLinks[requirement]] : []));
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">VOTRE COFFRE</p><h2 style="font:600 29px Georgia,serif;margin:8px 0 10px">Gérer les documents rattachés</h2><p style="color:#647069;line-height:1.45">Vous pouvez rattacher plusieurs documents à « ' + escapeHtml(requirement) + ' ». Cliquez sur une pièce pour l’ajouter ; cliquez à nouveau sur une pièce déjà rattachée pour la retirer.</p><div id="requirement-documents">' + (allAvailable.length ? allAvailable.map((doc) => '<button class="journey-card' + (selectedIds.has(doc.id) ? ' is-selected' : '') + '" data-document-id="' + doc.id + '" aria-pressed="' + selectedIds.has(doc.id) + '" type="button"><span class="journey-card-icon">' + (selectedIds.has(doc.id) ? '✓' : '◫') + '</span><span><strong>' + escapeHtml(doc.display_name) + '</strong><em>' + escapeHtml(documentLabels[doc.document_type] || 'Document') + (selectedIds.has(doc.id) ? ' · Rattaché' : '') + '</em></span><b>' + (selectedIds.has(doc.id) ? '✓' : '→') + '</b></button>').join('') : '<p>Votre coffre ne contient pas encore de document. Ajoutez-en un, puis revenez le rattacher.</p>') + '</div>');
   styleModal(node);
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelectorAll('[data-document-id]').forEach((button) => button.addEventListener('click', async () => {
-    const profile = journeyProfiles[currentJourney.id];
-    const answers = { ...(profile.situation_answers || {}), requirement_links: { ...(profile.situation_answers?.requirement_links || {}), [requirement]: button.dataset.documentId } };
+    const profileToUpdate = journeyProfiles[currentJourney.id];
+    const previousLinks = profileToUpdate?.situation_answers?.requirement_links || {};
+    const wasSelected = Array.isArray(previousLinks[requirement]) ? previousLinks[requirement].includes(button.dataset.documentId) : previousLinks[requirement] === button.dataset.documentId;
+    const answers = { ...(profileToUpdate.situation_answers || {}), requirement_links: updatedRequirementLinks(previousLinks, requirement, button.dataset.documentId, wasSelected) };
     const { error } = await supabaseClient.from('journey_profiles').update({ situation_answers: answers, updated_at: new Date().toISOString() }).eq('journey_id', currentJourney.id).eq('owner_id', currentUser.id);
     if (error) { showError(node, error.message); return; }
     node.remove(); await loadData(); showView('journeys');
@@ -1109,9 +1133,9 @@ async function permanentlyDeleteJourney(id) {
   showView('trash');
 }
 
-function showUpload(preselectedType) {
+function showUpload(preselectedType, requirementToLink = null) {
   const options = Object.entries(documentLabels).map(([value, label]) => '<option value="' + value + '"' + (value === preselectedType ? ' selected' : '') + '>' + label + '</option>').join('');
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Ajouter un document</h2><p style="color:#647069;line-height:1.45">Le fichier est conservé dans votre coffre privé. Vérifiez qu’il s’agit bien de votre document.</p><form id="upload-form"><label>Fichier<input id="upload-file" type="file" required accept=".pdf,image/jpeg,image/png"></label><label>Type de document<select id="upload-type">' + options + '</select></label><label>Titulaire du document (facultatif)<input id="upload-holder" placeholder="Ex. Mariam Diallo"></label><label>Pays émetteur (facultatif)<input id="upload-country" placeholder="Ex. France"></label><label>Date d’expiration (facultatif)<input id="upload-expiry" type="date"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Ajouter au coffre <span>→</span></button></form>');
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Ajouter un document</h2><p style="color:#647069;line-height:1.45">Le fichier est conservé dans votre coffre privé. ' + (requirementToLink ? 'Il sera aussi rattaché à « ' + escapeHtml(requirementToLink) + ' ».' : 'Vérifiez qu’il s’agit bien de votre document.') + '</p><form id="upload-form"><label>Fichier<input id="upload-file" type="file" required accept=".pdf,image/jpeg,image/png"></label><label>Type de document<select id="upload-type">' + options + '</select></label><label>Titulaire du document (facultatif)<input id="upload-holder" placeholder="Ex. Mariam Diallo"></label><label>Pays émetteur (facultatif)<input id="upload-country" placeholder="Ex. France"></label><label>Date d’expiration (facultatif)<input id="upload-expiry" type="date"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Ajouter au coffre <span>→</span></button></form>');
   styleModal(node);
   node.querySelector('.close').addEventListener('click', () => node.remove());
   node.querySelector('#upload-form').addEventListener('submit', async (event) => {
@@ -1137,8 +1161,20 @@ function showUpload(preselectedType) {
       submit.disabled = false;
       return;
     }
+    if (requirementToLink && currentJourney) {
+      const profile = journeyProfiles[currentJourney.id];
+      const previousLinks = profile?.situation_answers?.requirement_links || {};
+      const answers = { ...(profile?.situation_answers || {}), requirement_links: updatedRequirementLinks(previousLinks, requirementToLink, id) };
+      const { error: linkError } = await supabaseClient.from('journey_profiles').update({ situation_answers: answers, updated_at: new Date().toISOString() }).eq('journey_id', currentJourney.id).eq('owner_id', currentUser.id);
+      if (linkError) {
+        showError(node, 'Le document a bien été ajouté au coffre, mais n’a pas pu être rattaché à la checklist : ' + linkError.message);
+        submit.disabled = false;
+        return;
+      }
+    }
     node.remove();
     await loadData();
+    if (requirementToLink) showView('journeys');
   });
 }
 
@@ -1173,15 +1209,18 @@ async function downloadChecklist() {
     return;
   }
   const links = profile.situation_answers?.requirement_links || {};
-  const documentFor = (requirement) => linkedDocumentForRequirement(requirement, links);
-  const relevantDocuments = requirementItems.map(documentFor).filter(Boolean);
-  const lines = ['JAMM — ' + journeyTitle(currentJourney), '', isPersonal ? 'Liste de préparation personnelle' : 'Checklist officielle de préparation', '------------------------------'];
-  requirementItems.forEach((requirement) => lines.push((documentFor(requirement) ? '[x] ' : '[ ] ') + requirement.label));
+  const documentsFor = (requirement) => linkedDocumentsForRequirement(requirement, links);
+  const relevantDocuments = Array.from(new Map(requirementItems.flatMap(documentsFor).map((doc) => [doc.id, doc])).values());
+  const lines = ['JAMLIO — ' + journeyTitle(currentJourney), '', isPersonal ? 'Liste de préparation personnelle' : 'Checklist officielle de préparation', '------------------------------'];
+  requirementItems.forEach((requirement) => {
+    const attached = documentsFor(requirement);
+    lines.push((attached.length ? '[x] ' : '[ ] ') + requirement.label + (attached.length > 1 ? ' (' + attached.length + ' documents rattachés)' : ''));
+  });
   lines.push('', isPersonal ? 'Cette liste a été indiquée par vous. Jamlio rassemble les documents rattachés, sans en vérifier l’exhaustivité.' : 'Checklist issue de la source officielle indiquée dans Jamlio. Vérifiez toujours les éventuelles pièces conditionnelles avant le dépôt.');
 
   try {
     const zip = new JSZip();
-    zip.file('checklist-jamm.txt', lines.join('\n'));
+    zip.file('checklist-jamlio.txt', lines.join('\n'));
     const errors = [];
     for (const doc of relevantDocuments) {
       const { data, error } = await supabaseClient.storage.from('jamm-documents').download(doc.storage_path);
@@ -1192,7 +1231,7 @@ async function downloadChecklist() {
     const archive = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(archive);
-    link.download = 'jamm-dossier-' + currentJourney.code + '.zip';
+    link.download = 'jamlio-dossier-' + currentJourney.code + '.zip';
     link.click();
     URL.revokeObjectURL(link.href);
     $('#success').hidden = false;
