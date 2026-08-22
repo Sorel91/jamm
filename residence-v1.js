@@ -199,6 +199,59 @@
     }
   ];
 
+
+  // Ces notes sont affichées dans le dossier : elles font partie de la checklist,
+  // mais ne sont pas des pièces à ajouter. Elles évitent d'élargir à tort une demande.
+  const routeGuidance = {
+    student: [
+      'Les justificatifs de ressources sont alternatifs : bourse, fiches de paie, prise en charge par un tiers ou attestation bancaire. Joignez uniquement la ou les preuves qui correspondent réellement à votre cas.',
+      'Les relevés de notes, le dernier diplôme obtenu en France et l’attestation de réussite sont demandés lorsqu’ils existent et sont pertinents pour votre parcours.',
+      'Vérifiez auprès de votre préfecture le canal de dépôt et la date à partir de laquelle le renouvellement peut être demandé.'
+    ],
+    employee_cdi: [
+      'Le contrat, l’autorisation de travail et les justificatifs de l’employeur dépendent notamment d’un changement d’employeur, d’une période sans emploi ou de votre type de contrat.',
+      'Les pièces fiscales, OFII et les documents complémentaires de l’employeur ne doivent être ajoutés que lorsque la préfecture les demande pour votre situation.'
+    ],
+    employee_cdd: [
+      'Le contrat, l’autorisation de travail et les justificatifs de l’employeur dépendent notamment d’un changement d’employeur, d’une période sans emploi ou de votre type de contrat.',
+      'Les pièces fiscales, OFII et les documents complémentaires de l’employeur ne doivent être ajoutés que lorsque la préfecture les demande pour votre situation.'
+    ],
+    spouse_french: [
+      'En cas de séparation, décès ou violences, ne vous appuyez pas uniquement sur les preuves habituelles de communauté de vie : utilisez les justificatifs correspondant précisément à votre situation.',
+      'Les documents étrangers peuvent nécessiter une traduction, une légalisation ou une apostille selon le pays émetteur.'
+    ],
+    parent_french_child: [
+      'Les preuves de contribution à l’entretien et à l’éducation de l’enfant dépendent de la garde, de la résidence de l’enfant et de la date de reconnaissance de la filiation.',
+      'En cas de reconnaissance tardive, de séparation ou de situation familiale particulière, la préfecture peut demander des pièces différentes.'
+    ],
+    visitor: [
+      'Les ressources, la couverture maladie et l’engagement de ne pas travailler sont centraux pour ce statut. Les pièces d’état civil modifiées et le certificat médical OFII ne sont requis que dans les cas prévus.',
+      'N’ajoutez pas de justificatif de travail : ce parcours suppose l’absence d’activité professionnelle en France.'
+    ],
+    resident_10: [
+      'La liste exacte dépend de la mention figurant sur votre carte de résident.',
+      'Pour un simple renouvellement, les ressources, l’assurance maladie, le niveau B1 ou l’examen civique ne doivent pas être ajoutés automatiquement : ils ne sont demandés que dans certains parcours particuliers.',
+      'Vérifiez les éventuelles pièces conditionnelles auprès de la préfecture compétente avant le dépôt.'
+    ],
+    long_term_eu: [
+      'Les justificatifs d’absence hors de France ou hors de l’Union européenne et la déclaration de non-polygamie ne s’ajoutent que s’ils correspondent à votre situation.',
+      'La mention exacte de la carte et l’historique de résidence peuvent entraîner des demandes complémentaires.'
+    ],
+    seasonal: [
+      'Ce parcours concerne une carte de séjour pluriannuelle « travailleur saisonnier ». L’autorisation de travail et le respect de la limite de six mois sur douze mois sont à vérifier selon votre activité.',
+      'La déclaration de résidence hors de France ne doit être ajoutée que lorsqu’elle correspond à votre situation.'
+    ],
+    retired: [
+      'Ce parcours concerne le renouvellement d’une carte « retraité ». La déclaration sur l’honneur porte sur des séjours en France d’une durée inférieure ou égale à un an.',
+      'Ne l’utilisez pas pour un autre titre de séjour : choisissez alors la situation correspondante ou créez une liste personnalisée.'
+    ],
+    lost_or_stolen: [
+      'Il s’agit d’un duplicata après perte ou vol, et non d’un renouvellement classique. Les modalités de dépôt et les délais relèvent de votre préfecture.',
+      'La copie de l’ancien titre n’est à fournir que si vous l’avez encore.'
+    ]
+  };
+  commonRoutes.forEach((route) => { route.guidance = routeGuidance[route.id] || []; });
+
   const esc = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 
   function routePicker(route) {
@@ -246,7 +299,8 @@
           custom_title: title,
           note,
           required_documents: requirements,
-          requirement_links: {}
+          requirement_links: {},
+          route_guidance: route ? (route.guidance || []) : ['La liste finale dépend de l’organisme compétent et de votre situation. Vérifiez votre source avant le dépôt.']
         },
         source_status: route ? 'verified' : 'to_verify',
         official_source_url: officialSource || null,
