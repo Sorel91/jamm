@@ -171,7 +171,7 @@ function showAuth(initialLogin = false, prefilledEmail = '') {
   const updateMode = () => {
     $('#auth-submit').textContent = loginMode ? 'Se connecter →' : 'Créer mon compte →';
     $('#switch-auth').textContent = loginMode ? 'Créer un compte' : 'J’ai déjà un compte';
-    $('#auth-note').textContent = loginMode ? 'Saisissez le mot de passe associé à votre compte.' : 'Utilisez au moins 12 caractères. Nous ne stockons jamais votre mot de passe.';
+    $('#auth-note').textContent = loginMode ? 'Saisissez le mot de passe associé à votre compte.' : 'Utilisez au moins 12 caractères. Pendant la bêta, l’équipe Jamlio peut accéder à vos données pour vous assister : voir la page Confidentialité.';
     $('#auth-password').autocomplete = loginMode ? 'current-password' : 'new-password';
     $('#auth-password').minLength = loginMode ? 1 : 12;
     $('#forgot-password').hidden = !loginMode;
