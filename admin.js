@@ -34,12 +34,29 @@ function login() {
   app.innerHTML = '<section class="login-panel"><p class="eyebrow">JAMLIO · ACCÈS RÉSERVÉ</p><h1>Console d’administration</h1><p>Gérez les sources et les checklists, sans jamais accéder aux documents privés des utilisateurs.</p><form id="login-form"><label>Adresse e-mail<input id="email" type="email" autocomplete="email" required></label><label>Mot de passe<input id="password" type="password" autocomplete="current-password" required></label><p class="form-error hidden" id="login-error"></p><button class="button primary wide" type="submit">Se connecter <span>→</span></button></form></section>';
   document.querySelector('#login-form').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const button = event.submitter;
+    const form = event.currentTarget;
+    const button = event.submitter || form.querySelector('button[type="submit"]');
+    const message = document.querySelector('#login-error');
     button.disabled = true;
-    const { error } = await client.auth.signInWithPassword({ email: document.querySelector('#email').value.trim(), password: document.querySelector('#password').value });
-    if (error) {
-      const message = document.querySelector('#login-error');
-      message.textContent = 'Adresse e-mail ou mot de passe incorrect.';
+    message.classList.add('hidden');
+
+    try {
+      const { error } = await client.auth.signInWithPassword({
+        email: document.querySelector('#email').value.trim(),
+        password: document.querySelector('#password').value
+      });
+      if (error) {
+        message.textContent = 'Adresse e-mail ou mot de passe incorrect.';
+        message.classList.remove('hidden');
+        button.disabled = false;
+        return;
+      }
+
+      // Supabase has now stored the session. Reloading runs the normal admin check
+      // and immediately opens the console for authorised accounts.
+      location.reload();
+    } catch (error) {
+      message.textContent = 'La connexion n’a pas pu être effectuée. Vérifiez votre réseau puis réessayez.';
       message.classList.remove('hidden');
       button.disabled = false;
     }
