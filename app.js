@@ -765,6 +765,18 @@ function renderChecklist() {
     else if (/perte|vol|duplicata/.test(routeTitle)) inferredLegacyRoute = 'lost_or_stolen';
     else if (/salarié|travailleur temporaire/.test(routeTitle)) inferredLegacyRoute = 'employee_cdi';
   }
+  // Les tout premiers dossiers n’avaient ni identifiant ni intitulé normalisé :
+  // les libellés de leurs pièces permettent néanmoins de retrouver le parcours.
+  if (!inferredLegacyRoute) {
+    const labels = requirements.map((requirement) => String(requirement.label || '').toLowerCase()).join(' | ');
+    if (/carte de résident arrivant à expiration/.test(labels)) inferredLegacyRoute = 'resident_10';
+    else if (/inscription ou préinscription|relevés de notes/.test(labels)) inferredLegacyRoute = 'student';
+    else if (/engagement de ne pas travailler|couverture maladie/.test(labels)) inferredLegacyRoute = 'visitor';
+    else if (/justificatifs du lien familial et de la vie commune/.test(labels)) inferredLegacyRoute = 'spouse_french';
+    else if (/contribution.*entretien.*éducation/.test(labels)) inferredLegacyRoute = 'parent_french_child';
+    else if (/travailleur saisonnier|six mois/.test(labels)) inferredLegacyRoute = 'seasonal';
+    else if (/perte ou vol|déclaration de perte/.test(labels)) inferredLegacyRoute = 'lost_or_stolen';
+  }
   const routeGuidance = savedRouteGuidance.length
     ? savedRouteGuidance
     : (legacyResidenceGuidance[inferredLegacyRoute] || (currentJourney.code === 'residence_renewal'
