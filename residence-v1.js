@@ -8,48 +8,157 @@
       id: 'student',
       label: 'Renouvellement — étudiant',
       description: 'Vous poursuivez vos études en France.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F2231',
+      sourceLabel: 'Service-Public — étudiant',
       requirements: [
         { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'e-photo avec code', document_type: 'other' },
         { label: 'Certificat de scolarité ou attestation d’inscription', document_type: 'other' },
+        { label: 'Résultats ou relevés de notes de l’année écoulée', document_type: 'other' },
         { label: 'Justificatifs de ressources', document_type: 'other' },
-        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' }
+        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
       ]
     },
     {
-      id: 'employee',
-      label: 'Renouvellement — salarié ou travailleur temporaire',
-      description: 'Vous travaillez en France avec un contrat salarié.',
+      id: 'employee_cdi',
+      label: 'Renouvellement — salarié (CDI)',
+      description: 'Vous travaillez en France avec un contrat à durée indéterminée.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F15898',
+      sourceLabel: 'Service-Public — salarié',
       requirements: [
         { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
         { label: 'Contrat de travail ou attestation employeur', document_type: 'other' },
         { label: 'Derniers bulletins de salaire', document_type: 'other' },
-        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' }
+        { label: 'Autorisation de travail, si demandée par votre situation', document_type: 'other' }
       ]
     },
     {
-      id: 'family',
-      label: 'Renouvellement — vie privée et familiale',
-      description: 'Votre droit au séjour est lié à votre famille ou à votre vie privée en France.',
+      id: 'temporary_worker',
+      label: 'Renouvellement — travailleur temporaire (CDD)',
+      description: 'Vous travaillez en France avec un contrat à durée déterminée.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F15898',
+      sourceLabel: 'Service-Public — salarié / travailleur temporaire',
       requirements: [
         { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
-        { label: 'Justificatif de votre situation familiale ou personnelle', document_type: 'other' },
         { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
-        { label: 'Éléments prouvant la continuité de votre vie en France', document_type: 'other' }
+        { label: 'Contrat de travail ou promesse d’embauche', document_type: 'other' },
+        { label: 'Derniers bulletins de salaire', document_type: 'other' },
+        { label: 'Autorisation de travail correspondant à votre emploi', document_type: 'other' }
+      ]
+    },
+    {
+      id: 'spouse_french',
+      label: 'Renouvellement — époux ou épouse de Français',
+      description: 'Votre droit au séjour est lié à votre mariage avec une personne française.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F2209',
+      sourceLabel: 'Service-Public — vie privée et familiale',
+      requirements: [
+        { label: 'Passeport en cours de validité', document_type: 'passport' },
+        { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'e-photo avec code', document_type: 'other' },
+        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'Acte de mariage ou transcription de l’acte de mariage', document_type: 'other' },
+        { label: 'Justificatif de nationalité française du conjoint', document_type: 'other' },
+        { label: 'Justificatifs de communauté de vie', document_type: 'other' },
+        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
+      ]
+    },
+    {
+      id: 'parent_french_child',
+      label: 'Renouvellement — parent d’enfant français',
+      description: 'Votre droit au séjour est lié à votre enfant français résidant en France.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F2209',
+      sourceLabel: 'Service-Public — vie privée et familiale',
+      requirements: [
+        { label: 'Passeport en cours de validité', document_type: 'passport' },
+        { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'e-photo avec code', document_type: 'other' },
+        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'Acte de naissance de l’enfant français avec filiation', document_type: 'other' },
+        { label: 'Justificatif de nationalité française de l’enfant', document_type: 'other' },
+        { label: 'Preuves de contribution à l’entretien et à l’éducation de l’enfant', document_type: 'other' },
+        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
       ]
     },
     {
       id: 'visitor',
       label: 'Renouvellement — visiteur',
       description: 'Vous séjournez en France sans exercer d’activité professionnelle.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F302',
+      sourceLabel: 'Service-Public — visiteur',
       requirements: [
         { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
         { label: 'Justificatifs de ressources suffisantes', document_type: 'other' },
         { label: 'Attestation d’assurance maladie', document_type: 'other' },
-        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' }
+        { label: 'Déclaration de ne pas exercer d’activité professionnelle en France', document_type: 'other' },
+        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
+      ]
+    },
+    {
+      id: 'resident_10_years',
+      label: 'Renouvellement — carte de résident de 10 ans',
+      description: 'Vous renouvelez une carte de résident déjà détenue.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F2208',
+      sourceLabel: 'Service-Public — carte de résident',
+      requirements: [
+        { label: 'Carte de résident arrivant à expiration', document_type: 'residence_permit' },
+        { label: 'Passeport ou document de nationalité', document_type: 'passport' },
+        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'e-photo avec code', document_type: 'other' },
+        { label: 'Déclaration relative à vos absences, si demandée', document_type: 'other' },
+        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
+      ]
+    },
+    {
+      id: 'long_term_eu',
+      label: 'Renouvellement — résident de longue durée-UE',
+      description: 'Vous renouvelez une carte de résident longue durée-UE déjà détenue.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F17359',
+      sourceLabel: 'Service-Public — résident longue durée-UE',
+      requirements: [
+        { label: 'Carte de résident longue durée-UE arrivant à expiration', document_type: 'residence_permit' },
+        { label: 'Passeport en cours de validité', document_type: 'passport' },
+        { label: 'Acte de naissance avec mentions récentes', document_type: 'other' },
+        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'e-photo avec code', document_type: 'other' },
+        { label: 'Déclaration relative aux absences de France ou de l’Union européenne', document_type: 'other' },
+        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
+      ]
+    },
+    {
+      id: 'seasonal',
+      label: 'Renouvellement — travailleur saisonnier',
+      description: 'Vous exercez une activité saisonnière en France.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F21516',
+      sourceLabel: 'Service-Public — travailleur saisonnier',
+      requirements: [
+        { label: 'Passeport en cours de validité', document_type: 'passport' },
+        { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'e-photo avec code', document_type: 'other' },
+        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'Autorisation de travail dématérialisée', document_type: 'other' },
+        { label: 'Preuves du respect de la durée maximale de séjour saisonnier', document_type: 'other' },
+        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
+      ]
+    },
+    {
+      id: 'retiree',
+      label: 'Renouvellement — retraité ou conjoint de retraité',
+      description: 'Vous renouvelez une carte « retraité » ou « conjoint de retraité ».',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F2710',
+      sourceLabel: 'Service-Public — retraité',
+      requirements: [
+        { label: 'Carte « retraité » ou « conjoint de retraité » arrivant à expiration', document_type: 'residence_permit' },
+        { label: 'Carte d’identité et document de voyage', document_type: 'passport' },
+        { label: 'Trois photos d’identité', document_type: 'other' },
+        { label: 'Attestation sur l’honneur sur la durée de vos séjours en France', document_type: 'other' },
+        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
       ]
     }
   ];
@@ -87,7 +196,7 @@
         .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
         .select().single();
       if (journeyError) throw journeyError;
-      const officialSource = route ? RESIDENCE_SOURCE : customSource;
+      const officialSource = route ? route.sourceUrl : customSource;
       const { error: profileError } = await supabaseClient.from('journey_profiles').upsert({
         journey_id: journey.id,
         owner_id: currentUser.id,
@@ -192,7 +301,10 @@
       if (!note || note.querySelector('.jamm-v1-source')) return;
       const source = document.createElement('span');
       source.className = 'jamm-v1-source';
-      source.innerHTML = '<a href="' + RESIDENCE_SOURCE + '" target="_blank" rel="noopener">Consulter la source officielle ↗</a><small style="display:block;margin-top:5px">Cette checklist est un repère commun : confirmez les pièces et le canal de dépôt avec votre préfecture.</small>';
+      const sourceUrl = profile.official_source_url || RESIDENCE_SOURCE;
+      const route = commonRoutes.find((item) => item.id === profile.situation_answers.common_route);
+      const sourceLabel = route?.sourceLabel || 'Source officielle';
+      source.innerHTML = '<a href="' + esc(sourceUrl) + '" target="_blank" rel="noopener">Consulter la source officielle — ' + esc(sourceLabel) + ' ↗</a><small style="display:block;margin-top:5px">Checklist nationale de préparation : vérifiez aussi les modalités de dépôt indiquées pour votre préfecture.</small>';
       note.appendChild(source);
     };
   });
