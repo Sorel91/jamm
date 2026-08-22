@@ -747,7 +747,7 @@ function renderChecklist() {
       : '<strong>' + (isNationalBase ? 'Checklist nationale' : 'Checklist officielle') + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     if (dossierContext) dossierContext.innerHTML = heading;
     const guidanceBlock = routeGuidance.length
-      ? '<aside class="checklist-guidance" role="note"><strong>À vérifier selon votre situation</strong><ul>' + routeGuidance.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></aside>'
+      ? '<aside class="checklist-guidance" role="note" style="margin:0 0 16px;padding:16px 18px;border:1px solid #e2c67c;border-radius:18px;background:#fff7df;color:#58431e"><strong style="display:block;margin-bottom:8px;color:#765013">À vérifier selon votre situation</strong><ul style="margin:0;padding-left:20px;display:grid;gap:7px">' + routeGuidance.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></aside>'
       : '';
     checklist.innerHTML = guidanceBlock + requirements.map((requirement) => {
       const linkedDocuments = linked(requirement);
