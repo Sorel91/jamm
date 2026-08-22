@@ -11,14 +11,18 @@
       sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F2231',
       sourceLabel: 'Service-Public — étudiant',
       requirements: [
+        { label: 'Titre de séjour en cours de validité', document_type: 'residence_permit' },
         { label: 'Passeport en cours de validité', document_type: 'passport' },
-        { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
         { label: 'e-photo avec code', document_type: 'other' },
-        { label: 'Certificat de scolarité ou attestation de préinscription', document_type: 'other' },
+        { label: 'Inscription ou préinscription dans un établissement', document_type: 'other' },
         { label: 'Relevés de notes de l’année écoulée', document_type: 'other' },
         { label: 'Dernier diplôme obtenu en France', document_type: 'other' },
         { label: 'Attestation de réussite, lorsqu’elle existe', document_type: 'other' },
-        { label: 'Justificatif de ressources : attestation de bourse, 3 derniers bulletins de salaire, prise en charge avec justificatifs, ou attestation bancaire selon votre situation', document_type: 'other' },
+        { label: 'Justificatifs de ressources', document_type: 'other' },
+        { label: 'Si bourse : attestation de bourse', document_type: 'other' },
+        { label: 'Si salarié : trois derniers bulletins de salaire', document_type: 'other' },
+        { label: 'Si prise en charge par un tiers : identité du tiers et preuves de virements', document_type: 'other' },
+        { label: 'Si épargne : attestation bancaire de solde suffisant', document_type: 'other' },
         { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
       ]
     },
@@ -29,12 +33,16 @@
       sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F15898',
       sourceLabel: 'Service-Public — salarié',
       requirements: [
-        { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
-        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'Passeport ou justificatif de nationalité', document_type: 'passport' },
+        { label: 'Justificatif de domicile de moins de 6 mois', document_type: 'proof_of_address' },
+        { label: 'e-photo ou photos d’identité, selon le canal de dépôt', document_type: 'other' },
         { label: 'Contrat de travail ou attestation employeur', document_type: 'other' },
-        { label: 'Derniers bulletins de salaire', document_type: 'other' },
-        { label: 'Autorisation de travail, si demandée par votre situation', document_type: 'other' }
+        { label: 'Autorisation de travail, si demandée par votre situation', document_type: 'other' },
+        { label: 'Justificatifs de l’activité du salarié et de l’employeur', document_type: 'other' },
+        { label: 'Si perte involontaire d’emploi : attestation employeur France Travail et situation individuelle France Travail', document_type: 'other' },
+        { label: 'Si changement d’employeur : nouveau contrat et autorisation de travail correspondante', document_type: 'other' },
+        { label: 'Documents fiscaux ou justificatif OFII, si demandés par votre préfecture', document_type: 'other' }
       ]
     },
     {
@@ -44,12 +52,15 @@
       sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F15898',
       sourceLabel: 'Service-Public — salarié / travailleur temporaire',
       requirements: [
-        { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
-        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
-        { label: 'Contrat de travail ou promesse d’embauche', document_type: 'other' },
-        { label: 'Derniers bulletins de salaire', document_type: 'other' },
-        { label: 'Autorisation de travail correspondant à votre emploi', document_type: 'other' }
+        { label: 'Passeport ou justificatif de nationalité', document_type: 'passport' },
+        { label: 'Justificatif de domicile de moins de 6 mois', document_type: 'proof_of_address' },
+        { label: 'e-photo ou photos d’identité, selon le canal de dépôt', document_type: 'other' },
+        { label: 'Contrat à durée déterminée, avenant ou promesse d’embauche', document_type: 'other' },
+        { label: 'Autorisation de travail correspondant à votre emploi', document_type: 'other' },
+        { label: 'Justificatifs de l’activité du salarié et de l’employeur', document_type: 'other' },
+        { label: 'Si perte involontaire d’emploi : attestation employeur France Travail et situation individuelle France Travail', document_type: 'other' },
+        { label: 'Documents fiscaux ou justificatif OFII, si demandés par votre préfecture', document_type: 'other' }
       ]
     },
     {
@@ -59,13 +70,15 @@
       sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F2209',
       sourceLabel: 'Service-Public — vie privée et familiale',
       requirements: [
-        { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'Passeport ou justificatif de nationalité', document_type: 'passport' },
         { label: 'e-photo avec code', document_type: 'other' },
-        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
-        { label: 'Acte de mariage ou transcription de l’acte de mariage', document_type: 'other' },
+        { label: 'Justificatif de domicile de moins de 6 mois', document_type: 'proof_of_address' },
+        { label: 'Acte de mariage ou transcription de l’acte de mariage', document_type: 'marriage_certificate' },
         { label: 'Justificatif de nationalité française du conjoint', document_type: 'other' },
         { label: 'Justificatifs de communauté de vie', document_type: 'other' },
+        { label: 'En cas de décès ou de violences : justificatifs adaptés à votre situation', document_type: 'other' },
+        { label: 'Traductions et apostilles, si vos actes étrangers le nécessitent', document_type: 'other' },
         { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
       ]
     },
@@ -76,13 +89,15 @@
       sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F2209',
       sourceLabel: 'Service-Public — vie privée et familiale',
       requirements: [
-        { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'Passeport ou justificatif de nationalité', document_type: 'passport' },
         { label: 'e-photo avec code', document_type: 'other' },
-        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
-        { label: 'Acte de naissance de l’enfant français avec filiation', document_type: 'other' },
+        { label: 'Justificatif de domicile de moins de 6 mois', document_type: 'proof_of_address' },
+        { label: 'Acte de naissance de l’enfant français avec filiation', document_type: 'birth_certificate' },
+        { label: 'Justificatif de résidence de l’enfant en France', document_type: 'other' },
         { label: 'Justificatif de nationalité française de l’enfant', document_type: 'other' },
         { label: 'Preuves de contribution à l’entretien et à l’éducation de l’enfant', document_type: 'other' },
+        { label: 'Si reconnaissance tardive : justificatifs complémentaires de filiation', document_type: 'other' },
         { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
       ]
     },
@@ -93,13 +108,15 @@
       sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F302',
       sourceLabel: 'Service-Public — visiteur',
       requirements: [
-        { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'Passeport en cours de validité', document_type: 'passport' },
+        { label: 'État civil, si votre situation a changé ou si demandé', document_type: 'other' },
         { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'Déclaration de non-polygamie, si elle s’applique', document_type: 'other' },
         { label: 'Justificatifs de ressources suffisantes', document_type: 'other' },
-        { label: 'Attestation d’assurance maladie', document_type: 'other' },
         { label: 'Déclaration de ne pas exercer d’activité professionnelle en France', document_type: 'other' },
-        { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
+        { label: 'Attestation d’assurance maladie', document_type: 'other' },
+        { label: 'Certificat médical OFII, si vous ne l’avez pas déjà produit', document_type: 'other' }
       ]
     },
     {
@@ -126,8 +143,9 @@
       requirements: [
         { label: 'Carte de résident longue durée-UE arrivant à expiration', document_type: 'residence_permit' },
         { label: 'Passeport en cours de validité', document_type: 'passport' },
-        { label: 'Acte de naissance avec mentions récentes', document_type: 'other' },
+        { label: 'Acte de naissance avec mentions récentes', document_type: 'birth_certificate' },
         { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'Déclaration de non-polygamie, si elle s’applique', document_type: 'other' },
         { label: 'e-photo avec code', document_type: 'other' },
         { label: 'Déclaration relative aux absences de France ou de l’Union européenne', document_type: 'other' },
         { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
@@ -140,12 +158,14 @@
       sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/F21516',
       sourceLabel: 'Service-Public — travailleur saisonnier',
       requirements: [
-        { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
+        { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'e-photo avec code', document_type: 'other' },
         { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'Déclaration de non-polygamie, si elle s’applique', document_type: 'other' },
         { label: 'Autorisation de travail dématérialisée', document_type: 'other' },
-        { label: 'Preuves du respect de la durée maximale de séjour saisonnier', document_type: 'other' },
+        { label: 'Déclaration de résidence habituelle hors de France', document_type: 'other' },
+        { label: 'Preuves du respect de la durée maximale de séjour saisonnier (6 mois par an)', document_type: 'other' },
         { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
       ]
     },
@@ -161,6 +181,20 @@
         { label: 'Trois photos d’identité', document_type: 'other' },
         { label: 'Attestation sur l’honneur sur la durée de vos séjours en France', document_type: 'other' },
         { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
+      ]
+    },
+    {
+      id: 'lost_or_stolen',
+      label: 'Demander un duplicata — titre perdu ou volé',
+      description: 'Vous demandez un duplicata après la perte ou le vol de votre titre.',
+      sourceUrl: 'https://www.service-public.fr/particuliers/vosdroits/N110',
+      sourceLabel: 'Service-Public — titre de séjour',
+      requirements: [
+        { label: 'Déclaration de perte ou de vol', document_type: 'other' },
+        { label: 'Copie de l’ancien titre, si disponible', document_type: 'residence_permit' },
+        { label: 'Passeport en cours de validité', document_type: 'passport' },
+        { label: 'Justificatif de domicile récent', document_type: 'proof_of_address' },
+        { label: 'e-photo avec code', document_type: 'other' }
       ]
     }
   ];
