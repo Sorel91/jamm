@@ -702,6 +702,21 @@ function compatibleDocumentsForRequirement(requirement) {
 }
 
 function renderChecklist() {
+  // Compatibilité : les dossiers créés avant l’ajout des notes ne les avaient pas encore enregistrées.
+  // On les retrouve ici grâce à l’identifiant du parcours afin que chaque dossier reste compréhensible.
+  const legacyResidenceGuidance = {
+    student: ['Les justificatifs de ressources sont alternatifs : bourse, fiches de paie, prise en charge par un tiers ou attestation bancaire. Joignez uniquement les preuves correspondant à votre cas.', 'Les relevés de notes, le dernier diplôme obtenu en France et l’attestation de réussite sont à joindre lorsqu’ils existent et sont pertinents pour votre parcours.', 'Vérifiez auprès de votre préfecture le canal et la date de dépôt.'],
+    employee_cdi: ['Le contrat, l’autorisation de travail et les justificatifs de l’employeur varient notamment en cas de changement d’employeur ou de période sans emploi.', 'Les pièces fiscales, OFII et les documents complémentaires de l’employeur ne doivent être ajoutés que lorsqu’ils sont demandés pour votre situation.'],
+    employee_cdd: ['Le contrat, l’autorisation de travail et les justificatifs de l’employeur varient notamment en cas de changement d’employeur ou de période sans emploi.', 'Les pièces fiscales, OFII et les documents complémentaires de l’employeur ne doivent être ajoutés que lorsqu’ils sont demandés pour votre situation.'],
+    spouse_french: ['En cas de séparation, décès ou violences, utilisez les justificatifs correspondant précisément à votre situation plutôt que les seules preuves habituelles de communauté de vie.', 'Les documents étrangers peuvent nécessiter une traduction, une légalisation ou une apostille.'],
+    parent_french_child: ['Les preuves de contribution à l’entretien et à l’éducation dépendent de la garde, de la résidence de l’enfant et de la filiation.', 'En cas de reconnaissance tardive, de séparation ou de situation familiale particulière, des pièces différentes peuvent être demandées.'],
+    visitor: ['Les ressources, la couverture maladie et l’engagement de ne pas travailler sont centraux. Les pièces d’état civil modifiées et le certificat médical OFII ne sont requis que dans les cas prévus.', 'N’ajoutez pas de justificatif de travail : ce statut suppose l’absence d’activité professionnelle en France.'],
+    resident_10: ['La liste exacte dépend de la mention figurant sur votre carte de résident.', 'Pour un simple renouvellement, les ressources, l’assurance maladie, le niveau B1 ou l’examen civique ne doivent pas être ajoutés automatiquement : ils ne sont demandés que dans certains parcours particuliers.', 'Vérifiez les éventuelles pièces conditionnelles auprès de la préfecture compétente avant le dépôt.'],
+    long_term_eu: ['Les justificatifs d’absence hors de France ou hors de l’Union européenne et la déclaration de non-polygamie ne s’ajoutent que s’ils correspondent à votre situation.', 'La mention exacte de la carte et l’historique de résidence peuvent entraîner des demandes complémentaires.'],
+    seasonal: ['Ce parcours concerne une carte pluriannuelle « travailleur saisonnier ». L’autorisation de travail et le respect de la limite de six mois sur douze mois sont à vérifier selon votre activité.', 'La déclaration de résidence hors de France ne doit être ajoutée que si elle correspond à votre situation.'],
+    retired: ['Ce parcours concerne une carte « retraité ». La déclaration sur l’honneur porte sur des séjours en France d’une durée inférieure ou égale à un an.', 'Ne l’utilisez pas pour un autre titre de séjour.'],
+    lost_or_stolen: ['Il s’agit d’un duplicata après perte ou vol, et non d’un renouvellement classique. Les modalités de dépôt et les délais relèvent de votre préfecture.', 'La copie de l’ancien titre n’est à fournir que si vous l’avez encore.']
+  };
   const journey = currentJourney ? journeys[currentJourney.code] : null;
   const checklist = $('#checklist');
   const dossierContext = $('#dossier-context');
@@ -732,9 +747,12 @@ function renderChecklist() {
   const isPersonal = personalRequirements.length > 0;
   const requirements = isPersonal ? normalizedRequirements(personalRequirements) : officialRequirements;
   const links = profile.situation_answers?.requirement_links || {};
-  const routeGuidance = Array.isArray(profile.situation_answers?.route_guidance)
+  const savedRouteGuidance = Array.isArray(profile.situation_answers?.route_guidance)
     ? profile.situation_answers.route_guidance.filter(Boolean)
     : [];
+  const routeGuidance = savedRouteGuidance.length
+    ? savedRouteGuidance
+    : (legacyResidenceGuidance[profile.situation_answers?.common_route] || []);
   if (requirements.length) {
     const linked = (requirement) => linkedDocumentsForRequirement(requirement, links);
     const ready = requirements.filter((requirement) => linked(requirement).length > 0).length;
