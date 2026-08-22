@@ -750,9 +750,24 @@ function renderChecklist() {
   const savedRouteGuidance = Array.isArray(profile.situation_answers?.route_guidance)
     ? profile.situation_answers.route_guidance.filter(Boolean)
     : [];
+  const routeIdFromProfile = profile.situation_answers?.common_route;
+  const routeTitle = String(profile.permit_category || profile.situation_answers?.custom_title || '').toLowerCase();
+  const inferredLegacyRoute = routeIdFromProfile
+    || (/résident.{0,30}10 ans|10 ans.{0,30}résident/.test(routeTitle) ? 'resident_10'
+      : (/longue durée.{0,10}(ue|union européenne)/.test(routeTitle) ? 'long_term_eu'
+        : (/étudiant/.test(routeTitle) ? 'student'
+          : (/conjoint.{0,30}français|vie privée.*familiale.*conjoint/.test(routeTitle) ? 'spouse_french'
+            : (/parent.{0,40}enfant français/.test(routeTitle) ? 'parent_french_child'
+              : (/visiteur/.test(routeTitle) ? 'visitor'
+                : (/saisonnier/.test(routeTitle) ? 'seasonal'
+                  : (/retraité/.test(routeTitle) ? 'retired'
+                    : (/perte|vol|duplicata/.test(routeTitle) ? 'lost_or_stolen'
+                      : (/salarié|travailleur temporaire/.test(routeTitle) ? 'employee_cdi' : null)))))))));
   const routeGuidance = savedRouteGuidance.length
     ? savedRouteGuidance
-    : (legacyResidenceGuidance[profile.situation_answers?.common_route] || []);
+    : (legacyResidenceGuidance[inferredLegacyRoute] || (currentJourney.code === 'residence_renewal'
+      ? ['Cette liste prépare votre dossier. La liste exacte des pièces et les modalités de dépôt dépendent de votre préfecture et de votre situation personnelle. Consultez toujours la source officielle avant de déposer.']
+      : []));
   if (requirements.length) {
     const linked = (requirement) => linkedDocumentsForRequirement(requirement, links);
     const ready = requirements.filter((requirement) => linked(requirement).length > 0).length;
