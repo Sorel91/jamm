@@ -732,6 +732,9 @@ function renderChecklist() {
   const isPersonal = personalRequirements.length > 0;
   const requirements = isPersonal ? normalizedRequirements(personalRequirements) : officialRequirements;
   const links = profile.situation_answers?.requirement_links || {};
+  const routeGuidance = Array.isArray(profile.situation_answers?.route_guidance)
+    ? profile.situation_answers.route_guidance.filter(Boolean)
+    : [];
   if (requirements.length) {
     const linked = (requirement) => linkedDocumentsForRequirement(requirement, links);
     const ready = requirements.filter((requirement) => linked(requirement).length > 0).length;
@@ -743,7 +746,10 @@ function renderChecklist() {
       ? (isHomePurchase ? '<strong>Votre checklist — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>Liste à compléter avec votre banque, votre notaire et les documents du bien.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>' : '<strong>Votre liste personnelle</strong><span>Les pièces que vous avez indiquées.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>')
       : '<strong>' + (isNationalBase ? 'Checklist nationale' : 'Checklist officielle') + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
     if (dossierContext) dossierContext.innerHTML = heading;
-    checklist.innerHTML = requirements.map((requirement) => {
+    const guidanceBlock = routeGuidance.length
+      ? '<aside class="checklist-guidance" role="note"><strong>À vérifier selon votre situation</strong><ul>' + routeGuidance.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></aside>'
+      : '';
+    checklist.innerHTML = guidanceBlock + requirements.map((requirement) => {
       const linkedDocuments = linked(requirement);
       const type = requirement.document_type || requirement.category || 'other';
       const pickerData = ' data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '"';
