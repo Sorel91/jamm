@@ -14,9 +14,11 @@
         { label: 'Passeport en cours de validité', document_type: 'passport' },
         { label: 'Titre de séjour actuel', document_type: 'residence_permit' },
         { label: 'e-photo avec code', document_type: 'other' },
-        { label: 'Certificat de scolarité ou attestation d’inscription', document_type: 'other' },
-        { label: 'Résultats ou relevés de notes de l’année écoulée', document_type: 'other' },
-        { label: 'Justificatifs de ressources', document_type: 'other' },
+        { label: 'Certificat de scolarité ou attestation de préinscription', document_type: 'other' },
+        { label: 'Relevés de notes de l’année écoulée', document_type: 'other' },
+        { label: 'Dernier diplôme obtenu en France', document_type: 'other' },
+        { label: 'Attestation de réussite, lorsqu’elle existe', document_type: 'other' },
+        { label: 'Justificatif de ressources : attestation de bourse, 3 derniers bulletins de salaire, prise en charge avec justificatifs, ou attestation bancaire selon votre situation', document_type: 'other' },
         { label: 'Engagement à respecter les principes de la République signé', document_type: 'other' }
       ]
     },
