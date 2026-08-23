@@ -380,13 +380,111 @@
     }
   }
 
-  function showResidenceV1() {
+  function showResidenceOrientation() {
+    const node = modal(
+      '<button class="close" aria-label="Fermer">×</button>' +
+      '<p class="eyebrow">AIDE À L’ORIENTATION</p>' +
+      '<div id="residence-orientation"></div>'
+    );
+    styleModal(node);
+    node.querySelector('.close').addEventListener('click', () => node.remove());
+    const screen = node.querySelector('#residence-orientation');
+    const questions = {
+      incident: {
+        title: 'Votre titre a-t-il été perdu ou volé ?',
+        help: 'Une perte ou un vol correspond à une demande de duplicata, et non à un renouvellement.',
+        choices: [
+          { label: 'Oui, il est perdu ou volé', route: 'lost_or_stolen' },
+          { label: 'Non, je souhaite le renouveler', next: 'mention' }
+        ]
+      },
+      mention: {
+        title: 'Quelle mention correspond le mieux à votre titre actuel ?',
+        help: 'Choisissez ce qui est écrit sur votre titre, pas ce que vous aimeriez demander.',
+        choices: [
+          { label: 'Étudiant', route: 'student' },
+          { label: 'Salarié — je travaille en CDI', route: 'employee_cdi' },
+          { label: 'Travailleur temporaire — je travaille en CDD', route: 'temporary_worker' },
+          { label: 'Visiteur — je ne travaille pas en France', route: 'visitor' },
+          { label: 'Vie privée et familiale', next: 'family' },
+          { label: 'Carte de résident de 10 ans', route: 'resident_10_years' },
+          { label: 'Résident de longue durée-UE', route: 'long_term_eu' },
+          { label: 'Retraité ou conjoint de retraité', route: 'retiree' },
+          { label: 'Travailleur saisonnier', route: 'seasonal' },
+          { label: 'Je ne sais pas / une autre mention', next: 'uncertain' }
+        ]
+      },
+      family: {
+        title: 'Quel est le fondement de votre vie privée et familiale ?',
+        help: 'Ces deux situations ont des listes distinctes. Si ce n’est ni l’une ni l’autre, Jamlio ne doit pas vous orienter automatiquement.',
+        choices: [
+          { label: 'Je suis époux ou épouse d’une personne française', route: 'spouse_french' },
+          { label: 'Je suis parent d’un enfant français vivant en France', route: 'parent_french_child' },
+          { label: 'Une autre situation familiale', next: 'uncertain' }
+        ]
+      }
+    };
+    const disclaimer = '<aside role="note" style="margin-top:18px;padding:14px 16px;border:1px solid #e2c67c;border-radius:16px;background:#fff7df;color:#58431e;font-size:14px;line-height:1.45"><strong style="display:block;color:#765013;margin-bottom:4px">Une aide, pas une décision administrative</strong>Cette orientation repose uniquement sur les informations que vous choisissez ici. Confirmez toujours le parcours et les pièces auprès de la source officielle et de votre préfecture.</aside>';
+    const choose = () => {
+      node.remove();
+      showResidenceV1();
+    };
+    const renderResult = (routeId) => {
+      const route = commonRoutes.find((item) => item.id === routeId);
+      if (!route) return renderUncertain();
+      screen.innerHTML =
+        '<p class="eyebrow">PARCOURS SUGGÉRÉ</p>' +
+        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Le parcours qui semble correspondre</h2>' +
+        '<div style="margin:18px 0;padding:18px;border:1px solid #a4c5b3;border-radius:18px;background:#f1f8f3"><strong style="display:block;font-size:18px;color:#174f3e">' + esc(route.label) + '</strong><span style="display:block;margin-top:6px;color:#4f665b;line-height:1.45">' + esc(route.description) + '</span></div>' +
+        '<p style="color:#647069;line-height:1.5">La checklist sera préremplie avec les pièces nationales de préparation. Les pièces conditionnelles seront clairement séparées.</p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-continue" type="button">Continuer avec ce parcours <span>→</span></button><button class="outline" id="orientation-choose" type="button">Choisir moi-même</button></div>' +
+        disclaimer;
+      screen.querySelector('#orientation-continue').addEventListener('click', () => {
+        node.remove();
+        showResidenceV1(routeId);
+      });
+      screen.querySelector('#orientation-choose').addEventListener('click', choose);
+    };
+    const renderUncertain = () => {
+      screen.innerHTML =
+        '<p class="eyebrow">VÉRIFICATION NÉCESSAIRE</p>' +
+        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Nous ne pouvons pas vous orienter de façon fiable.</h2>' +
+        '<p style="color:#647069;line-height:1.5">Votre situation peut relever d’un autre parcours : changement de statut, entrepreneur, certificat de résidence algérien, autre situation familiale ou cas particulier. Mieux vaut choisir la mention exacte sur votre titre ou créer votre propre liste de pièces.</p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-choose" type="button">Voir tous les parcours <span>→</span></button></div>' +
+        disclaimer;
+      screen.querySelector('#orientation-choose').addEventListener('click', choose);
+    };
+    const renderQuestion = (key) => {
+      const question = questions[key];
+      screen.innerHTML =
+        '<p class="eyebrow">TROUVER MA SITUATION</p>' +
+        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">' + esc(question.title) + '</h2>' +
+        '<p style="color:#647069;line-height:1.5">' + esc(question.help) + '</p>' +
+        '<div style="display:grid;gap:9px;margin-top:20px">' + question.choices.map((choice) =>
+          '<button class="outline orientation-choice" type="button" style="text-align:left;justify-content:flex-start;padding:14px 16px">' + esc(choice.label) + ' <span style="margin-left:auto">→</span></button>'
+        ).join('') + '</div>' +
+        '<button class="link-button" id="orientation-skip" type="button" style="margin-top:18px">Je préfère choisir ma situation moi-même</button>' +
+        disclaimer;
+      screen.querySelectorAll('.orientation-choice').forEach((button, index) => button.addEventListener('click', () => {
+        const choice = question.choices[index];
+        if (choice.route) renderResult(choice.route);
+        else if (choice.next === 'uncertain') renderUncertain();
+        else renderQuestion(choice.next);
+      }));
+      screen.querySelector('#orientation-skip').addEventListener('click', choose);
+    };
+    renderQuestion('incident');
+  }
+
+  function showResidenceV1(preselectedRouteId = null) {
     const defaultDepartment = String(currentUser?.user_metadata?.default_department || '');
     const node = modal(
       '<button class="close" aria-label="Fermer">×</button>' +
       '<p class="eyebrow">RENOUVELER SON TITRE DE SÉJOUR</p>' +
       '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Choisissez un parcours courant.</h2>' +
       '<p style="color:#647069;line-height:1.45">Ces repères sont communs. Votre préfecture et votre situation personnelle restent la référence pour le dépôt.</p>' +
+      '<button id="residence-v1-orient" type="button" class="outline" style="width:100%;justify-content:center;margin:4px 0 8px">M’aider à identifier ma situation <span>→</span></button>' +
+      '<p style="margin:0 0 16px;color:#647069;font-size:13px;line-height:1.45">Quelques questions simples peuvent vous guider vers un parcours courant. Vous pourrez toujours choisir vous-même.</p>' +
       '<form id="residence-v1-form">' +
       '<label>Département où vous habitez <input id="residence-v1-department" inputmode="numeric" maxlength="3" value="' + esc(defaultDepartment) + '" placeholder="Ex. 91"></label>' +
       '<fieldset style="border:0;padding:0;margin:18px 0"><legend style="font-weight:700;font-size:14px">Votre situation</legend>' +
@@ -407,6 +505,14 @@
     close.addEventListener('click', () => node.remove());
     const custom = node.querySelector('#residence-v1-custom');
     const items = node.querySelector('#residence-v1-items');
+    node.querySelector('#residence-v1-orient').addEventListener('click', () => {
+      node.remove();
+      showResidenceOrientation();
+    });
+    if (preselectedRouteId) {
+      const preselected = node.querySelector('input[name="residence-route"][value="' + preselectedRouteId + '"]');
+      if (preselected) preselected.checked = true;
+    }
     const addItem = () => {
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;gap:8px;align-items:center';
