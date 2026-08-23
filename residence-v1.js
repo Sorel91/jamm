@@ -212,7 +212,7 @@
       'Le contrat, l’autorisation de travail et les justificatifs de l’employeur dépendent notamment d’un changement d’employeur, d’une période sans emploi ou de votre type de contrat.',
       'Les pièces fiscales, OFII et les documents complémentaires de l’employeur ne doivent être ajoutés que lorsque la préfecture les demande pour votre situation.'
     ],
-    employee_cdd: [
+    temporary_worker: [
       'Le contrat, l’autorisation de travail et les justificatifs de l’employeur dépendent notamment d’un changement d’employeur, d’une période sans emploi ou de votre type de contrat.',
       'Les pièces fiscales, OFII et les documents complémentaires de l’employeur ne doivent être ajoutés que lorsque la préfecture les demande pour votre situation.'
     ],
@@ -228,7 +228,7 @@
       'Les ressources, la couverture maladie et l’engagement de ne pas travailler sont centraux pour ce statut. Les pièces d’état civil modifiées et le certificat médical OFII ne sont requis que dans les cas prévus.',
       'N’ajoutez pas de justificatif de travail : ce parcours suppose l’absence d’activité professionnelle en France.'
     ],
-    resident_10: [
+    resident_10_years: [
       'La liste exacte dépend de la mention figurant sur votre carte de résident.',
       'Pour un simple renouvellement, les ressources, l’assurance maladie, le niveau B1 ou l’examen civique ne doivent pas être ajoutés automatiquement : ils ne sont demandés que dans certains parcours particuliers.',
       'Vérifiez les éventuelles pièces conditionnelles auprès de la préfecture compétente avant le dépôt.'
@@ -241,7 +241,7 @@
       'Ce parcours concerne une carte de séjour pluriannuelle « travailleur saisonnier ». L’autorisation de travail et le respect de la limite de six mois sur douze mois sont à vérifier selon votre activité.',
       'La déclaration de résidence hors de France ne doit être ajoutée que lorsqu’elle correspond à votre situation.'
     ],
-    retired: [
+    retiree: [
       'Ce parcours concerne le renouvellement d’une carte « retraité ». La déclaration sur l’honneur porte sur des séjours en France d’une durée inférieure ou égale à un an.',
       'Ne l’utilisez pas pour un autre titre de séjour : choisissez alors la situation correspondante ou créez une liste personnalisée.'
     ],
@@ -250,7 +250,63 @@
       'La copie de l’ancien titre n’est à fournir que si vous l’avez encore.'
     ]
   };
-  commonRoutes.forEach((route) => { route.guidance = routeGuidance[route.id] || []; });
+  // Certaines pièces ne sont nécessaires que dans un cas précis. Elles restent visibles
+  // dans Jamlio, mais ne doivent jamais être confondues avec les pièces obligatoires.
+  const conditionalLabelsByRoute = {
+    student: [
+      'Attestation de réussite, lorsqu’elle existe',
+      'Si bourse : attestation de bourse',
+      'Si salarié : trois derniers bulletins de salaire',
+      'Si prise en charge par un tiers : identité du tiers et preuves de virements',
+      'Si épargne : attestation bancaire de solde suffisant'
+    ],
+    employee_cdi: [
+      'Autorisation de travail, si demandée par votre situation',
+      'Si perte involontaire d’emploi : attestation employeur France Travail et situation individuelle France Travail',
+      'Si changement d’employeur : nouveau contrat et autorisation de travail correspondante',
+      'Documents fiscaux ou justificatif OFII, si demandés par votre préfecture'
+    ],
+    temporary_worker: [
+      'Si perte involontaire d’emploi : attestation employeur France Travail et situation individuelle France Travail',
+      'Documents fiscaux ou justificatif OFII, si demandés par votre préfecture'
+    ],
+    spouse_french: [
+      'En cas de décès ou de violences : justificatifs adaptés à votre situation',
+      'Traductions et apostilles, si vos actes étrangers le nécessitent'
+    ],
+    parent_french_child: ['Si reconnaissance tardive : justificatifs complémentaires de filiation'],
+    visitor: [
+      'État civil, si votre situation a changé ou si demandé',
+      'Déclaration de non-polygamie, si elle s’applique',
+      'Certificat médical OFII, si vous ne l’avez pas déjà produit'
+    ],
+    resident_10_years: ['Déclaration relative à vos absences, si demandée'],
+    long_term_eu: [
+      'Déclaration de non-polygamie, si elle s’applique',
+      'Déclaration relative aux absences de France ou de l’Union européenne'
+    ],
+    seasonal: [
+      'Déclaration de non-polygamie, si elle s’applique',
+      'Déclaration de résidence habituelle hors de France'
+    ],
+    lost_or_stolen: ['Copie de l’ancien titre, si disponible']
+  };
+  const supplementalConditionalRequirements = {
+    resident_10_years: [
+      { label: 'Justificatifs de ressources, uniquement si la mention de votre carte ou la préfecture les demande', document_type: 'other', conditional: true },
+      { label: 'Attestation d’assurance maladie, uniquement si demandée pour votre mention', document_type: 'other', conditional: true },
+      { label: 'Justificatif de niveau B1, uniquement si demandé par le parcours applicable', document_type: 'other', conditional: true },
+      { label: 'Justificatif d’examen civique, uniquement si demandé par le parcours applicable', document_type: 'other', conditional: true }
+    ]
+  };
+  commonRoutes.forEach((route) => {
+    const conditionalLabels = conditionalLabelsByRoute[route.id] || [];
+    route.requirements = route.requirements.map((requirement) => conditionalLabels.includes(requirement.label)
+      ? { ...requirement, conditional: true }
+      : requirement);
+    route.requirements.push(...(supplementalConditionalRequirements[route.id] || []));
+    route.guidance = routeGuidance[route.id] || [];
+  });
 
   const esc = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 
