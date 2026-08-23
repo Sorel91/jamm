@@ -745,7 +745,21 @@ function renderChecklist() {
   const personalRequirements = Array.isArray(profile.situation_answers?.required_documents) ? profile.situation_answers.required_documents : [];
   const officialRequirements = Array.isArray(catalogEntry?.requirements) ? catalogEntry.requirements : [];
   const isPersonal = personalRequirements.length > 0;
-  const requirements = isPersonal ? normalizedRequirements(personalRequirements) : officialRequirements;
+  let requirements = isPersonal ? normalizedRequirements(personalRequirements) : officialRequirements;
+  // Compatibilité avec les dossiers créés avant la séparation des pièces conditionnelles.
+  // Les pièces nécessaires seulement dans certains cas restent proposées, sans alourdir l'avancement.
+  const legacyRequirementLabels = requirements.map((requirement) => JSON.stringify(requirement || {}).toLowerCase()).join(' | ');
+  if (currentJourney.code === 'residence_renewal' && /carte de résident arrivant à expiration/.test(legacyRequirementLabels)) {
+    const legacyConditionals = [
+      { label: 'Justificatifs de ressources, uniquement si la mention de votre carte ou la préfecture les demande', document_type: 'other', conditional: true },
+      { label: 'Attestation d’assurance maladie, uniquement si demandée pour votre mention', document_type: 'other', conditional: true },
+      { label: 'Justificatif de niveau B1, uniquement si demandé par le parcours applicable', document_type: 'other', conditional: true },
+      { label: 'Justificatif d’examen civique, uniquement si demandé par le parcours applicable', document_type: 'other', conditional: true }
+    ];
+    requirements = requirements
+      .map((requirement) => requirement?.label === 'Déclaration relative à vos absences, si demandée' ? { ...requirement, conditional: true } : requirement)
+      .concat(legacyConditionals.filter((requirement) => !requirements.some((existing) => existing?.label === requirement.label)));
+  }
   const links = profile.situation_answers?.requirement_links || {};
   const savedRouteGuidance = Array.isArray(profile.situation_answers?.route_guidance)
     ? profile.situation_answers.route_guidance.filter(Boolean)
@@ -765,17 +779,14 @@ function renderChecklist() {
     else if (/perte|vol|duplicata/.test(routeTitle)) inferredLegacyRoute = 'lost_or_stolen';
     else if (/salarié|travailleur temporaire/.test(routeTitle)) inferredLegacyRoute = 'employee_cdi';
   }
-  // Les tout premiers dossiers n’avaient ni identifiant ni intitulé normalisé :
-  // les libellés de leurs pièces permettent néanmoins de retrouver le parcours.
   if (!inferredLegacyRoute) {
-    const labels = requirements.map((requirement) => JSON.stringify(requirement || {}).toLowerCase()).join(' | ');
-    if (/carte de résident arrivant à expiration/.test(labels)) inferredLegacyRoute = 'resident_10';
-    else if (/inscription ou préinscription|relevés de notes/.test(labels)) inferredLegacyRoute = 'student';
-    else if (/engagement de ne pas travailler|couverture maladie/.test(labels)) inferredLegacyRoute = 'visitor';
-    else if (/justificatifs du lien familial et de la vie commune/.test(labels)) inferredLegacyRoute = 'spouse_french';
-    else if (/contribution.*entretien.*éducation/.test(labels)) inferredLegacyRoute = 'parent_french_child';
-    else if (/travailleur saisonnier|six mois/.test(labels)) inferredLegacyRoute = 'seasonal';
-    else if (/perte ou vol|déclaration de perte/.test(labels)) inferredLegacyRoute = 'lost_or_stolen';
+    if (/carte de résident arrivant à expiration/.test(legacyRequirementLabels)) inferredLegacyRoute = 'resident_10';
+    else if (/inscription ou préinscription|relevés de notes/.test(legacyRequirementLabels)) inferredLegacyRoute = 'student';
+    else if (/engagement de ne pas travailler|couverture maladie/.test(legacyRequirementLabels)) inferredLegacyRoute = 'visitor';
+    else if (/justificatifs du lien familial et de la vie commune/.test(legacyRequirementLabels)) inferredLegacyRoute = 'spouse_french';
+    else if (/contribution.*entretien.*éducation/.test(legacyRequirementLabels)) inferredLegacyRoute = 'parent_french_child';
+    else if (/travailleur saisonnier|six mois/.test(legacyRequirementLabels)) inferredLegacyRoute = 'seasonal';
+    else if (/perte ou vol|déclaration de perte/.test(legacyRequirementLabels)) inferredLegacyRoute = 'lost_or_stolen';
   }
   const routeGuidance = savedRouteGuidance.length
     ? savedRouteGuidance
@@ -784,8 +795,10 @@ function renderChecklist() {
       : []));
   if (requirements.length) {
     const linked = (requirement) => linkedDocumentsForRequirement(requirement, links);
-    const ready = requirements.filter((requirement) => linked(requirement).length > 0).length;
-    $('#progress-value').textContent = Math.round((ready / requirements.length) * 100) + '%';
+    const mandatoryRequirements = requirements.filter((requirement) => !requirement?.conditional);
+    const conditionalRequirements = requirements.filter((requirement) => requirement?.conditional);
+    const ready = mandatoryRequirements.filter((requirement) => linked(requirement).length > 0).length;
+    $('#progress-value').textContent = mandatoryRequirements.length ? Math.round((ready / mandatoryRequirements.length) * 100) + '%' : '—';
     const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
     const isNationalBase = !isPersonal && catalogEntry?.coverage_scope === 'national';
     const isHomePurchase = currentJourney.code === 'home_purchase';
@@ -796,18 +809,21 @@ function renderChecklist() {
     const guidanceBlock = routeGuidance.length
       ? '<aside class="checklist-guidance" role="note" style="margin:0 0 16px;padding:16px 18px;border:1px solid #e2c67c;border-radius:18px;background:#fff7df;color:#58431e"><strong style="display:block;margin-bottom:8px;color:#765013">À vérifier selon votre situation</strong><ul style="margin:0;padding-left:20px;display:grid;gap:7px">' + routeGuidance.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></aside>'
       : '';
-    checklist.innerHTML = guidanceBlock + requirements.map((requirement) => {
+    const renderRequirement = (requirement, isConditional) => {
       const linkedDocuments = linked(requirement);
       const type = requirement.document_type || requirement.category || 'other';
       const pickerData = ' data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '"';
-      const attachedNames = linkedDocuments.length
-        ? '<small>' + linkedDocuments.map((doc) => escapeHtml(doc.display_name)).join(' · ') + '</small>'
-        : '';
-      const documentActions = linkedDocuments.length
-        ? linkedDocuments.map((doc) => '<button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button>').join('')
-        : '';
-      return '<div class="check-row ' + (linkedDocuments.length ? 'done' : 'missing-piece') + '"><span class="checkmark">' + (linkedDocuments.length ? '✓' : '!') + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedNames + '</span>' + (linkedDocuments.length ? '<span class="ready-actions">' + documentActions + '<button class="link-button add-requirement" ' + pickerData + ' type="button">Ajouter</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Gérer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">Ajouter une pièce</button></span>') + '</div>';
-    }).join('');
+      const attachedNames = linkedDocuments.length ? '<small>' + linkedDocuments.map((doc) => escapeHtml(doc.display_name)).join(' · ') + '</small>' : '';
+      const documentActions = linkedDocuments.length ? linkedDocuments.map((doc) => '<button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button>').join('') : '';
+      const conditionalBadge = isConditional ? '<small style="display:block;margin-top:5px;color:#765013;font-weight:700">À ajouter seulement si votre situation est concernée</small>' : '';
+      const rowClass = linkedDocuments.length ? 'done' : (isConditional ? 'conditional-piece' : 'missing-piece');
+      const symbol = linkedDocuments.length ? '✓' : (isConditional ? '?' : '!');
+      return '<div class="check-row ' + rowClass + '"' + (isConditional ? ' style="border-color:#e2c67c;background:#fffaf0"' : '') + '><span class="checkmark">' + symbol + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + conditionalBadge + attachedNames + '</span>' + (linkedDocuments.length ? '<span class="ready-actions">' + documentActions + '<button class="link-button add-requirement" ' + pickerData + ' type="button">Ajouter</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Gérer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">' + (isConditional ? 'Ajouter si nécessaire' : 'Ajouter une pièce') + '</button></span>') + '</div>';
+    };
+    const conditionalBlock = conditionalRequirements.length
+      ? '<section class="conditional-checklist" style="margin-top:20px;padding:16px;border:1px solid #e2c67c;border-radius:18px;background:#fff7df"><div style="margin:0 0 10px"><strong style="display:block;color:#765013">Pièces conditionnelles</strong><span style="display:block;margin-top:4px;color:#58431e;font-size:14px;line-height:1.45">À ajouter seulement si votre situation est concernée ou si la préfecture vous les demande. Elles ne comptent pas dans l’avancement.</span></div>' + conditionalRequirements.map((requirement) => renderRequirement(requirement, true)).join('') + '</section>'
+      : '';
+    checklist.innerHTML = guidanceBlock + mandatoryRequirements.map((requirement) => renderRequirement(requirement, false)).join('') + conditionalBlock;
 
     // Anciennes démarches : certains profils stockaient les pièces sous un format
     // non normalisé. On lit donc la checklist rendue, qui est la source visible fiable.
