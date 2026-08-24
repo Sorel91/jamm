@@ -316,7 +316,7 @@
       '<strong style="font-size:15px">' + esc(route.label) + '</strong><span style="display:block;margin:6px 0 0 25px;color:#647069;font-size:13px;line-height:1.4">' + esc(route.description) + '</span></label>';
   }
 
-  async function saveResidenceV1(node, route, customItems) {
+  async function saveResidenceV1(node, route, customItems, existingJourney = null) {
     const submit = node.querySelector('[type="submit"]');
     const error = node.querySelector('[data-error]');
     submit.disabled = true;
@@ -336,14 +336,10 @@
       error.hidden = false; submit.disabled = false; return;
     }
     try {
-      let journey;
-      const duplicate = typeof activeJourneyConflict === 'function' ? activeJourneyConflict('residence_renewal') : null;
-      if (duplicate) {
-        const action = await showDuplicateJourneyDialog(duplicate, { changeLabel: 'Mettre à jour ma situation' });
-        if (action === 'resume') { node.remove(); resumeJourney(duplicate); return; }
-        if (action !== 'change') { submit.disabled = false; return; }
-        journey = duplicate;
-      } else {
+      let journey = existingJourney;
+      if (!journey) {
+        const duplicate = typeof activeJourneyConflict === 'function' ? activeJourneyConflict('residence_renewal') : null;
+        if (duplicate) { node.remove(); resumeJourney(duplicate); return; }
         const { data, error: journeyError } = await supabaseClient
           .from('journeys')
           .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
@@ -351,6 +347,9 @@
         if (journeyError) throw journeyError;
         journey = data;
       }
+      const previousAnswers = journeyProfiles[journey.id]?.situation_answers || {};
+      const allowedRequirementLabels = new Set(requirements.map((item) => typeof item === 'string' ? item : item.label).filter(Boolean));
+      const requirementLinks = Object.fromEntries(Object.entries(previousAnswers.requirement_links || {}).filter(([label]) => allowedRequirementLabels.has(label)));
       const officialSource = route ? route.sourceUrl : customSource;
       const { error: profileError } = await supabaseClient.from('journey_profiles').upsert({
         journey_id: journey.id,
@@ -365,7 +364,7 @@
           custom_title: title,
           note,
           required_documents: requirements,
-          requirement_links: {},
+          requirement_links: requirementLinks,
           route_guidance: route ? (route.guidance || []) : ['La liste finale dépend de l’organisme compétent et de votre situation. Vérifiez votre source avant le dépôt.']
         },
         source_status: route ? 'verified' : 'to_verify',
@@ -390,21 +389,17 @@
     }
   }
 
-  async function createResidenceFromOrientation(node, route) {
+  async function createResidenceFromOrientation(node, route, existingJourney = null) {
     const error = node.querySelector('[data-error]');
     const button = node.querySelector('#orientation-continue');
     if (!route || !currentUser || !currentVault) return;
     button.disabled = true;
     error.hidden = true;
     try {
-      let journey;
-      const duplicate = typeof activeJourneyConflict === 'function' ? activeJourneyConflict('residence_renewal') : null;
-      if (duplicate) {
-        const action = await showDuplicateJourneyDialog(duplicate, { changeLabel: 'Mettre à jour ma situation' });
-        if (action === 'resume') { node.remove(); resumeJourney(duplicate); return; }
-        if (action !== 'change') { button.disabled = false; return; }
-        journey = duplicate;
-      } else {
+      let journey = existingJourney;
+      if (!journey) {
+        const duplicate = typeof activeJourneyConflict === 'function' ? activeJourneyConflict('residence_renewal') : null;
+        if (duplicate) { node.remove(); resumeJourney(duplicate); return; }
         const { data, error: journeyError } = await supabaseClient
           .from('journeys')
           .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
@@ -412,6 +407,9 @@
         if (journeyError) throw journeyError;
         journey = data;
       }
+      const previousAnswers = journeyProfiles[journey.id]?.situation_answers || {};
+      const allowedRequirementLabels = new Set(route.requirements.map((item) => item.label).filter(Boolean));
+      const requirementLinks = Object.fromEntries(Object.entries(previousAnswers.requirement_links || {}).filter(([label]) => allowedRequirementLabels.has(label)));
       const { error: profileError } = await supabaseClient.from('journey_profiles').upsert({
         journey_id: journey.id,
         owner_id: currentUser.id,
@@ -425,7 +423,7 @@
           custom_title: route.label,
           note: '',
           required_documents: route.requirements,
-          requirement_links: {},
+          requirement_links: requirementLinks,
           route_guidance: route.guidance || ['Cette liste prépare votre dossier. Vérifiez toujours la source officielle avant le dépôt.']
         },
         source_status: 'verified',
@@ -448,7 +446,7 @@
     }
   }
 
-  function showResidenceOrientation() {
+  function showResidenceOrientation(existingJourney = null) {
     const node = modal(
       '<button class="close" aria-label="Fermer">×</button>' +
       '<p class="eyebrow">AIDE À L’ORIENTATION</p>' +
@@ -500,7 +498,7 @@
     const disclaimer = '<aside role="note" style="margin-top:18px;padding:14px 16px;border:1px solid #e2c67c;border-radius:16px;background:#fff7df;color:#58431e;font-size:14px;line-height:1.45"><strong style="display:block;color:#765013;margin-bottom:4px">Une aide, pas une décision administrative</strong>Cette orientation repose uniquement sur les informations que vous choisissez ici. Confirmez toujours le parcours et les pièces auprès de la source officielle et de votre préfecture.</aside>';
     const choose = () => {
       node.remove();
-      showResidenceV1();
+      showResidenceV1(null, existingJourney);
     };
     const renderResult = (routeId) => {
       const route = commonRoutes.find((item) => item.id === routeId);
@@ -509,12 +507,12 @@
         '<p class="eyebrow">PARCOURS SUGGÉRÉ</p>' +
         '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Le parcours qui semble correspondre</h2>' +
         '<div style="margin:18px 0;padding:18px;border:1px solid #a4c5b3;border-radius:18px;background:#f1f8f3"><strong style="display:block;font-size:18px;color:#174f3e">' + esc(route.label) + '</strong><span style="display:block;margin-top:6px;color:#4f665b;line-height:1.45">' + esc(route.description) + '</span></div>' +
-        '<p style="color:#647069;line-height:1.5">Jamlio peut maintenant créer directement votre checklist de préparation. Les pièces conditionnelles y apparaîtront dans la même liste, avec une indication claire.</p>' +
+        '<p style="color:#647069;line-height:1.5">' + (existingJourney ? 'Cette situation remplacera la checklist de ce dossier. Les documents déjà dans votre coffre seront conservés.' : 'Jamlio peut maintenant créer directement votre checklist de préparation. Les pièces conditionnelles y apparaîtront dans la même liste, avec une indication claire.') + '</p>' +
         '<p data-error hidden style="color:#aa3425;font-size:13px;margin:10px 0"></p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button">← Retour</button><button class="primary" id="orientation-continue" type="button">Préparer cette checklist <span>→</span></button><button class="outline" id="orientation-choose" type="button">Choisir ma situation moi-même</button></div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button">← Retour</button><button class="primary" id="orientation-continue" type="button">' + (existingJourney ? 'Mettre à jour ce dossier' : 'Préparer cette checklist') + ' <span>→</span></button><button class="outline" id="orientation-choose" type="button">' + (existingJourney ? 'Choisir une autre situation' : 'Choisir ma situation moi-même') + '</button></div>' +
         disclaimer;
       screen.querySelector('#orientation-back').addEventListener('click', goBack);
-      screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route));
+      screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route, existingJourney));
       screen.querySelector('#orientation-choose').addEventListener('click', choose);
     };
     const renderUncertain = () => {
@@ -559,7 +557,7 @@
     renderQuestion('incident');
   }
 
-  function showResidenceV1(preselectedRouteId = null) {
+  function showResidenceV1(preselectedRouteId = null, existingJourney = null) {
     const defaultDepartment = String(currentUser?.user_metadata?.default_department || '');
     const node = modal(
       '<button class="close" aria-label="Fermer">×</button>' +
@@ -579,7 +577,7 @@
       '<label>Date d’expiration du titre (si connue) <input id="residence-v1-expiry" type="date"></label>' +
       '<label>Élément important pour votre cas (facultatif) <input id="residence-v1-note" maxlength="240" placeholder="Ex. changement d’employeur, enfant concerné…"></label>' +
       '<p data-error hidden style="color:#aa3425;font-size:13px"></p>' +
-      '<button class="primary" type="submit">Créer ma checklist <span>→</span></button></form>'
+      '<button class="primary" type="submit">' + (existingJourney ? 'Mettre à jour ce dossier' : 'Créer ma checklist') + ' <span>→</span></button></form>'
     );
     styleModal(node);
     const close = node.querySelector('.close');
@@ -611,14 +609,14 @@
       }
       const route = commonRoutes.find((item) => item.id === selectedRoute.value);
       const customItems = Array.from(node.querySelectorAll('.residence-v1-item')).map((input) => input.value.trim()).filter(Boolean);
-      saveResidenceV1(node, route, customItems);
+      saveResidenceV1(node, route, customItems, existingJourney);
     });
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     const original = showQualification;
-    showQualification = function(code, existingJourney) {
-      if (code === 'residence_renewal' && !existingJourney) return showResidenceOrientation();
+    showQualification = function(code, existingJourney, restartOrientation = false) {
+      if (code === 'residence_renewal' && (!existingJourney || restartOrientation)) return showResidenceOrientation(existingJourney || null);
       return original(code, existingJourney);
     };
     const originalRenderChecklist = renderChecklist;
