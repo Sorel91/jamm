@@ -724,3 +724,43 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 @media (max-width: 640px) {
   .custom-requirements-field { padding: 15px; border-radius: 14px; }
 }
+
+
+/* En-tête des démarches : le message et l'action gardent chacun leur espace. */
+.journey-heading{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+  column-gap:28px;
+  row-gap:14px;
+}
+.journey-heading>div{min-width:0}
+.journey-heading>div p{
+  max-width:680px;
+  margin:11px 0 0;
+  color:#5f7067;
+  font-size:17px;
+  line-height:1.45;
+}
+.journey-heading #new-journey{
+  min-height:54px;
+  padding:13px 20px;
+  white-space:nowrap;
+  justify-content:center;
+}
+@media(max-width:760px){
+  .journey-heading{
+    grid-template-columns:1fr;
+    align-items:start;
+    gap:17px;
+  }
+  .journey-heading>div p{
+    max-width:none;
+    font-size:16px;
+  }
+  .journey-heading #new-journey{
+    width:100%;
+    min-height:54px;
+    white-space:normal;
+  }
+}
