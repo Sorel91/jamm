@@ -380,6 +380,54 @@
     }
   }
 
+  async function createResidenceFromOrientation(node, route) {
+    const error = node.querySelector('[data-error]');
+    const button = node.querySelector('#orientation-continue');
+    if (!route || !currentUser || !currentVault) return;
+    button.disabled = true;
+    error.hidden = true;
+    try {
+      const { data: journey, error: journeyError } = await supabaseClient
+        .from('journeys')
+        .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
+        .select().single();
+      if (journeyError) throw journeyError;
+      const { error: profileError } = await supabaseClient.from('journey_profiles').upsert({
+        journey_id: journey.id,
+        owner_id: currentUser.id,
+        department: String(currentUser?.user_metadata?.default_department || ''),
+        permit_category: route.label,
+        expiry_date: null,
+        situation_answers: {
+          route: 'residence_renewal',
+          common_route: route.id,
+          is_custom_residence: false,
+          custom_title: route.label,
+          note: '',
+          required_documents: route.requirements,
+          requirement_links: {},
+          route_guidance: route.guidance || ['Cette liste prépare votre dossier. Vérifiez toujours la source officielle avant le dépôt.']
+        },
+        source_status: 'verified',
+        official_source_url: route.sourceUrl || null,
+        source_checked_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'journey_id' });
+      if (profileError) throw profileError;
+      node.remove();
+      currentJourney = journey;
+      await loadData();
+      showView('journeys');
+      $('#success').hidden = false;
+      $('#success').textContent = 'Votre checklist de préparation est prête. Avant le dépôt, consultez toujours la source officielle liée à votre dossier.';
+      $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (saveError) {
+      error.textContent = 'Impossible de créer cette checklist. Réessayez dans un instant.';
+      error.hidden = false;
+      button.disabled = false;
+    }
+  }
+
   function showResidenceOrientation() {
     const node = modal(
       '<button class="close" aria-label="Fermer">×</button>' +
@@ -436,21 +484,20 @@
         '<p class="eyebrow">PARCOURS SUGGÉRÉ</p>' +
         '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Le parcours qui semble correspondre</h2>' +
         '<div style="margin:18px 0;padding:18px;border:1px solid #a4c5b3;border-radius:18px;background:#f1f8f3"><strong style="display:block;font-size:18px;color:#174f3e">' + esc(route.label) + '</strong><span style="display:block;margin-top:6px;color:#4f665b;line-height:1.45">' + esc(route.description) + '</span></div>' +
-        '<p style="color:#647069;line-height:1.5">La checklist sera préremplie avec les pièces nationales de préparation. Les pièces conditionnelles seront clairement séparées.</p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-continue" type="button">Continuer avec ce parcours <span>→</span></button><button class="outline" id="orientation-choose" type="button">Choisir moi-même</button></div>' +
+        '<p style="color:#647069;line-height:1.5">Jamlio peut maintenant créer directement votre checklist de préparation. Les pièces conditionnelles y apparaîtront dans la même liste, avec une indication claire.</p>' +
+        '<p data-error hidden style="color:#aa3425;font-size:13px;margin:10px 0"></p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-continue" type="button">Préparer cette checklist <span>→</span></button><button class="outline" id="orientation-choose" type="button">Choisir ma situation moi-même</button></div>' +
         disclaimer;
-      screen.querySelector('#orientation-continue').addEventListener('click', () => {
-        node.remove();
-        showResidenceV1(routeId);
-      });
+      screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route));
       screen.querySelector('#orientation-choose').addEventListener('click', choose);
     };
     const renderUncertain = () => {
       screen.innerHTML =
         '<p class="eyebrow">VÉRIFICATION NÉCESSAIRE</p>' +
         '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Nous ne pouvons pas vous orienter de façon fiable.</h2>' +
-        '<p style="color:#647069;line-height:1.5">Votre situation peut relever d’un autre parcours : changement de statut, entrepreneur, certificat de résidence algérien, autre situation familiale ou cas particulier. Mieux vaut choisir la mention exacte sur votre titre ou créer votre propre liste de pièces.</p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-choose" type="button">Voir tous les parcours <span>→</span></button></div>' +
+        '<p style="color:#647069;line-height:1.5">Votre situation peut relever d’un autre parcours : changement de statut, entrepreneur, certificat de résidence algérien, autre situation familiale ou cas particulier. Choisissez alors la mention exacte sur votre titre ou créez votre propre liste de pièces.</p>' +
+        '<p style="color:#647069;line-height:1.5">En présence d’une OQTF, d’un refus, d’un titre expiré depuis longtemps ou d’un changement de statut complexe, demandez un accompagnement spécialisé.</p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-choose" type="button">Choisir ma situation <span>→</span></button></div>' +
         disclaimer;
       screen.querySelector('#orientation-choose').addEventListener('click', choose);
     };
@@ -481,10 +528,8 @@
     const node = modal(
       '<button class="close" aria-label="Fermer">×</button>' +
       '<p class="eyebrow">RENOUVELER SON TITRE DE SÉJOUR</p>' +
-      '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Choisissez un parcours courant.</h2>' +
-      '<p style="color:#647069;line-height:1.45">Ces repères sont communs. Votre préfecture et votre situation personnelle restent la référence pour le dépôt.</p>' +
-      '<button id="residence-v1-orient" type="button" class="outline" style="width:100%;justify-content:center;margin:4px 0 8px">M’aider à identifier ma situation <span>→</span></button>' +
-      '<p style="margin:0 0 16px;color:#647069;font-size:13px;line-height:1.45">Quelques questions simples peuvent vous guider vers un parcours courant. Vous pourrez toujours choisir vous-même.</p>' +
+      '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Choisissez la situation inscrite sur votre titre.</h2>' +
+      '<p style="color:#647069;line-height:1.45">Votre préfecture et votre situation personnelle restent la référence pour le dépôt.</p>' +
       '<form id="residence-v1-form">' +
       '<label>Département où vous habitez <input id="residence-v1-department" inputmode="numeric" maxlength="3" value="' + esc(defaultDepartment) + '" placeholder="Ex. 91"></label>' +
       '<fieldset style="border:0;padding:0;margin:18px 0"><legend style="font-weight:700;font-size:14px">Votre situation</legend>' +
@@ -505,10 +550,6 @@
     close.addEventListener('click', () => node.remove());
     const custom = node.querySelector('#residence-v1-custom');
     const items = node.querySelector('#residence-v1-items');
-    node.querySelector('#residence-v1-orient').addEventListener('click', () => {
-      node.remove();
-      showResidenceOrientation();
-    });
     if (preselectedRouteId) {
       const preselected = node.querySelector('input[name="residence-route"][value="' + preselectedRouteId + '"]');
       if (preselected) preselected.checked = true;
@@ -541,7 +582,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const original = showQualification;
     showQualification = function(code, existingJourney) {
-      if (code === 'residence_renewal' && !existingJourney) return showResidenceV1();
+      if (code === 'residence_renewal' && !existingJourney) return showResidenceOrientation();
       return original(code, existingJourney);
     };
     const originalRenderChecklist = renderChecklist;
