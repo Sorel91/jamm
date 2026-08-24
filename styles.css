@@ -769,11 +769,8 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 /* Ajout de document : aider à distinguer les pièces sans exposer le nom de fichier. */
 .field-hint{margin:-5px 0 14px;color:#68776f;font:13px/1.4 Arial,sans-serif}
 .duplicate-current-document{margin:14px 0;padding:12px 14px;border:1px solid #cfe0d2;border-radius:11px;background:#f1f8f2;color:#275b46}
-.duplicate-document-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
-.duplicate-document-actions .primary,.duplicate-document-actions .outline{min-height:46px;justify-content:center}
-.duplicate-document-actions .primary{margin-left:auto}
+.duplicate-document-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:22px}
+.duplicate-document-actions .primary,.duplicate-document-actions .outline{width:100%;min-height:50px;margin:0;justify-content:center;text-align:center}
 @media(max-width:560px){
-  .duplicate-document-actions{display:grid;grid-template-columns:1fr}
-  .duplicate-document-actions .primary{margin-left:0}
-  .duplicate-document-actions .outline,.duplicate-document-actions .primary{width:100%}
+  .duplicate-document-actions{grid-template-columns:1fr}
 }
