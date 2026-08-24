@@ -310,7 +310,7 @@
 
   const esc = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 
-  async function saveResidenceV1(node, route, customItems, existingJourney = null) {
+  async function saveResidenceV1(node, route, customItems, existingJourney = null, forceNew = false) {
     const submit = node.querySelector('[type="submit"]');
     const error = node.querySelector('[data-error]');
     submit.disabled = true;
@@ -333,7 +333,7 @@
       let journey = existingJourney;
       if (!journey) {
         const duplicate = typeof activeJourneyConflict === 'function' ? activeJourneyConflict('residence_renewal') : null;
-        if (duplicate) { node.remove(); resumeJourney(duplicate); return; }
+        if (duplicate && !forceNew) { node.remove(); resumeJourney(duplicate); return; }
         const { data, error: journeyError } = await supabaseClient
           .from('journeys')
           .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
@@ -383,7 +383,7 @@
     }
   }
 
-  async function createResidenceFromOrientation(node, route, existingJourney = null) {
+  async function createResidenceFromOrientation(node, route, existingJourney = null, forceNew = false) {
     const error = node.querySelector('[data-error]');
     const button = node.querySelector('#orientation-continue');
     if (!route || !currentUser || !currentVault) return;
@@ -393,7 +393,7 @@
       let journey = existingJourney;
       if (!journey) {
         const duplicate = typeof activeJourneyConflict === 'function' ? activeJourneyConflict('residence_renewal') : null;
-        if (duplicate) { node.remove(); resumeJourney(duplicate); return; }
+        if (duplicate && !forceNew) { node.remove(); resumeJourney(duplicate); return; }
         const { data, error: journeyError } = await supabaseClient
           .from('journeys')
           .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
@@ -440,7 +440,7 @@
     }
   }
 
-  function showResidenceOrientation(existingJourney = null) {
+  function showResidenceOrientation(existingJourney = null, forceNew = false) {
     const node = modal(
       '<button class="close" aria-label="Fermer">×</button>' +
       '<p class="eyebrow">AIDE À L’ORIENTATION</p>' +
@@ -479,7 +479,7 @@
       screen.querySelector('#orientation-back').addEventListener('click', renderSituationPicker);
       screen.querySelector('#orientation-custom-save').addEventListener('click', () => {
         const itemsToSave = Array.from(screen.querySelectorAll('.residence-v1-item')).map((input) => input.value.trim()).filter(Boolean);
-        saveResidenceV1(node, null, itemsToSave, existingJourney);
+        saveResidenceV1(node, null, itemsToSave, existingJourney, forceNew);
       });
     };
     const renderSituationPicker = (onBack = null) => {
@@ -512,7 +512,7 @@
         '<div style="display:grid;gap:12px;margin-top:22px"><button class="primary" id="orientation-continue" type="button" style="width:100%;margin-top:0;min-height:52px">Préparer cette checklist <span>→</span></button><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Retour</button></div></div>' +
         disclaimer;
       screen.querySelector('#orientation-back').addEventListener('click', renderSituationPicker);
-      screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route, existingJourney));
+      screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route, existingJourney, forceNew));
     };
     renderSituationPicker();
   }
