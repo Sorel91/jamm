@@ -850,7 +850,7 @@ function renderChecklist() {
     const isHomePurchase = currentJourney.code === 'home_purchase';
     const isResidenceRenewal = currentJourney.code === 'residence_renewal';
     const heading = isResidenceRenewal
-      ? '<strong>Votre situation actuelle : ' + escapeHtml(profile.permit_category || 'À préciser') + '</strong><span>Votre checklist s’adapte à cette situation. Vos documents restent dans votre coffre.</span><button class="link-button" id="edit-qualification" type="button">Ma situation a changé</button>'
+      ? '<strong>Votre situation actuelle : ' + escapeHtml(profile.permit_category || 'À préciser') + '</strong><span>Votre checklist s’adapte à cette situation. Vos documents restent dans votre coffre.</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>'
       : (isPersonal
         ? (isHomePurchase ? '<strong>Votre checklist — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>Liste à compléter avec votre banque, votre notaire et les documents du bien.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>' : '<strong>Votre liste personnelle</strong><span>Les pièces que vous avez indiquées.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>')
         : '<strong>' + 'Documents à préparer' + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>');
@@ -985,11 +985,15 @@ async function chooseJourney(code, startNew = false) {
     if (!startNew) { resumeJourney(existing); return; }
     const action = await showDuplicateJourneyDialog(existing, {
       allowNew: code === 'custom_procedure' || code === 'home_purchase' || code === 'residence_renewal',
-      changeLabel: code === 'residence_renewal' ? 'Changer ma situation' : 'Préparer un autre dossier'
+      changeLabel: code === 'residence_renewal' ? 'Changer de situation' : 'Préparer un autre dossier'
     });
     if (action === 'resume') { resumeJourney(existing); return; }
     if (action === 'change' && code === 'residence_renewal') { showQualification(code, existing, true); return; }
     if (action !== 'new') return;
+    if (action === 'new' && code === 'residence_renewal' && typeof window.showResidenceOrientation === 'function') {
+      window.showResidenceOrientation(null, true);
+      return;
+    }
   }
   if (code === 'residence_renewal' && typeof window.showResidenceOrientation === 'function') {
     window.showResidenceOrientation();
