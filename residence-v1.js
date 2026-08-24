@@ -564,11 +564,10 @@
         '<div style="margin:18px 0;padding:18px;border:1px solid #a4c5b3;border-radius:18px;background:#f1f8f3"><strong style="display:block;font-size:18px;color:#174f3e">' + esc(route.label) + '</strong><span style="display:block;margin-top:6px;color:#4f665b;line-height:1.45">' + esc(route.description) + '</span></div>' +
         '<p style="color:#647069;line-height:1.5">' + (existingJourney ? 'Cette situation remplacera la checklist de ce dossier. Les documents déjà dans votre coffre seront conservés.' : 'Jamlio peut maintenant créer directement votre checklist de préparation. Les pièces conditionnelles y apparaîtront dans la même liste, avec une indication claire.') + '</p>' +
         '<p data-error hidden style="color:#aa3425;font-size:13px;margin:10px 0"></p>' +
-        '<div style="display:grid;gap:12px;margin-top:22px"><button class="primary" id="orientation-continue" type="button" style="width:100%;margin-top:0;min-height:52px">' + (existingJourney ? 'Mettre à jour ce dossier' : 'Préparer cette checklist') + ' <span>→</span></button><div style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Modifier mes réponses</button><button class="link-button" id="orientation-choose" type="button" style="padding:7px 0">Voir toutes les situations</button></div></div>' +
+        '<div style="display:grid;gap:12px;margin-top:22px"><button class="primary" id="orientation-continue" type="button" style="width:100%;margin-top:0;min-height:52px">'Préparer cette checklist' <span>→</span></button><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Retour</button></div></div>' +
         disclaimer;
       screen.querySelector('#orientation-back').addEventListener('click', goBack);
       screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route, existingJourney));
-      screen.querySelector('#orientation-choose').addEventListener('click', () => choose(() => renderResult(route.id)));
     };
     const renderUncertain = () => {
       screen.innerHTML =
@@ -576,10 +575,9 @@
         '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Nous ne pouvons pas vous orienter de façon fiable.</h2>' +
         '<p style="color:#647069;line-height:1.5">Votre situation peut relever d’un autre parcours : changement de statut, entrepreneur, certificat de résidence algérien, autre situation familiale ou cas particulier. Choisissez alors la mention exacte sur votre titre ou créez votre propre liste de pièces.</p>' +
         '<p style="color:#647069;line-height:1.5">En présence d’une OQTF, d’un refus, d’un titre expiré depuis longtemps ou d’un changement de statut complexe, demandez un accompagnement spécialisé.</p>' +
-        '<div style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:18px"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Retour</button><button class="link-button" id="orientation-choose" type="button" style="padding:7px 0">Voir toutes les situations</button></div>' +
+        '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:18px"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Retour</button></div>' +
         disclaimer;
       screen.querySelector('#orientation-back').addEventListener('click', goBack);
-      screen.querySelector('#orientation-choose').addEventListener('click', () => choose(renderUncertain));
     };
     const renderQuestion = (key) => {
       const question = questions[key];
