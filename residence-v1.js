@@ -496,10 +496,63 @@
       }
     };
     const disclaimer = '<aside role="note" style="margin-top:18px;padding:14px 16px;border:1px solid #e2c67c;border-radius:16px;background:#fff7df;color:#58431e;font-size:14px;line-height:1.45"><strong style="display:block;color:#765013;margin-bottom:4px">Une aide, pas une décision administrative</strong>Cette orientation repose uniquement sur les informations que vous choisissez ici. Confirmez toujours le parcours et les pièces auprès de la source officielle et de votre préfecture.</aside>';
-    const choose = () => {
-      node.remove();
-      showResidenceV1(null, existingJourney);
+    const renderCustomSituation = () => {
+      const profile = existingJourney ? journeyProfiles[existingJourney.id] : null;
+      const answers = profile?.situation_answers || {};
+      screen.innerHTML =
+        '<p class="eyebrow">SITUATION PERSONNALISÉE</p>' +
+        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Préparez votre propre liste.</h2>' +
+        '<p style="color:#647069;line-height:1.5">Ajoutez les pièces indiquées par votre source officielle. Jamlio les comparera ensuite avec votre coffre.</p>' +
+        '<label style="display:grid;gap:8px;margin-top:18px;font-weight:700">Nom de votre démarche<input id="residence-v1-title" maxlength="120" value="' + esc(answers.custom_title || profile?.permit_category || '') + '" placeholder="Ex. Admission exceptionnelle au séjour"></label>' +
+        '<label style="display:grid;gap:8px;margin-top:14px;font-weight:700">Lien vers la source officielle <span style="font-weight:400;color:#647069">(facultatif)</span><input id="residence-v1-source" type="url" value="' + esc(profile?.official_source_url || '') + '" placeholder="https://…"></label>' +
+        '<label style="display:grid;gap:8px;margin-top:14px;font-weight:700">Département où vous habitez<input id="residence-v1-department" inputmode="numeric" maxlength="3" value="' + esc(String(currentUser?.user_metadata?.default_department || profile?.department || '')) + '" placeholder="Ex. 91"></label>' +
+        '<div id="residence-v1-items" style="display:grid;gap:8px;margin:16px 0"></div><button type="button" id="residence-v1-add-item" class="link-button" style="padding:0">+ Ajouter une pièce</button>' +
+        '<label style="display:grid;gap:8px;margin-top:16px;font-weight:700">Date d’expiration du titre <span style="font-weight:400;color:#647069">(si connue)</span><input id="residence-v1-expiry" type="date" value="' + esc(profile?.expiry_date || '') + '"></label>' +
+        '<label style="display:grid;gap:8px;margin-top:14px;font-weight:700">Élément important pour votre cas <span style="font-weight:400;color:#647069">(facultatif)</span><input id="residence-v1-note" maxlength="240" value="' + esc(answers.note || '') + '" placeholder="Ex. changement d’employeur, enfant concerné…"></label>' +
+        '<p data-error hidden style="margin:10px 0;color:#aa3425;font-size:13px"></p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">← Retour</button><button class="primary" id="orientation-custom-save" type="submit" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">Préparer ma checklist <span>→</span></button></div>' +
+        disclaimer;
+      const items = screen.querySelector('#residence-v1-items');
+      const initialItems = Array.isArray(answers.required_documents) && answers.is_custom_residence
+        ? answers.required_documents.map((item) => typeof item === 'string' ? item : item.label).filter(Boolean)
+        : [''];
+      const addItem = (value = '') => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:8px;align-items:center';
+        row.innerHTML = '<input class="residence-v1-item" maxlength="160" value="' + esc(value) + '" placeholder="Ex. Justificatif de domicile"><button type="button" aria-label="Supprimer cette pièce" style="border:0;background:none;color:#8a4d39;font-size:20px;cursor:pointer">×</button>';
+        row.querySelector('button').addEventListener('click', () => row.remove());
+        items.appendChild(row);
+      };
+      initialItems.forEach(addItem);
+      screen.querySelector('#residence-v1-add-item').addEventListener('click', () => addItem());
+      screen.querySelector('#orientation-back').addEventListener('click', renderSituationPicker);
+      screen.querySelector('#orientation-custom-save').addEventListener('click', () => {
+        const itemsToSave = Array.from(screen.querySelectorAll('.residence-v1-item')).map((input) => input.value.trim()).filter(Boolean);
+        saveResidenceV1(node, null, itemsToSave, existingJourney);
+      });
     };
+    const renderSituationPicker = () => {
+      screen.innerHTML =
+        '<p class="eyebrow">CHOISIR MA SITUATION</p>' +
+        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Quelle situation est inscrite sur votre titre ?</h2>' +
+        '<p style="color:#647069;line-height:1.5">Choisissez la mention qui correspond le mieux à votre titre actuel. Vous obtiendrez directement la checklist correspondante.</p>' +
+        '<label style="display:grid;gap:8px;margin-top:20px;font-weight:700">Votre situation<select id="orientation-manual-route" style="width:100%;min-height:52px;padding:12px 14px;border:1px solid #b7c8bd;border-radius:12px;background:#fff;color:#203129;font:inherit"><option value="">Sélectionnez une situation</option>' + commonRoutes.map((route) => '<option value="' + esc(route.id) + '">' + esc(route.label) + '</option>').join('') + '<option value="custom">Autre situation — créer ma propre liste</option></select></label>' +
+        '<p data-error hidden style="margin:10px 0;color:#aa3425;font-size:13px"></p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">← Retour</button><button class="primary" id="orientation-manual-next" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">Voir la checklist <span>→</span></button></div>' +
+        disclaimer;
+      screen.querySelector('#orientation-back').addEventListener('click', () => {
+        if (questionTrail.length) goBack();
+        else renderQuestion('incident');
+      });
+      screen.querySelector('#orientation-manual-next').addEventListener('click', () => {
+        const value = screen.querySelector('#orientation-manual-route').value;
+        const error = screen.querySelector('[data-error]');
+        if (!value) { error.textContent = 'Sélectionnez une situation pour continuer.'; error.hidden = false; return; }
+        if (value === 'custom') { renderCustomSituation(); return; }
+        renderResult(value);
+      });
+    };
+    const choose = () => renderSituationPicker();
     const renderResult = (routeId) => {
       const route = commonRoutes.find((item) => item.id === routeId);
       if (!route) return renderUncertain();
