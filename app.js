@@ -995,6 +995,10 @@ async function chooseJourney(code, startNew = false) {
     if (action === 'change' && code === 'residence_renewal') { showQualification(code, existing, true); return; }
     if (action !== 'new') return;
   }
+  if (code === 'residence_renewal' && typeof window.showResidenceOrientation === 'function') {
+    window.showResidenceOrientation();
+    return;
+  }
   showQualification(code);
 }
 
