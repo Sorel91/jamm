@@ -11,6 +11,7 @@ let metrics = {};
 let view = 'overview';
 let supportUsers = [];
 let selectedSupportUser = null;
+let supportTickets = [];
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 const today = () => new Date().toISOString().slice(0, 10);
@@ -87,7 +88,8 @@ function navigation(content) {
     ['overview', 'Vue d’ensemble'],
     ['catalog', 'Catalogue'],
     ['review', 'À vérifier'],
-    ['support', 'Support bêta'],
+    ['support', 'Assistance bêta'],
+    ['tickets', 'Retours bêta'],
     ['audit', 'Journal']
   ];
   app.innerHTML = '<div class="console"><aside class="sidebar"><a class="console-brand" href="./"><span>j</span>amlio <small>Administration</small></a><p class="eyebrow">PILOTAGE</p><nav>' + links.map(([id, label]) => '<button class="nav-button ' + (view === id ? 'active' : '') + '" data-view="' + id + '">' + label + '</button>').join('') + '</nav><div class="sidebar-note"><strong>Confidentialité</strong><p>Les indicateurs sont agrégés. Aucun nom, fichier ni contenu privé n’est accessible ici.</p></div><p class="role">Rôle : ' + escapeHtml(role) + '</p></aside><section class="main-panel" id="content">' + content + '</section></div>';
@@ -253,6 +255,64 @@ function supportView() {
   search();
 }
 
+function ticketStatusTag(status) {
+  const labels = { new: 'Nouveau', in_progress: 'En cours', resolved: 'Résolu' };
+  return '<span class="tag ticket-' + escapeHtml(status) + '">' + escapeHtml(labels[status] || status) + '</span>';
+}
+
+function ticketCategoryLabel(category) {
+  return ({ connexion: 'Connexion ou compte', coffre: 'Mon coffre', demarche: 'Mes démarches', suggestion: 'Suggestion', autre: 'Autre', donnees: 'Données personnelles', securite: 'Sécurité' }[category] || category);
+}
+
+async function ticketView() {
+  navigation('<header class="page-heading"><div><p class="eyebrow">RETOURS BÊTA</p><h1>Ce que les testeurs nous remontent.</h1><p>Traitez les retours sans accéder aux documents de leur coffre. L’adresse du compte sert uniquement à leur répondre si nécessaire.</p></div><button class="button secondary" id="refresh-tickets">Actualiser</button></header><div id="ticket-list" class="ticket-list"><div class="empty"><strong>Chargement des retours…</strong></div></div>');
+
+  const list = document.querySelector('#ticket-list');
+  const loadTickets = async () => {
+    list.innerHTML = '<div class="empty"><strong>Chargement des retours…</strong></div>';
+    const { data, error } = await client.from('support_tickets').select('*').order('created_at', { ascending: false }).limit(150);
+    if (error) {
+      list.innerHTML = '<div class="empty"><strong>Impossible de charger les retours.</strong><p>' + escapeHtml(error.message) + '</p></div>';
+      return;
+    }
+    supportTickets = data || [];
+    if (!supportTickets.length) {
+      list.innerHTML = '<div class="empty"><strong>Aucun retour pour le moment.</strong><p>Les retours envoyés depuis la page Support apparaîtront ici.</p></div>';
+      return;
+    }
+    list.innerHTML = '<p class="ticket-count">' + number(supportTickets.length) + ' retour' + (supportTickets.length > 1 ? 's' : '') + '</p>' + supportTickets.map((ticket) =>
+      '<article class="ticket-card"><div class="ticket-card-top"><div><p class="eyebrow">' + escapeHtml(ticketCategoryLabel(ticket.category)) + '</p><h2>' + escapeHtml(ticket.subject) + '</h2><p class="ticket-meta">' + escapeHtml(ticket.requester_email) + ' · ' + longDate(ticket.created_at) + '</p></div>' + ticketStatusTag(ticket.status) + '</div>' +
+      '<p class="ticket-message">' + escapeHtml(ticket.message) + '</p>' +
+      (ticket.reproduction_steps ? '<details class="ticket-details"><summary>Étapes indiquées par le testeur</summary><p>' + escapeHtml(ticket.reproduction_steps) + '</p></details>' : '') +
+      '<div class="ticket-context"><span>Page : ' + escapeHtml(ticket.page_url || 'Non indiquée') + '</span></div>' +
+      '<form class="ticket-form" data-ticket-form="' + ticket.id + '"><label>Statut<select name="status"><option value="new">Nouveau</option><option value="in_progress">En cours</option><option value="resolved">Résolu</option></select></label><label>Note interne <textarea name="admin_note" rows="2" maxlength="5000" placeholder="Contexte ou action effectuée — invisible pour le testeur.">' + escapeHtml(ticket.admin_note || '') + '</textarea></label><button class="button primary" type="submit">Enregistrer</button></form></article>'
+    ).join('');
+    list.querySelectorAll('[data-ticket-form]').forEach((form) => {
+      const ticket = supportTickets.find((item) => item.id === form.dataset.ticketForm);
+      form.status.value = ticket.status;
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = event.submitter;
+        button.disabled = true;
+        const data = new FormData(form);
+        const { error } = await client.from('support_tickets').update({
+          status: data.get('status'),
+          admin_note: data.get('admin_note').trim() || null,
+          updated_at: new Date().toISOString()
+        }).eq('id', ticket.id);
+        button.disabled = false;
+        if (error) {
+          alert('Impossible d’enregistrer ce retour : ' + error.message);
+          return;
+        }
+        loadTickets();
+      });
+    });
+  };
+  document.querySelector('#refresh-tickets').addEventListener('click', loadTickets);
+  await loadTickets();
+}
+
 function auditView() {
   navigation('<header class="page-heading"><div><p class="eyebrow">TRAÇABILITÉ</p><h1>Journal des changements</h1><p>Chaque action sur le catalogue est enregistrée. Aucun document privé n’est inclus dans ce journal.</p></div></header><section class="audit-list">' + (audit.length ? audit.map((event) => '<article class="audit-card"><div><strong>' + ({ created: 'Création', updated: 'Mise à jour', deleted: 'Suppression' }[event.action] || event.action) + '</strong><p>' + escapeHtml(event.entry_title || 'Fiche retirée') + '</p></div><time>' + longDate(event.occurred_at) + '</time></article>').join('') : '<div class="empty"><strong>Aucun changement enregistré.</strong></div>') + '</section>');
 }
@@ -263,6 +323,7 @@ function render() {
     else if (view === 'catalog') catalogView();
     else if (view === 'review') reviewView();
     else if (view === 'support') supportView();
+    else if (view === 'tickets') ticketView();
     else auditView();
   } catch (error) {
     app.innerHTML = '<section class="login-panel"><p class="eyebrow">ERREUR</p><h1>Impossible d’afficher la console.</h1><p>' + escapeHtml(error.message) + '</p><button class="button primary" onclick="location.reload()">Réessayer</button></section>';
