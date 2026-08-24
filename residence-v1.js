@@ -336,11 +336,21 @@
       error.hidden = false; submit.disabled = false; return;
     }
     try {
-      const { data: journey, error: journeyError } = await supabaseClient
-        .from('journeys')
-        .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
-        .select().single();
-      if (journeyError) throw journeyError;
+      let journey;
+      const duplicate = typeof activeJourneyConflict === 'function' ? activeJourneyConflict('residence_renewal') : null;
+      if (duplicate) {
+        const action = await showDuplicateJourneyDialog(duplicate, { changeLabel: 'Mettre à jour ma situation' });
+        if (action === 'resume') { node.remove(); resumeJourney(duplicate); return; }
+        if (action !== 'change') { submit.disabled = false; return; }
+        journey = duplicate;
+      } else {
+        const { data, error: journeyError } = await supabaseClient
+          .from('journeys')
+          .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
+          .select().single();
+        if (journeyError) throw journeyError;
+        journey = data;
+      }
       const officialSource = route ? route.sourceUrl : customSource;
       const { error: profileError } = await supabaseClient.from('journey_profiles').upsert({
         journey_id: journey.id,
@@ -387,11 +397,21 @@
     button.disabled = true;
     error.hidden = true;
     try {
-      const { data: journey, error: journeyError } = await supabaseClient
-        .from('journeys')
-        .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
-        .select().single();
-      if (journeyError) throw journeyError;
+      let journey;
+      const duplicate = typeof activeJourneyConflict === 'function' ? activeJourneyConflict('residence_renewal') : null;
+      if (duplicate) {
+        const action = await showDuplicateJourneyDialog(duplicate, { changeLabel: 'Mettre à jour ma situation' });
+        if (action === 'resume') { node.remove(); resumeJourney(duplicate); return; }
+        if (action !== 'change') { button.disabled = false; return; }
+        journey = duplicate;
+      } else {
+        const { data, error: journeyError } = await supabaseClient
+          .from('journeys')
+          .insert({ owner_id: currentUser.id, vault_id: currentVault.id, code: 'residence_renewal' })
+          .select().single();
+        if (journeyError) throw journeyError;
+        journey = data;
+      }
       const { error: profileError } = await supabaseClient.from('journey_profiles').upsert({
         journey_id: journey.id,
         owner_id: currentUser.id,
