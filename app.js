@@ -582,7 +582,12 @@ function renderTrashPage() {
     const days = trashDaysLeft(journey.deleted_at);
     return '<article class="trash-page-item"><span class="trash-page-icon">→</span><div><small>DÉMARCHE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + (days ? days + ' jours avant suppression définitive' : 'Suppression définitive en cours') + '</em></div><div class="trash-page-actions"><button class="outline" data-trash-restore-journey="' + journey.id + '" type="button">Restaurer</button><button class="link-button danger" data-trash-delete-journey="' + journey.id + '" type="button">Supprimer définitivement</button></div></article>';
   }).join('') : '<p class="trash-empty">Aucune démarche dans la corbeille.</p>';
-  view.innerHTML = '<section class="trash-page"><div class="trash-page-heading"><p class="eyebrow">CORBEILLE</p><h2>Éléments supprimés</h2><p>Les éléments restent récupérables pendant 90 jours. Vous pouvez aussi les supprimer définitivement.</p></div><section class="trash-page-section"><div class="trash-page-section-heading"><h3>Documents</h3><span>' + trashedDocuments.length + '</span></div>' + documentRows + '</section><section class="trash-page-section"><div class="trash-page-section-heading"><h3>Démarches</h3><span>' + trashedJourneys.length + '</span></div>' + journeyRows + '</section></section>';
+  const totalTrashed = trashedDocuments.length + trashedJourneys.length;
+  const emptyAction = totalTrashed
+    ? '<button class="outline" data-empty-trash type="button" style="border-color:#a83b2e;color:#943124">Vider la corbeille</button>'
+    : '';
+  view.innerHTML = '<section class="trash-page"><div class="trash-page-heading" style="display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap"><div><p class="eyebrow">CORBEILLE</p><h2>Éléments supprimés</h2><p>Les éléments restent récupérables pendant 90 jours. Vous pouvez aussi les supprimer définitivement.</p></div>' + emptyAction + '</div><section class="trash-page-section"><div class="trash-page-section-heading"><h3>Documents</h3><span>' + trashedDocuments.length + '</span></div>' + documentRows + '</section><section class="trash-page-section"><div class="trash-page-section-heading"><h3>Démarches</h3><span>' + trashedJourneys.length + '</span></div>' + journeyRows + '</section></section>';
+  view.querySelector('[data-empty-trash]')?.addEventListener('click', emptyTrash);
   view.querySelectorAll('[data-trash-restore-document]').forEach((button) => button.addEventListener('click', () => restoreTrashedDocument(button.dataset.trashRestoreDocument)));
   view.querySelectorAll('[data-trash-delete-document]').forEach((button) => button.addEventListener('click', () => permanentlyDeleteTrashedDocument(button.dataset.trashDeleteDocument)));
   view.querySelectorAll('[data-trash-restore-journey]').forEach((button) => button.addEventListener('click', () => restoreTrashedJourney(button.dataset.trashRestoreJourney)));
@@ -596,6 +601,48 @@ async function restoreTrashedDocument(id) {
   if (error) { alert('Impossible de restaurer ce document : ' + error.message); return; }
   await loadData();
   showView('trash');
+}
+
+async function emptyTrash() {
+  const trashedDocuments = documents.filter((doc) => doc.deleted_at);
+  const trashedJourneys = journeysList.filter((journey) => journey.deleted_at);
+  if (!trashedDocuments.length && !trashedJourneys.length) return;
+  const parts = [];
+  if (trashedDocuments.length) parts.push(trashedDocuments.length + ' document' + (trashedDocuments.length > 1 ? 's' : ''));
+  if (trashedJourneys.length) parts.push(trashedJourneys.length + ' démarche' + (trashedJourneys.length > 1 ? 's' : ''));
+  if (!(await showConfirmDialog({
+    title: 'Vider la corbeille ?',
+    message: 'Vous allez supprimer définitivement ' + parts.join(' et ') + '. Cette action est irréversible.',
+    confirmLabel: 'Vider la corbeille',
+    tone: 'danger'
+  }))) return;
+
+  const button = $('#trash-view [data-empty-trash]');
+  if (button) { button.disabled = true; button.textContent = 'Suppression…'; }
+  try {
+    const documentIds = trashedDocuments.map((doc) => doc.id);
+    const journeyIds = trashedJourneys.map((journey) => journey.id);
+    if (documentIds.length) {
+      const { error } = await supabaseClient.from('documents').delete().in('id', documentIds).eq('owner_id', currentUser.id);
+      if (error) throw error;
+      const paths = trashedDocuments.map((doc) => doc.storage_path).filter(Boolean);
+      if (paths.length) {
+        const { error: storageError } = await supabaseClient.storage.from('jamm-documents').remove(paths);
+        if (storageError) console.warn('Certains fichiers ne sont plus en base mais restent temporairement dans le stockage.', storageError.message);
+      }
+    }
+    if (journeyIds.length) {
+      const { error } = await supabaseClient.from('journeys').delete().in('id', journeyIds).eq('owner_id', currentUser.id);
+      if (error) throw error;
+    }
+    await loadData();
+    showView('trash');
+    $('#success').hidden = false;
+    $('#success').textContent = 'La corbeille a été vidée.';
+  } catch (error) {
+    if (button) { button.disabled = false; button.textContent = 'Vider la corbeille'; }
+    alert('Impossible de vider entièrement la corbeille : ' + error.message);
+  }
 }
 
 async function permanentlyDeleteTrashedDocument(id) {
