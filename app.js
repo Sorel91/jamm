@@ -1332,38 +1332,142 @@ async function permanentlyDeleteJourney(id) {
   showView('trash');
 }
 
+function normaliseDocumentTitle(value) {
+  return String(value || '').trim().toLocaleLowerCase('fr-FR').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+}
+
+function suggestedDocumentTitle(type, requirementToLink = null) {
+  if (type && type !== 'other' && documentLabels[type]) return documentLabels[type];
+  return String(requirementToLink || documentLabels[type] || 'Document').trim();
+}
+
+function distinctDocumentTitle(title, existingDocuments = []) {
+  const base = String(title || 'Document').trim() || 'Document';
+  const used = new Set(existingDocuments.map((doc) => normaliseDocumentTitle(doc.display_name)));
+  if (!used.has(normaliseDocumentTitle(base))) return base;
+  let number = 2;
+  while (used.has(normaliseDocumentTitle(base + ' — ' + number))) number += 1;
+  return base + ' — ' + number;
+}
+
+function showDuplicateDocumentChoice({ type, existingDocuments, initialTitle }) {
+  return new Promise((resolve) => {
+    const node = modal('');
+    const card = node.querySelector('.jamm-modal-card');
+    const close = (answer) => {
+      document.removeEventListener('keydown', onKeydown);
+      node.remove();
+      resolve(answer);
+    };
+    const onKeydown = (event) => {
+      if (event.key === 'Escape') close(null);
+    };
+    const renderChoice = () => {
+      const options = existingDocuments.length > 1
+        ? '<label>Document à remplacer<select data-duplicate-target>' + existingDocuments.map((doc) => '<option value="' + doc.id + '">' + escapeHtml(doc.display_name) + '</option>').join('') + '</select></label>'
+        : '<p class="duplicate-current-document"><strong>' + escapeHtml(existingDocuments[0].display_name) + '</strong> est déjà dans votre coffre.</p>';
+      card.innerHTML = '<button class="close" aria-label="Fermer">×</button><p class="eyebrow">DOCUMENT DÉJÀ PRÉSENT</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Un ' + escapeHtml(documentLabels[type] || 'document de ce type') + ' existe déjà.</h2><p style="color:#647069;line-height:1.45">Souhaitez-vous remplacer ce document, ou conserver les deux ?</p>' + options + '<div class="duplicate-document-actions"><button class="outline" type="button" data-duplicate-cancel>Annuler l’ajout</button><button class="outline" type="button" data-duplicate-keep>Conserver les deux</button><button class="primary" type="button" data-duplicate-replace>Remplacer</button></div>';
+      styleModal(node);
+      card.querySelector('.close').addEventListener('click', () => close(null));
+      card.querySelector('[data-duplicate-cancel]').addEventListener('click', () => close(null));
+      card.querySelector('[data-duplicate-replace]').addEventListener('click', () => {
+        const selectedId = card.querySelector('[data-duplicate-target]')?.value || existingDocuments[0].id;
+        close({ action: 'replace', target: existingDocuments.find((doc) => doc.id === selectedId) || existingDocuments[0] });
+      });
+      card.querySelector('[data-duplicate-keep]').addEventListener('click', renderTitle);
+    };
+    const renderTitle = () => {
+      const suggestedTitle = distinctDocumentTitle(initialTitle, existingDocuments);
+      card.innerHTML = '<button class="close" aria-label="Fermer">×</button><p class="eyebrow">CONSERVER LES DEUX</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Donnez un repère à ce document.</h2><p style="color:#647069;line-height:1.45">Ainsi, vous pourrez distinguer facilement les deux documents dans votre coffre.</p><label>Titre du nouveau document<input data-duplicate-title maxlength="180" required value="' + escapeHtml(suggestedTitle) + '"></label><p data-duplicate-error hidden style="color:#aa3425;font-size:13px"></p><div class="duplicate-document-actions"><button class="outline" type="button" data-duplicate-back>Retour</button><button class="primary" type="button" data-duplicate-confirm>Conserver les deux</button></div>';
+      styleModal(node);
+      const titleInput = card.querySelector('[data-duplicate-title]');
+      const error = card.querySelector('[data-duplicate-error]');
+      card.querySelector('.close').addEventListener('click', () => close(null));
+      card.querySelector('[data-duplicate-back]').addEventListener('click', renderChoice);
+      card.querySelector('[data-duplicate-confirm]').addEventListener('click', () => {
+        const title = titleInput.value.trim();
+        if (!title || existingDocuments.some((doc) => normaliseDocumentTitle(doc.display_name) === normaliseDocumentTitle(title))) {
+          error.textContent = 'Choisissez un titre différent de celui déjà présent dans votre coffre.';
+          error.hidden = false;
+          titleInput.focus();
+          return;
+        }
+        close({ action: 'keep', title });
+      });
+      requestAnimationFrame(() => { titleInput.focus(); titleInput.select(); });
+    };
+    node.addEventListener('click', (event) => { if (event.target === node) close(null); });
+    document.addEventListener('keydown', onKeydown);
+    renderChoice();
+  });
+}
+
 function showUpload(preselectedType, requirementToLink = null) {
-  const options = Object.entries(documentLabels).map(([value, label]) => '<option value="' + value + '"' + (value === preselectedType ? ' selected' : '') + '>' + label + '</option>').join('');
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Ajouter un document</h2><p style="color:#647069;line-height:1.45">Le fichier est conservé dans votre coffre privé. ' + (requirementToLink ? 'Il sera aussi rattaché à « ' + escapeHtml(requirementToLink) + ' ».' : 'Vérifiez qu’il s’agit bien de votre document.') + '</p><form id="upload-form"><label>Fichier<input id="upload-file" type="file" required accept=".pdf,image/jpeg,image/png"></label><label>Type de document<select id="upload-type">' + options + '</select></label><label>Titulaire du document (facultatif)<input id="upload-holder" placeholder="Ex. Mariam Diallo"></label><label>Pays émetteur (facultatif)<input id="upload-country" placeholder="Ex. France"></label><label>Date d’expiration (facultatif)<input id="upload-expiry" type="date"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Ajouter au coffre <span>→</span></button></form>');
+  const initialType = preselectedType || 'other';
+  const initialTitle = suggestedDocumentTitle(initialType, requirementToLink);
+  const options = Object.entries(documentLabels).map(([value, label]) => '<option value="' + value + '"' + (value === initialType ? ' selected' : '') + '>' + label + '</option>').join('');
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">COFFRE PRIVÉ</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Ajouter un document</h2><p style="color:#647069;line-height:1.45">Le fichier est conservé dans votre coffre privé. ' + (requirementToLink ? 'Il sera aussi rattaché à « ' + escapeHtml(requirementToLink) + ' ».' : 'Vérifiez qu’il s’agit bien de votre document.') + '</p><form id="upload-form"><label>Fichier<input id="upload-file" type="file" required accept=".pdf,image/jpeg,image/png"></label><label>Type de document<select id="upload-type">' + options + '</select></label><label>Titre du document<input id="upload-title" maxlength="180" required value="' + escapeHtml(initialTitle) + '"></label><p class="field-hint">Ce titre vous aidera à retrouver le document. Le nom du fichier d’origine n’est pas utilisé.</p><label>Titulaire du document (facultatif)<input id="upload-holder" placeholder="Ex. Mariam Diallo"></label><label>Pays émetteur (facultatif)<input id="upload-country" placeholder="Ex. France"></label><label>Date d’expiration (facultatif)<input id="upload-expiry" type="date"></label><p data-error hidden style="color:#aa3425;font-size:13px"></p><button class="primary" type="submit">Ajouter au coffre <span>→</span></button></form>');
   styleModal(node);
   node.querySelector('.close').addEventListener('click', () => node.remove());
+  const typeInput = node.querySelector('#upload-type');
+  const titleInput = node.querySelector('#upload-title');
+  let titleIsSuggested = true;
+  titleInput.addEventListener('input', () => { titleIsSuggested = false; });
+  typeInput.addEventListener('change', () => {
+    if (!titleIsSuggested) return;
+    titleInput.value = suggestedDocumentTitle(typeInput.value, requirementToLink);
+  });
   node.querySelector('#upload-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const file = node.querySelector('#upload-file').files[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) { showError(node, 'Ce fichier dépasse la limite de 10 Mo.'); return; }
-    const id = crypto.randomUUID();
+    const documentType = typeInput.value;
+    let displayName = titleInput.value.trim();
+    if (!displayName) { showError(node, 'Donnez un titre à ce document.'); titleInput.focus(); return; }
+    const existingDocuments = documentType === 'other' ? [] : documents.filter((doc) => !doc.deleted_at && doc.document_type === documentType);
+    let duplicateChoice = null;
+    if (existingDocuments.length) {
+      duplicateChoice = await showDuplicateDocumentChoice({ type: documentType, existingDocuments, initialTitle: displayName });
+      if (!duplicateChoice) return;
+      if (duplicateChoice.action === 'keep') displayName = duplicateChoice.title;
+    }
+    const uploadId = crypto.randomUUID();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const storagePath = currentUser.id + '/' + id + '/' + safeName;
+    const storagePath = currentUser.id + '/' + uploadId + '/' + safeName;
     const submit = node.querySelector('[type="submit"]');
     submit.disabled = true;
     const { error: uploadError } = await supabaseClient.storage.from('jamm-documents').upload(storagePath, file, { contentType: file.type, upsert: false });
     if (uploadError) { showError(node, uploadError.message); submit.disabled = false; return; }
-    const { error: insertError } = await supabaseClient.from('documents').insert({
-      id, vault_id: currentVault.id, owner_id: currentUser.id, document_type: node.querySelector('#upload-type').value,
-      display_name: file.name, storage_path: storagePath, content_type: file.type, byte_size: file.size,
-      holder_name: node.querySelector('#upload-holder').value.trim() || null, issuer_country: node.querySelector('#upload-country').value.trim() || null, expires_at: node.querySelector('#upload-expiry').value || null
-    });
-    if (insertError) {
+    const metadata = {
+      vault_id: currentVault.id, owner_id: currentUser.id, document_type: documentType,
+      display_name: displayName, storage_path: storagePath, content_type: file.type, byte_size: file.size,
+      holder_name: node.querySelector('#upload-holder').value.trim() || null, issuer_country: node.querySelector('#upload-country').value.trim() || null, expires_at: node.querySelector('#upload-expiry').value || null,
+      updated_at: new Date().toISOString()
+    };
+    let storedDocumentId = uploadId;
+    let writeError = null;
+    if (duplicateChoice?.action === 'replace') {
+      storedDocumentId = duplicateChoice.target.id;
+      const { error } = await supabaseClient.from('documents').update(metadata).eq('id', storedDocumentId).eq('owner_id', currentUser.id);
+      writeError = error;
+    } else {
+      const { error } = await supabaseClient.from('documents').insert({ id: storedDocumentId, ...metadata });
+      writeError = error;
+    }
+    if (writeError) {
       await supabaseClient.storage.from('jamm-documents').remove([storagePath]);
-      showError(node, insertError.message);
+      showError(node, writeError.message);
       submit.disabled = false;
       return;
+    }
+    if (duplicateChoice?.action === 'replace' && duplicateChoice.target.storage_path && duplicateChoice.target.storage_path !== storagePath) {
+      await supabaseClient.storage.from('jamm-documents').remove([duplicateChoice.target.storage_path]);
     }
     if (requirementToLink && currentJourney) {
       const profile = journeyProfiles[currentJourney.id];
       const previousLinks = profile?.situation_answers?.requirement_links || {};
-      const answers = { ...(profile?.situation_answers || {}), requirement_links: updatedRequirementLinks(previousLinks, requirementToLink, id) };
+      const answers = { ...(profile?.situation_answers || {}), requirement_links: updatedRequirementLinks(previousLinks, requirementToLink, storedDocumentId) };
       const { error: linkError } = await supabaseClient.from('journey_profiles').update({ situation_answers: answers, updated_at: new Date().toISOString() }).eq('journey_id', currentJourney.id).eq('owner_id', currentUser.id);
       if (linkError) {
         showError(node, 'Le document a bien été ajouté au coffre, mais n’a pas pu être rattaché à la checklist : ' + linkError.message);
