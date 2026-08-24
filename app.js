@@ -747,10 +747,6 @@ function updatedRequirementLinks(links, requirement, documentId, remove = false)
   return { ...links, [requirement]: next };
 }
 
-function compatibleDocumentsForRequirement(requirement) {
-  return documents.filter((doc) => !doc.archived_at && !doc.deleted_at && documentMatchesRequirement(doc, requirement, {}));
-}
-
 function renderChecklist() {
   // Compatibilité : les dossiers créés avant l’ajout des notes ne les avaient pas encore enregistrées.
   // On les retrouve ici grâce à l’identifiant du parcours afin que chaque dossier reste compréhensible.
