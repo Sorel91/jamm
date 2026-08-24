@@ -809,18 +809,17 @@ function renderChecklist() {
     const guidanceBlock = routeGuidance.length
       ? '<aside class="checklist-guidance" role="note" style="margin:0 0 16px;padding:16px 18px;border:1px solid #e2c67c;border-radius:18px;background:#fff7df;color:#58431e"><strong style="display:block;margin-bottom:8px;color:#765013">À vérifier selon votre situation</strong><ul style="margin:0;padding-left:20px;display:grid;gap:7px">' + routeGuidance.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></aside>'
       : '';
-    const renderRequirement = (requirement, isConditional) => {
+    const renderRequirement = (requirement) => {
       const linkedDocuments = linked(requirement);
       const type = requirement.document_type || requirement.category || 'other';
       const pickerData = ' data-requirement="' + escapeHtml(requirement.label) + '" data-document-type="' + escapeHtml(type) + '"';
       const attachedNames = linkedDocuments.length ? '<small>' + linkedDocuments.map((doc) => escapeHtml(doc.display_name)).join(' · ') + '</small>' : '';
       const documentActions = linkedDocuments.length ? linkedDocuments.map((doc) => '<button class="link-button open-checklist-document" data-document-id="' + doc.id + '" type="button">Ouvrir</button>').join('') : '';
-      const conditionalBadge = isConditional ? '<small style="display:block;margin-top:5px;color:#765013;font-weight:700">À ajouter seulement si votre situation est concernée</small>' : '';
-      const rowClass = linkedDocuments.length ? 'done' : (isConditional ? 'conditional-piece' : 'missing-piece');
-      const symbol = linkedDocuments.length ? '✓' : (isConditional ? '?' : '!');
-      return '<div class="check-row ' + rowClass + '"' + (isConditional ? ' style="border-color:#e2c67c;background:#fffaf0"' : '') + '><span class="checkmark">' + symbol + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + conditionalBadge + attachedNames + '</span>' + (linkedDocuments.length ? '<span class="ready-actions">' + documentActions + '<button class="link-button add-requirement" ' + pickerData + ' type="button">Ajouter</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Gérer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">' + (isConditional ? 'Ajouter si nécessaire' : 'Ajouter une pièce') + '</button></span>') + '</div>';
+      const rowClass = linkedDocuments.length ? 'done' : 'missing-piece';
+      const symbol = linkedDocuments.length ? '✓' : '!';
+      return '<div class="check-row ' + rowClass + '"><span class="checkmark">' + symbol + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + attachedNames + '</span>' + (linkedDocuments.length ? '<span class="ready-actions">' + documentActions + '<button class="link-button add-requirement" ' + pickerData + ' type="button">Ajouter</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Gérer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">Ajouter une pièce</button></span>') + '</div>';
     };
-    checklist.innerHTML = guidanceBlock + requirements.map((requirement) => renderRequirement(requirement, Boolean(requirement?.conditional))).join('');
+    checklist.innerHTML = requirements.map((requirement) => renderRequirement(requirement)).join('') + guidanceBlock;
 
     // Anciennes démarches : certains profils stockaient les pièces sous un format
     // non normalisé. On lit donc la checklist rendue, qui est la source visible fiable.
