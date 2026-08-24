@@ -74,17 +74,17 @@
     <section class="app-view" id="profile-view" hidden></section>
 
     <section class="app-view" id="journeys-view" hidden>
-      <section class="heading journey-heading"><div><h2>Préparez un dossier, sans repartir de zéro.</h2></div><button class="primary compact" id="new-journey">+ Nouvelle démarche</button></section>
+      <section class="heading journey-heading"><div><h2>Préparez un dossier, sans repartir de zéro.</h2><p>Préparez vos documents ici, puis déposez votre dossier sur le site officiel.</p></div><button class="primary compact" id="new-journey">+ Nouveau dossier</button></section>
       <section class="journey-board" id="journey-list" aria-label="Liste des démarches"></section>
 
       <section class="dossier" id="demarche">
-        <div class="dossier-header"><div class="dossier-context"><p class="eyebrow">ÉTAT DU DOSSIER</p><div id="dossier-context"></div></div><div class="dossier-header-actions"><div class="progress"><strong id="progress-value">0%</strong><span>prêt</span></div><button class="link-button collapse-dossier" id="collapse-dossier" type="button" hidden aria-expanded="true">Réduire la checklist</button></div></div>
+        <div class="dossier-header"><div class="dossier-context"><p class="eyebrow">ÉTAT DU DOSSIER</p><div id="dossier-context"></div></div><div class="dossier-header-actions"><div class="progress"><strong id="progress-value">0%</strong><span>pièces prêtes</span></div><button class="link-button collapse-dossier" id="collapse-dossier" type="button" hidden aria-expanded="true">Réduire la checklist</button></div></div>
         <div class="checklist" id="checklist"></div>
-        <div class="dossier-footer"><div class="journey-actions"><button class="outline" id="complete-journey" hidden>Marquer comme terminée</button><button class="outline" id="reopen-journey" hidden>Rouvrir ce dossier</button><button class="primary" id="prepare">Préparer et télécharger le dossier <span>→</span></button></div></div>
+        <div class="dossier-footer"><div class="journey-actions"><button class="outline" id="complete-journey" hidden>Archiver ce dossier</button><button class="outline" id="reopen-journey" hidden>Rouvrir ce dossier</button><button class="primary" id="prepare">Télécharger mon dossier <span>→</span></button></div></div>
         <div class="success" id="success" hidden></div>
       </section>
     </section>
-    <footer class="site-footer"><span>Jamlio organise vos documents. Il ne remplace pas les administrations ni un conseil juridique.</span><nav aria-label="Informations légales"><a href="confidentialite.html">Confidentialité</a><a href="mentions-legales.html">Mentions légales</a><a href="support.html">Support</a></nav></footer>
+    <footer class="site-footer"><span>Jamlio organise vos documents ; la démarche officielle se fait auprès de l’organisme concerné.</span><nav aria-label="Informations légales"><a href="confidentialite.html">Confidentialité</a><a href="mentions-legales.html">Mentions légales</a><a href="support.html">Support</a></nav></footer>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
