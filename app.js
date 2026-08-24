@@ -820,10 +820,7 @@ function renderChecklist() {
       const symbol = linkedDocuments.length ? '✓' : (isConditional ? '?' : '!');
       return '<div class="check-row ' + rowClass + '"' + (isConditional ? ' style="border-color:#e2c67c;background:#fffaf0"' : '') + '><span class="checkmark">' + symbol + '</span><span class="check-copy"><strong>' + escapeHtml(requirement.label) + '</strong>' + conditionalBadge + attachedNames + '</span>' + (linkedDocuments.length ? '<span class="ready-actions">' + documentActions + '<button class="link-button add-requirement" ' + pickerData + ' type="button">Ajouter</button><button class="link-button change-requirement" ' + pickerData + ' type="button">Gérer</button></span>' : '<span class="requirement-actions"><button class="outline add-requirement" ' + pickerData + ' type="button">' + (isConditional ? 'Ajouter si nécessaire' : 'Ajouter une pièce') + '</button></span>') + '</div>';
     };
-    const conditionalBlock = conditionalRequirements.length
-      ? '<section class="conditional-checklist" style="margin-top:20px;padding:16px;border:1px solid #e2c67c;border-radius:18px;background:#fff7df"><div style="margin:0 0 10px"><strong style="display:block;color:#765013">Pièces conditionnelles</strong><span style="display:block;margin-top:4px;color:#58431e;font-size:14px;line-height:1.45">À ajouter seulement si votre situation est concernée ou si la préfecture vous les demande. Elles ne comptent pas dans l’avancement.</span></div>' + conditionalRequirements.map((requirement) => renderRequirement(requirement, true)).join('') + '</section>'
-      : '';
-    checklist.innerHTML = guidanceBlock + mandatoryRequirements.map((requirement) => renderRequirement(requirement, false)).join('') + conditionalBlock;
+    checklist.innerHTML = guidanceBlock + requirements.map((requirement) => renderRequirement(requirement, Boolean(requirement?.conditional))).join('');
 
     // Anciennes démarches : certains profils stockaient les pièces sous un format
     // non normalisé. On lit donc la checklist rendue, qui est la source visible fiable.
