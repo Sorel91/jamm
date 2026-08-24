@@ -892,18 +892,60 @@ function showRequirementPicker(requirement, documentType = 'other') {
   }));
 }
 
+function activeJourneyConflict(code, passportCountry = '') {
+  const active = journeysList.filter((journey) => journey.code === code && journey.status === 'active' && !journey.deleted_at);
+  if (code === 'residence_renewal') return active[0] || null;
+  if (code === 'passport_renewal' && passportCountry) {
+    const country = passportCountry.toLocaleLowerCase('fr-FR');
+    return active.find((journey) => String(journeyProfiles[journey.id]?.permit_category || '').toLocaleLowerCase('fr-FR').includes(country)) || null;
+  }
+  return null;
+}
+
+function journeySummary(journey) {
+  const profile = journeyProfiles[journey.id];
+  const label = profile?.permit_category || journeys[journey.code]?.short || 'Démarche en cours';
+  const created = journey.created_at ? new Date(journey.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  return label + (created ? ' · créé le ' + created : '');
+}
+
+function resumeJourney(journey) {
+  currentJourney = journey;
+  render();
+  showView('journeys');
+  requestAnimationFrame(() => $('#demarche')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
+function showDuplicateJourneyDialog(journey, { allowNew = false, changeLabel = 'Changer de situation' } = {}) {
+  return new Promise((resolve) => {
+    const node = modal('<div class="jamm-confirm-content"><span class="jamm-confirm-icon" aria-hidden="true">→</span><p class="eyebrow">DÉMARCHE DÉJÀ EN COURS</p><h2>Reprendre votre dossier ?</h2><p>Vous avez déjà « ' + escapeHtml(journeySummary(journey)) + ' » en cours. Reprenez-le pour éviter de repartir de zéro.</p><div class="jamm-confirm-actions jamm-duplicate-actions"><button class="outline" type="button" data-duplicate-resume>Reprendre ce dossier</button><button class="primary" type="button" data-duplicate-change>' + escapeHtml(changeLabel) + '</button>' + (allowNew ? '<button class="link-button" type="button" data-duplicate-new>Créer un nouveau dossier malgré tout</button>' : '') + '</div></div>');
+    node.classList.add('jamm-confirm-dialog');
+    const close = (choice) => { node.remove(); resolve(choice); };
+    node.querySelector('[data-duplicate-resume]').addEventListener('click', () => close('resume'));
+    node.querySelector('[data-duplicate-change]').addEventListener('click', () => close('change'));
+    node.querySelector('[data-duplicate-new]')?.addEventListener('click', () => close('new'));
+    node.addEventListener('click', (event) => { if (event.target === node) close('cancel'); });
+  });
+}
+
 async function chooseJourney(code, startNew = false) {
   if (!currentUser) { showAuth(); return; }
   showView('journeys');
-  const existing = journeysList.find((journey) => journey.code === code && journey.status === 'active');
-  if (existing && !startNew) { currentJourney = existing; render(); $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  const existing = activeJourneyConflict(code);
+  if (existing) {
+    if (!startNew) { resumeJourney(existing); return; }
+    const action = await showDuplicateJourneyDialog(existing, { allowNew: code === 'custom_procedure' || code === 'home_purchase', changeLabel: code === 'residence_renewal' ? 'Changer de situation' : 'Préparer un autre dossier' });
+    if (action === 'resume') { resumeJourney(existing); return; }
+    if (action === 'change' && code === 'residence_renewal') { showQualification(code, existing); return; }
+    if (action !== 'new') return;
+  }
   showQualification(code);
 }
 
 function showNewJourneyChooser() {
   if (!currentUser) { showAuth(); return; }
   const available = Object.entries(journeys).filter(([, definition]) => !definition.legacy);
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">NOUVELLE DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Que voulez-vous préparer ?</h2><p style="color:#647069;line-height:1.45">Vous pouvez créer une nouvelle démarche, même si vous en avez déjà une du même type.</p><div class="new-journey-chooser">' + available.map(([code, definition]) => '<button class="journey-card" data-new-journey="' + code + '" type="button"><span class="journey-card-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Titre de séjour' : definition.kind === 'passport' ? 'Passeport' : definition.kind === 'home' ? 'Projet immobilier' : 'Liste personnelle') + '</em></span><b>→</b></button>').join('') + '</div>'); 
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">NOUVELLE DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Que voulez-vous préparer ?</h2><p style="color:#647069;line-height:1.45">Jamlio vous propose de reprendre une démarche déjà en cours afin d’éviter les doublons. Vous pourrez toujours créer un nouveau dossier dans les situations qui le justifient.</p><div class="new-journey-chooser">' + available.map(([code, definition]) => '<button class="journey-card" data-new-journey="' + code + '" type="button"><span class="journey-card-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Titre de séjour' : definition.kind === 'passport' ? 'Passeport' : definition.kind === 'home' ? 'Projet immobilier' : 'Liste personnelle') + '</em></span><b>→</b></button>').join('') + '</div>'); 
   styleModal(node);
   const chooser = node.querySelector('.new-journey-chooser');
   if (chooser) chooser.style.cssText = 'display:grid;gap:9px;margin-top:20px';
@@ -1131,6 +1173,15 @@ function showQualification(code, existingJourney = null, customResidence = false
     if (isCustom && !customRequirements.length) { showError(node, 'Ajoutez au moins un document nécessaire pour créer cette démarche.'); submit.disabled = false; return; }
     let journey = existingJourney;
     if (!journey) {
+      const passportCountry = node.querySelector('#journey-passport-country')?.value || '';
+      const duplicate = activeJourneyConflict(code, passportCountry);
+      if (duplicate) {
+        const action = await showDuplicateJourneyDialog(duplicate, { allowNew: false, changeLabel: code === 'residence_renewal' ? 'Changer de situation' : 'Modifier le dossier existant' });
+        if (action === 'resume') { node.remove(); resumeJourney(duplicate); return; }
+        if (action === 'change') { node.remove(); showQualification(code, duplicate); return; }
+        submit.disabled = false;
+        return;
+      }
       const { data, error } = await supabaseClient.from('journeys').insert({ owner_id: currentUser.id, vault_id: currentVault.id, code }).select().single();
       if (error) { showError(node, error.message); submit.disabled = false; return; }
       journey = data;
