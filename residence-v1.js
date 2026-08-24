@@ -437,6 +437,11 @@
     styleModal(node);
     node.querySelector('.close').addEventListener('click', () => node.remove());
     const screen = node.querySelector('#residence-orientation');
+    const questionTrail = [];
+    const goBack = () => {
+      const previous = questionTrail.pop();
+      if (previous) renderQuestion(previous);
+    };
     const questions = {
       incident: {
         title: 'Votre titre a-t-il été perdu ou volé ?',
@@ -486,8 +491,9 @@
         '<div style="margin:18px 0;padding:18px;border:1px solid #a4c5b3;border-radius:18px;background:#f1f8f3"><strong style="display:block;font-size:18px;color:#174f3e">' + esc(route.label) + '</strong><span style="display:block;margin-top:6px;color:#4f665b;line-height:1.45">' + esc(route.description) + '</span></div>' +
         '<p style="color:#647069;line-height:1.5">Jamlio peut maintenant créer directement votre checklist de préparation. Les pièces conditionnelles y apparaîtront dans la même liste, avec une indication claire.</p>' +
         '<p data-error hidden style="color:#aa3425;font-size:13px;margin:10px 0"></p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-continue" type="button">Préparer cette checklist <span>→</span></button><button class="outline" id="orientation-choose" type="button">Choisir ma situation moi-même</button></div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button">← Retour</button><button class="primary" id="orientation-continue" type="button">Préparer cette checklist <span>→</span></button><button class="outline" id="orientation-choose" type="button">Choisir ma situation moi-même</button></div>' +
         disclaimer;
+      screen.querySelector('#orientation-back').addEventListener('click', goBack);
       screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route));
       screen.querySelector('#orientation-choose').addEventListener('click', choose);
     };
@@ -497,8 +503,9 @@
         '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Nous ne pouvons pas vous orienter de façon fiable.</h2>' +
         '<p style="color:#647069;line-height:1.5">Votre situation peut relever d’un autre parcours : changement de statut, entrepreneur, certificat de résidence algérien, autre situation familiale ou cas particulier. Choisissez alors la mention exacte sur votre titre ou créez votre propre liste de pièces.</p>' +
         '<p style="color:#647069;line-height:1.5">En présence d’une OQTF, d’un refus, d’un titre expiré depuis longtemps ou d’un changement de statut complexe, demandez un accompagnement spécialisé.</p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-choose" type="button">Choisir ma situation <span>→</span></button></div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button">← Retour</button><button class="primary" id="orientation-choose" type="button">Choisir ma situation <span>→</span></button></div>' +
         disclaimer;
+      screen.querySelector('#orientation-back').addEventListener('click', goBack);
       screen.querySelector('#orientation-choose').addEventListener('click', choose);
     };
     const renderQuestion = (key) => {
@@ -509,7 +516,7 @@
         '<p style="color:#647069;line-height:1.5">' + esc(question.help) + '</p>' +
         '<label style="display:grid;gap:8px;margin-top:20px;font-weight:700">Votre réponse<select id="orientation-choice" style="width:100%;min-height:52px;padding:12px 14px;border:1px solid #b7c8bd;border-radius:12px;background:#fff;color:#203129;font:inherit"><option value="">Sélectionnez une réponse</option>' + question.choices.map((choice, index) => '<option value="' + index + '">' + esc(choice.label) + '</option>').join('') + '</select></label>' +
         '<p data-error hidden style="margin:10px 0;color:#aa3425;font-size:13px"></p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-next" type="button">Suivant <span>→</span></button><button class="link-button" id="orientation-skip" type="button">Je préfère choisir ma situation moi-même</button></div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">' + (questionTrail.length ? '<button class="outline" id="orientation-back" type="button">← Retour</button>' : '') + '<button class="primary" id="orientation-next" type="button">Suivant <span>→</span></button><button class="link-button" id="orientation-skip" type="button">Je préfère choisir ma situation moi-même</button></div>' +
         disclaimer;
       screen.querySelector('#orientation-next').addEventListener('click', () => {
         const select = screen.querySelector('#orientation-choice');
@@ -520,10 +527,13 @@
           return;
         }
         const choice = question.choices[Number(select.value)];
+        questionTrail.push(key);
         if (choice.route) renderResult(choice.route);
         else if (choice.next === 'uncertain') renderUncertain();
         else renderQuestion(choice.next);
       });
+      const backButton = screen.querySelector('#orientation-back');
+      if (backButton) backButton.addEventListener('click', goBack);
       screen.querySelector('#orientation-skip').addEventListener('click', choose);
     };
     renderQuestion('incident');
