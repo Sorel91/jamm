@@ -531,18 +531,20 @@
         saveResidenceV1(node, null, itemsToSave, existingJourney);
       });
     };
-    const renderSituationPicker = () => {
+    const renderSituationPicker = (onBack = null) => {
       screen.innerHTML =
         '<p class="eyebrow">CHOISIR MA SITUATION</p>' +
-        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Quelle situation est inscrite sur votre titre ?</h2>' +
-        '<p style="color:#647069;line-height:1.5">Choisissez la mention qui correspond le mieux à votre titre actuel. Vous obtiendrez directement la checklist correspondante.</p>' +
+        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Quelle mention figure sur votre titre ?</h2>' +
+        '<p style="color:#647069;line-height:1.5">Choisissez la mention inscrite sur votre titre actuel. Si vous ne savez pas laquelle choisir, Jamlio peut vous aider.</p>' +
         '<label style="display:grid;gap:8px;margin-top:20px;font-weight:700">Votre situation<select id="orientation-manual-route" style="width:100%;min-height:52px;padding:12px 14px;border:1px solid #b7c8bd;border-radius:12px;background:#fff;color:#203129;font:inherit"><option value="">Sélectionnez une situation</option>' + commonRoutes.map((route) => '<option value="' + esc(route.id) + '">' + esc(route.label) + '</option>').join('') + '<option value="custom">Autre situation — créer ma propre liste</option></select></label>' +
         '<p data-error hidden style="margin:10px 0;color:#aa3425;font-size:13px"></p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">← Retour</button><button class="primary" id="orientation-manual-next" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">Voir la checklist <span>→</span></button></div>' +
+        '<div style="display:grid;gap:10px;margin-top:18px"><button class="primary" id="orientation-manual-next" type="button" style="width:100%;margin-top:0;min-height:52px">Voir la checklist <span>→</span></button><div style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap">' + (onBack ? '<button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Retour</button>' : '') + '<button class="link-button" id="orientation-help" type="button" style="padding:7px 0">Je ne sais pas quoi choisir</button></div></div>' +
         disclaimer;
-      screen.querySelector('#orientation-back').addEventListener('click', () => {
-        if (questionTrail.length) goBack();
-        else renderQuestion('incident');
+      const backButton = screen.querySelector('#orientation-back');
+      if (backButton) backButton.addEventListener('click', onBack);
+      screen.querySelector('#orientation-help').addEventListener('click', () => {
+        questionTrail.length = 0;
+        renderQuestion('incident');
       });
       screen.querySelector('#orientation-manual-next').addEventListener('click', () => {
         const value = screen.querySelector('#orientation-manual-route').value;
@@ -552,7 +554,7 @@
         renderResult(value);
       });
     };
-    const choose = () => renderSituationPicker();
+    const choose = (onBack = null) => renderSituationPicker(onBack);
     const renderResult = (routeId) => {
       const route = commonRoutes.find((item) => item.id === routeId);
       if (!route) return renderUncertain();
@@ -562,11 +564,11 @@
         '<div style="margin:18px 0;padding:18px;border:1px solid #a4c5b3;border-radius:18px;background:#f1f8f3"><strong style="display:block;font-size:18px;color:#174f3e">' + esc(route.label) + '</strong><span style="display:block;margin-top:6px;color:#4f665b;line-height:1.45">' + esc(route.description) + '</span></div>' +
         '<p style="color:#647069;line-height:1.5">' + (existingJourney ? 'Cette situation remplacera la checklist de ce dossier. Les documents déjà dans votre coffre seront conservés.' : 'Jamlio peut maintenant créer directement votre checklist de préparation. Les pièces conditionnelles y apparaîtront dans la même liste, avec une indication claire.') + '</p>' +
         '<p data-error hidden style="color:#aa3425;font-size:13px;margin:10px 0"></p>' +
-        '<div style="display:grid;gap:12px;margin-top:22px"><button class="primary" id="orientation-continue" type="button" style="width:100%;margin-top:0;min-height:52px">' + (existingJourney ? 'Mettre à jour ce dossier' : 'Préparer cette checklist') + ' <span>→</span></button><div style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Modifier mes réponses</button><button class="link-button" id="orientation-choose" type="button" style="padding:7px 0">' + (existingJourney ? 'Choisir une autre situation' : 'Choisir ma situation moi-même') + '</button></div></div>' +
+        '<div style="display:grid;gap:12px;margin-top:22px"><button class="primary" id="orientation-continue" type="button" style="width:100%;margin-top:0;min-height:52px">' + (existingJourney ? 'Mettre à jour ce dossier' : 'Préparer cette checklist') + ' <span>→</span></button><div style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Modifier mes réponses</button><button class="link-button" id="orientation-choose" type="button" style="padding:7px 0">Voir toutes les situations</button></div></div>' +
         disclaimer;
       screen.querySelector('#orientation-back').addEventListener('click', goBack);
       screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route, existingJourney));
-      screen.querySelector('#orientation-choose').addEventListener('click', choose);
+      screen.querySelector('#orientation-choose').addEventListener('click', () => choose(() => renderResult(route.id)));
     };
     const renderUncertain = () => {
       screen.innerHTML =
@@ -574,10 +576,10 @@
         '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Nous ne pouvons pas vous orienter de façon fiable.</h2>' +
         '<p style="color:#647069;line-height:1.5">Votre situation peut relever d’un autre parcours : changement de statut, entrepreneur, certificat de résidence algérien, autre situation familiale ou cas particulier. Choisissez alors la mention exacte sur votre titre ou créez votre propre liste de pièces.</p>' +
         '<p style="color:#647069;line-height:1.5">En présence d’une OQTF, d’un refus, d’un titre expiré depuis longtemps ou d’un changement de statut complexe, demandez un accompagnement spécialisé.</p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">← Retour</button><button class="primary" id="orientation-choose" type="button">Choisir ma situation <span>→</span></button></div>' +
+        '<div style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:18px"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Retour</button><button class="link-button" id="orientation-choose" type="button" style="padding:7px 0">Voir toutes les situations</button></div>' +
         disclaimer;
       screen.querySelector('#orientation-back').addEventListener('click', goBack);
-      screen.querySelector('#orientation-choose').addEventListener('click', choose);
+      screen.querySelector('#orientation-choose').addEventListener('click', () => choose(renderUncertain));
     };
     const renderQuestion = (key) => {
       const question = questions[key];
@@ -587,7 +589,7 @@
         '<p style="color:#647069;line-height:1.5">' + esc(question.help) + '</p>' +
         '<label style="display:grid;gap:8px;margin-top:20px;font-weight:700">Votre réponse<select id="orientation-choice" style="width:100%;min-height:52px;padding:12px 14px;border:1px solid #b7c8bd;border-radius:12px;background:#fff;color:#203129;font:inherit"><option value="">Sélectionnez une réponse</option>' + question.choices.map((choice, index) => '<option value="' + index + '">' + esc(choice.label) + '</option>').join('') + '</select></label>' +
         '<p data-error hidden style="margin:10px 0;color:#aa3425;font-size:13px"></p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">' + (questionTrail.length ? '<button class="outline" id="orientation-back" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">← Retour</button>' : '') + '<button class="primary" id="orientation-next" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">Suivant <span>→</span></button><button class="link-button" id="orientation-skip" type="button">Je préfère choisir ma situation moi-même</button></div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">' + (questionTrail.length ? '<button class="outline" id="orientation-back" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">← Retour</button>' : '') + '<button class="primary" id="orientation-next" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">Suivant <span>→</span></button></div>' +
         disclaimer;
       screen.querySelector('#orientation-next').addEventListener('click', () => {
         const select = screen.querySelector('#orientation-choice');
@@ -605,9 +607,8 @@
       });
       const backButton = screen.querySelector('#orientation-back');
       if (backButton) backButton.addEventListener('click', goBack);
-      screen.querySelector('#orientation-skip').addEventListener('click', choose);
     };
-    renderQuestion('incident');
+    renderSituationPicker();
   }
 
   function showResidenceV1(preselectedRouteId = null, existingJourney = null) {
