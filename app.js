@@ -558,7 +558,7 @@ function journeyProgress(journey) {
 
 function journeyStatusLabel(journey) {
   const profile = journeyProfiles[journey.id];
-  if (journey.status === 'completed') return 'Terminée';
+  if (journey.status === 'completed') return 'Dossier préparé';
   if (!profile) return 'Situation à préciser';
   if (profile.source_status === 'verified') return 'Liste vérifiée';
   return 'Source à vérifier';
@@ -675,7 +675,7 @@ function renderJourneys() {
     const deletionAction = expanded
       ? '<div class="inline-dossier-danger" style="padding:16px 0 2px;border-top:1px solid #e5ddd7;text-align:right"><button class="link-button journey-delete-link" data-trash-journey="' + journey.id + '" type="button" style="color:#9b3327;padding:8px 0">Supprimer ce dossier</button></div>'
       : '';
-    return '<article class="resume-item' + (expanded ? ' is-open' : '') + '"><button class="resume-journey" data-resume-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="resume-icon">' + (expanded ? '⌃' : '→') + '</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + progressText + '</em></span><span class="resume-action">' + (expanded ? 'Réduire' : 'Reprendre') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button>' + (expanded ? '<div class="inline-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + deletionAction + '</article>';
+    return '<article class="resume-item' + (expanded ? ' is-open' : '') + '"><button class="resume-journey" data-resume-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="resume-icon">' + (expanded ? '⌃' : '→') + '</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + progressText + '</em></span><span class="resume-action">' + (expanded ? 'Réduire' : 'Ouvrir le dossier') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button>' + (expanded ? '<div class="inline-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + deletionAction + '</article>';
   };
   const completedCard = (journey) => {
     const profile = journeyProfiles[journey.id];
@@ -683,7 +683,7 @@ function renderJourneys() {
     const detailedTitle = Boolean(profile?.permit_category && ['home_purchase', 'residence_renewal', 'passport_renewal'].includes(journey.code));
     const situation = detailedTitle ? '' : (profile?.permit_category ? escapeHtml(profile.permit_category) + ' · ' : 'Dossier archivé · ');
     const completedAt = journey.updated_at ? new Date(journey.updated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-    return '<article class="completed-item' + (expanded ? ' is-open' : '') + '"><button class="completed-journey" data-completed-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="completed-icon">✓</span><span class="completed-copy"><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + (completedAt ? 'Terminé le ' + completedAt : 'Terminé') + '</em></span><span class="completed-action">' + (expanded ? 'Réduire' : 'Consulter') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button><button class="journey-trash-button" data-trash-journey="' + journey.id + '" type="button">Supprimer</button>' + (expanded ? '<div class="inline-dossier-slot completed-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + '</article>';
+    return '<article class="completed-item' + (expanded ? ' is-open' : '') + '"><button class="completed-journey" data-completed-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="completed-icon">✓</span><span class="completed-copy"><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + (completedAt ? 'Préparé le ' + completedAt : 'Dossier préparé') + '</em></span><span class="completed-action">' + (expanded ? 'Réduire' : 'Consulter') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button><button class="journey-trash-button" data-trash-journey="' + journey.id + '" type="button">Supprimer</button>' + (expanded ? '<div class="inline-dossier-slot completed-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + '</article>';
   };
   const trashCard = (journey) => {
     const expiry = new Date(new Date(journey.deleted_at).getTime() + 90 * 24 * 60 * 60 * 1000);
@@ -697,10 +697,10 @@ function renderJourneys() {
     ? '<section class="journey-group resume-group"><div class="journey-section-heading"><p class="journey-group-title">À REPRENDRE</p><span>' + activeJourneys.length + ' dossier' + (activeJourneys.length > 1 ? 's' : '') + ' en cours</span></div><div class="resume-list">' + activeJourneys.map(activeCard).join('') + '</div></section>'
     : '<section class="journey-group resume-group empty-resume"><div class="journey-section-heading"><p class="journey-group-title">À REPRENDRE</p></div><p>Vous n’avez pas de dossier en cours.</p></section>';
   const completedSection = completedJourneys.length
-    ? '<section class="completed-journeys"><div class="completed-heading"><div><p class="journey-group-title">VOS DÉMARCHES TERMINÉES</p><p>Vos dossiers restent consultables, sans encombrer les démarches en cours.</p></div><span class="completed-count">' + completedJourneys.length + '</span></div><div class="completed-list">' + completedJourneys.map(completedCard).join('') + '</div></section>'
+    ? '<section class="completed-journeys"><div class="completed-heading"><div><p class="journey-group-title">DOSSIERS PRÉPARÉS</p><p>Vos dossiers restent disponibles si vous devez les télécharger ou les mettre à jour.</p></div><span class="completed-count">' + completedJourneys.length + '</span></div><div class="completed-list">' + completedJourneys.map(completedCard).join('') + '</div></section>'
     : '';
   board.innerHTML = resumeSection +
-    '<section class="journey-group journey-new"><div class="journey-section-heading"><p class="journey-group-title">COMMENCER UNE DÉMARCHE</p><span>Préparez un nouveau dossier</span></div><div class="start-journey-grid">' + suggestions + '</div></section>' +
+    '<section class="journey-group journey-new"><div class="journey-section-heading"><p class="journey-group-title">PRÉPARER UN NOUVEAU DOSSIER</p><span>Choisissez ce que vous souhaitez préparer</span></div><div class="start-journey-grid">' + suggestions + '</div></section>' +
     completedSection;
   const slot = currentJourney && board.querySelector('[data-dossier-slot="' + currentJourney.id + '"]');
   if (slot && dossier) slot.appendChild(dossier);
@@ -777,7 +777,7 @@ function renderChecklist() {
   const profile = journeyProfiles[currentJourney.id];
   const prepareButton = $('#prepare');
   prepareButton.disabled = false;
-  prepareButton.innerHTML = currentJourney.status === 'completed' ? 'Télécharger le dossier <span>→</span>' : 'Télécharger le dossier de préparation <span>→</span>';
+  prepareButton.innerHTML = 'Télécharger mon dossier <span>→</span>';
   $('#complete-journey').hidden = currentJourney.status !== 'active';
   $('#reopen-journey').hidden = currentJourney.status !== 'completed';
   if (!profile) {
@@ -845,7 +845,7 @@ function renderChecklist() {
     const conditionalRequirements = requirements.filter((requirement) => requirement?.conditional);
     const ready = mandatoryRequirements.filter((requirement) => linked(requirement).length > 0).length;
     $('#progress-value').textContent = mandatoryRequirements.length ? Math.round((ready / mandatoryRequirements.length) * 100) + '%' : '—';
-    const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
+    const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Source officielle ↗</a>' : '';
     const isNationalBase = !isPersonal && catalogEntry?.coverage_scope === 'national';
     const isHomePurchase = currentJourney.code === 'home_purchase';
     const isResidenceRenewal = currentJourney.code === 'residence_renewal';
@@ -853,7 +853,7 @@ function renderChecklist() {
       ? '<strong>Votre situation actuelle : ' + escapeHtml(profile.permit_category || 'À préciser') + '</strong><span>Votre checklist s’adapte à cette situation. Vos documents restent dans votre coffre.</span><button class="link-button" id="edit-qualification" type="button">Ma situation a changé</button>'
       : (isPersonal
         ? (isHomePurchase ? '<strong>Votre checklist — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>Liste à compléter avec votre banque, votre notaire et les documents du bien.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>' : '<strong>Votre liste personnelle</strong><span>Les pièces que vous avez indiquées.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>')
-        : '<strong>' + (isNationalBase ? 'Checklist nationale' : 'Checklist officielle') + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>');
+        : '<strong>' + 'Documents à préparer' + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>');
     if (dossierContext) dossierContext.innerHTML = heading;
     const guidanceBlock = routeGuidance.length
       ? '<aside class="checklist-guidance" role="note" style="margin:0 0 16px;padding:16px 18px;border:1px solid #e2c67c;border-radius:18px;background:#fff7df;color:#58431e"><strong style="display:block;margin-bottom:8px;color:#765013">À vérifier selon votre situation</strong><ul style="margin:0;padding-left:20px;display:grid;gap:7px">' + routeGuidance.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></aside>'
@@ -1259,7 +1259,7 @@ function showQualification(code, existingJourney = null, customResidence = false
     if (error) { showError(node, error.message); submit.disabled = false; return; }
     node.remove(); currentJourney = journey; await loadData(); showView('journeys');
     $('#success').hidden = false;
-    $('#success').textContent = isHome ? 'Votre étape d’achat est enregistrée. Jamlio organise vos pièces, à compléter avec votre banque et votre notaire.' : 'Votre démarche est enregistrée. Le parcours officiel et sa source sont maintenant rattachés à ce dossier.';
+    $('#success').textContent = isHome ? 'Votre étape d’achat est enregistrée. Jamlio organise vos pièces, à compléter avec votre banque et votre notaire.' : 'Votre dossier est créé. Ajoutez les pièces demandées, puis téléchargez-le pour votre dépôt officiel.';
     $('#demarche').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (error) {
       showError(node, 'Impossible d’enregistrer cette démarche. Réessayez dans un instant.');
@@ -1269,7 +1269,7 @@ function showQualification(code, existingJourney = null, customResidence = false
 }
 async function completeJourney() {
   if (!currentJourney || currentJourney.status !== 'active') return;
-  if (!(await showConfirmDialog({ title: 'Marquer cette démarche comme terminée ?', message: 'Le dossier restera consultable dans vos démarches terminées.', confirmLabel: 'Marquer comme terminée' }))) return;
+  if (!(await showConfirmDialog({ title: 'Archiver ce dossier ?', message: 'Il restera consultable dans « Dossiers préparés ».', confirmLabel: 'Archiver le dossier' }))) return;
   const { error } = await supabaseClient.from('journeys').update({ status: 'completed' }).eq('id', currentJourney.id).eq('owner_id', currentUser.id);
   if (error) { alert('Impossible de terminer cette démarche : ' + error.message); return; }
   await loadData();
