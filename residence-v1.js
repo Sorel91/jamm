@@ -321,9 +321,9 @@
     const error = node.querySelector('[data-error]');
     submit.disabled = true;
     error.hidden = true;
-    const department = node.querySelector('#residence-v1-department').value.trim();
-    const expiry = node.querySelector('#residence-v1-expiry').value || null;
-    const note = node.querySelector('#residence-v1-note').value.trim();
+    const department = node.querySelector('#residence-v1-department')?.value.trim() || '';
+    const expiry = node.querySelector('#residence-v1-expiry')?.value || null;
+    const note = node.querySelector('#residence-v1-note')?.value.trim() || '';
     const customSource = node.querySelector('#residence-v1-source')?.value.trim() || '';
     const title = route ? route.label : node.querySelector('#residence-v1-title').value.trim();
     const requirements = route ? route.requirements : customItems.map((label) => ({ label, document_type: null }));
@@ -500,17 +500,14 @@
       const profile = existingJourney ? journeyProfiles[existingJourney.id] : null;
       const answers = profile?.situation_answers || {};
       screen.innerHTML =
-        '<p class="eyebrow">SITUATION PERSONNALISÉE</p>' +
-        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Préparez votre propre liste.</h2>' +
-        '<p style="color:#647069;line-height:1.5">Ajoutez les pièces indiquées par votre source officielle. Jamlio les comparera ensuite avec votre coffre.</p>' +
-        '<label style="display:grid;gap:8px;margin-top:18px;font-weight:700">Nom de votre démarche<input id="residence-v1-title" maxlength="120" value="' + esc(answers.custom_title || profile?.permit_category || '') + '" placeholder="Ex. Admission exceptionnelle au séjour"></label>' +
-        '<label style="display:grid;gap:8px;margin-top:14px;font-weight:700">Lien vers la source officielle <span style="font-weight:400;color:#647069">(facultatif)</span><input id="residence-v1-source" type="url" value="' + esc(profile?.official_source_url || '') + '" placeholder="https://…"></label>' +
-        '<label style="display:grid;gap:8px;margin-top:14px;font-weight:700">Département où vous habitez<input id="residence-v1-department" inputmode="numeric" maxlength="3" value="' + esc(String(currentUser?.user_metadata?.default_department || profile?.department || '')) + '" placeholder="Ex. 91"></label>' +
-        '<div id="residence-v1-items" style="display:grid;gap:8px;margin:16px 0"></div><button type="button" id="residence-v1-add-item" class="link-button" style="padding:0">+ Ajouter une pièce</button>' +
-        '<label style="display:grid;gap:8px;margin-top:16px;font-weight:700">Date d’expiration du titre <span style="font-weight:400;color:#647069">(si connue)</span><input id="residence-v1-expiry" type="date" value="' + esc(profile?.expiry_date || '') + '"></label>' +
-        '<label style="display:grid;gap:8px;margin-top:14px;font-weight:700">Élément important pour votre cas <span style="font-weight:400;color:#647069">(facultatif)</span><input id="residence-v1-note" maxlength="240" value="' + esc(answers.note || '') + '" placeholder="Ex. changement d’employeur, enfant concerné…"></label>' +
+        '<p class="eyebrow">MA LISTE PERSONNALISÉE</p>' +
+        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Créez votre checklist.</h2>' +
+        '<p style="color:#647069;line-height:1.5">Ajoutez les pièces demandées pour votre démarche. Jamlio les comparera ensuite avec les documents de votre coffre.</p>' +
+        '<label style="display:grid;gap:8px;margin-top:20px;font-weight:700">Nom de la démarche<input id="residence-v1-title" maxlength="120" value="' + esc(answers.custom_title || profile?.permit_category || '') + '" placeholder="Ex. Acheter un terrain au Sénégal"></label>' +
+        '<section style="margin-top:20px;padding:16px;border:1px solid #d7e2da;border-radius:16px;background:#fbfdfb"><strong style="display:block;font-size:16px">Pièces à préparer</strong><span style="display:block;margin-top:4px;color:#647069;font-size:14px;line-height:1.4">Ajoutez une ligne pour chaque document demandé.</span><div id="residence-v1-items" style="display:grid;gap:8px;margin-top:14px"></div><button type="button" id="residence-v1-add-item" class="link-button" style="margin-top:10px;padding:4px 0">+ Ajouter une pièce</button></section>' +
+        '<details style="margin-top:16px;padding:14px 16px;border:1px solid #d7e2da;border-radius:14px;background:#fff"><summary style="cursor:pointer;font-weight:700">Informations facultatives</summary><div style="display:grid;gap:14px;margin-top:16px"><label style="display:grid;gap:8px;font-weight:700">Lien vers la source officielle <span style="font-weight:400;color:#647069">(si vous l’avez)</span><input id="residence-v1-source" type="url" value="' + esc(profile?.official_source_url || '') + '" placeholder="https://…"></label><label style="display:grid;gap:8px;font-weight:700">Date d’expiration <span style="font-weight:400;color:#647069">(si elle concerne cette démarche)</span><input id="residence-v1-expiry" type="date" value="' + esc(profile?.expiry_date || '') + '"></label><label style="display:grid;gap:8px;font-weight:700">Note personnelle <span style="font-weight:400;color:#647069">(facultatif)</span><input id="residence-v1-note" maxlength="240" value="' + esc(answers.note || '') + '" placeholder="Ex. rendez-vous prévu, document à demander…"></label></div></details>' +
         '<p data-error hidden style="margin:10px 0;color:#aa3425;font-size:13px"></p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="outline" id="orientation-back" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">← Retour</button><button class="primary" id="orientation-custom-save" type="submit" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">Préparer ma checklist <span>→</span></button></div>' +
+        '<div style="display:grid;gap:10px;margin-top:20px"><button class="primary" id="orientation-custom-save" type="submit" style="width:100%;margin-top:0;min-height:52px">Préparer ma checklist <span>→</span></button><button class="link-button" id="orientation-back" type="button" style="justify-self:start;padding:7px 0">← Retour</button></div>' +
         disclaimer;
       const items = screen.querySelector('#residence-v1-items');
       const initialItems = Array.isArray(answers.required_documents) && answers.is_custom_residence
