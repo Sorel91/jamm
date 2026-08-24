@@ -310,12 +310,6 @@
 
   const esc = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 
-  function routePicker(route) {
-    return '<label class="journey-route-option" style="display:block;border:1px solid #cdd6cd;border-radius:12px;padding:13px 14px;margin:8px 0;cursor:pointer">' +
-      '<input type="radio" name="residence-route" value="' + route.id + '" style="width:auto;margin:0 9px 0 0;vertical-align:middle">' +
-      '<strong style="font-size:15px">' + esc(route.label) + '</strong><span style="display:block;margin:6px 0 0 25px;color:#647069;font-size:13px;line-height:1.4">' + esc(route.description) + '</span></label>';
-  }
-
   async function saveResidenceV1(node, route, customItems, existingJourney = null) {
     const submit = node.querySelector('[type="submit"]');
     const error = node.querySelector('[data-error]');
@@ -455,46 +449,6 @@
     styleModal(node);
     node.querySelector('.close').addEventListener('click', () => node.remove());
     const screen = node.querySelector('#residence-orientation');
-    const questionTrail = [];
-    const goBack = () => {
-      const previous = questionTrail.pop();
-      if (previous) renderQuestion(previous);
-    };
-    const questions = {
-      incident: {
-        title: 'Votre titre a-t-il été perdu ou volé ?',
-        help: 'Une perte ou un vol correspond à une demande de duplicata, et non à un renouvellement.',
-        choices: [
-          { label: 'Oui, il est perdu ou volé', route: 'lost_or_stolen' },
-          { label: 'Non, je souhaite le renouveler', next: 'mention' }
-        ]
-      },
-      mention: {
-        title: 'Quelle mention correspond le mieux à votre titre actuel ?',
-        help: 'Choisissez ce qui est écrit sur votre titre, pas ce que vous aimeriez demander.',
-        choices: [
-          { label: 'Étudiant', route: 'student' },
-          { label: 'Salarié — je travaille en CDI', route: 'employee_cdi' },
-          { label: 'Travailleur temporaire — je travaille en CDD', route: 'temporary_worker' },
-          { label: 'Visiteur — je ne travaille pas en France', route: 'visitor' },
-          { label: 'Vie privée et familiale', next: 'family' },
-          { label: 'Carte de résident de 10 ans', route: 'resident_10_years' },
-          { label: 'Résident de longue durée-UE', route: 'long_term_eu' },
-          { label: 'Retraité ou conjoint de retraité', route: 'retiree' },
-          { label: 'Travailleur saisonnier', route: 'seasonal' },
-          { label: 'Je ne sais pas / une autre mention', next: 'uncertain' }
-        ]
-      },
-      family: {
-        title: 'Quel est le fondement de votre vie privée et familiale ?',
-        help: 'Ces deux situations ont des listes distinctes. Si ce n’est ni l’une ni l’autre, Jamlio ne doit pas vous orienter automatiquement.',
-        choices: [
-          { label: 'Je suis époux ou épouse d’une personne française', route: 'spouse_french' },
-          { label: 'Je suis parent d’un enfant français vivant en France', route: 'parent_french_child' },
-          { label: 'Une autre situation familiale', next: 'uncertain' }
-        ]
-      }
-    };
     const disclaimer = '<aside role="note" style="margin-top:18px;padding:14px 16px;border:1px solid #e2c67c;border-radius:16px;background:#fff7df;color:#58431e;font-size:14px;line-height:1.45"><strong style="display:block;color:#765013;margin-bottom:4px">Une aide, pas une décision administrative</strong>Cette orientation repose uniquement sur les informations que vous choisissez ici. Confirmez toujours le parcours et les pièces auprès de la source officielle et de votre préfecture.</aside>';
     const renderCustomSituation = () => {
       const profile = existingJourney ? journeyProfiles[existingJourney.id] : null;
@@ -548,7 +502,7 @@
     const choose = (onBack = null) => renderSituationPicker(onBack);
     const renderResult = (routeId) => {
       const route = commonRoutes.find((item) => item.id === routeId);
-      if (!route) return renderUncertain();
+      if (!route) return renderSituationPicker();
       screen.innerHTML =
         '<p class="eyebrow">PARCOURS SUGGÉRÉ</p>' +
         '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Le parcours qui semble correspondre</h2>' +
@@ -560,103 +514,10 @@
       screen.querySelector('#orientation-back').addEventListener('click', renderSituationPicker);
       screen.querySelector('#orientation-continue').addEventListener('click', () => createResidenceFromOrientation(node, route, existingJourney));
     };
-    const renderUncertain = () => {
-      screen.innerHTML =
-        '<p class="eyebrow">VÉRIFICATION NÉCESSAIRE</p>' +
-        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Nous ne pouvons pas vous orienter de façon fiable.</h2>' +
-        '<p style="color:#647069;line-height:1.5">Votre situation peut relever d’un autre parcours : changement de statut, entrepreneur, certificat de résidence algérien, autre situation familiale ou cas particulier. Choisissez alors la mention exacte sur votre titre ou créez votre propre liste de pièces.</p>' +
-        '<p style="color:#647069;line-height:1.5">En présence d’une OQTF, d’un refus, d’un titre expiré depuis longtemps ou d’un changement de statut complexe, demandez un accompagnement spécialisé.</p>' +
-        '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:18px"><button class="link-button" id="orientation-back" type="button" style="padding:7px 0">← Retour</button></div>' +
-        disclaimer;
-      screen.querySelector('#orientation-back').addEventListener('click', goBack);
-    };
-    const renderQuestion = (key) => {
-      const question = questions[key];
-      screen.innerHTML =
-        '<p class="eyebrow">TROUVER MA SITUATION</p>' +
-        '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">' + esc(question.title) + '</h2>' +
-        '<p style="color:#647069;line-height:1.5">' + esc(question.help) + '</p>' +
-        '<label style="display:grid;gap:8px;margin-top:20px;font-weight:700">Votre réponse<select id="orientation-choice" style="width:100%;min-height:52px;padding:12px 14px;border:1px solid #b7c8bd;border-radius:12px;background:#fff;color:#203129;font:inherit"><option value="">Sélectionnez une réponse</option>' + question.choices.map((choice, index) => '<option value="' + index + '">' + esc(choice.label) + '</option>').join('') + '</select></label>' +
-        '<p data-error hidden style="margin:10px 0;color:#aa3425;font-size:13px"></p>' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">' + (questionTrail.length ? '<button class="outline" id="orientation-back" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">← Retour</button>' : '') + '<button class="primary" id="orientation-next" type="button" style="min-width:176px;min-height:48px;margin-top:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">Suivant <span>→</span></button></div>' +
-        disclaimer;
-      screen.querySelector('#orientation-next').addEventListener('click', () => {
-        const select = screen.querySelector('#orientation-choice');
-        const error = screen.querySelector('[data-error]');
-        if (select.value === '') {
-          error.textContent = 'Sélectionnez une réponse pour continuer.';
-          error.hidden = false;
-          return;
-        }
-        const choice = question.choices[Number(select.value)];
-        questionTrail.push(key);
-        if (choice.route) renderResult(choice.route);
-        else if (choice.next === 'uncertain') renderUncertain();
-        else renderQuestion(choice.next);
-      });
-      const backButton = screen.querySelector('#orientation-back');
-      if (backButton) backButton.addEventListener('click', goBack);
-    };
     renderSituationPicker();
   }
 
   window.showResidenceOrientation = showResidenceOrientation;
-
-  function showResidenceV1(preselectedRouteId = null, existingJourney = null) {
-    const defaultDepartment = String(currentUser?.user_metadata?.default_department || '');
-    const node = modal(
-      '<button class="close" aria-label="Fermer">×</button>' +
-      '<p class="eyebrow">RENOUVELER SON TITRE DE SÉJOUR</p>' +
-      '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">Choisissez la situation inscrite sur votre titre.</h2>' +
-      '<p style="color:#647069;line-height:1.45">Votre préfecture et votre situation personnelle restent la référence pour le dépôt.</p>' +
-      '<form id="residence-v1-form">' +
-      '<label>Département où vous habitez <input id="residence-v1-department" inputmode="numeric" maxlength="3" value="' + esc(defaultDepartment) + '" placeholder="Ex. 91"></label>' +
-      '<fieldset style="border:0;padding:0;margin:18px 0"><legend style="font-weight:700;font-size:14px">Votre situation</legend>' +
-      commonRoutes.map(routePicker).join('') +
-      '<label class="journey-route-option" style="display:block;border:1px dashed #8eaa9b;border-radius:12px;padding:13px 14px;margin:8px 0;cursor:pointer"><input type="radio" name="residence-route" value="custom" style="width:auto;margin:0 9px 0 0;vertical-align:middle"><strong style="font-size:15px">Mon parcours est spécifique</strong><span style="display:block;margin:6px 0 0 25px;color:#647069;font-size:13px;line-height:1.4">Je saisis moi-même les pièces demandées.</span></label></fieldset>' +
-      '<div id="residence-v1-custom" hidden>' +
-      '<label>Nom de votre démarche <input id="residence-v1-title" maxlength="120" placeholder="Ex. Admission exceptionnelle au séjour"></label>' +
-      '<label>Lien vers la source officielle (facultatif) <input id="residence-v1-source" type="url" placeholder="https://…"></label>' +
-      '<div id="residence-v1-items" style="display:grid;gap:8px;margin:12px 0"></div>' +
-      '<button type="button" id="residence-v1-add-item" class="link-button" style="padding:0">+ Ajouter une pièce</button></div>' +
-      '<label>Date d’expiration du titre (si connue) <input id="residence-v1-expiry" type="date"></label>' +
-      '<label>Élément important pour votre cas (facultatif) <input id="residence-v1-note" maxlength="240" placeholder="Ex. changement d’employeur, enfant concerné…"></label>' +
-      '<p data-error hidden style="color:#aa3425;font-size:13px"></p>' +
-      '<button class="primary" type="submit">' + (existingJourney ? 'Mettre à jour ce dossier' : 'Créer ma checklist') + ' <span>→</span></button></form>'
-    );
-    styleModal(node);
-    const close = node.querySelector('.close');
-    close.addEventListener('click', () => node.remove());
-    const custom = node.querySelector('#residence-v1-custom');
-    const items = node.querySelector('#residence-v1-items');
-    if (preselectedRouteId) {
-      const preselected = node.querySelector('input[name="residence-route"][value="' + preselectedRouteId + '"]');
-      if (preselected) preselected.checked = true;
-    }
-    const addItem = () => {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:8px;align-items:center';
-      row.innerHTML = '<input class="residence-v1-item" maxlength="160" placeholder="Ex. Justificatif de domicile"><button type="button" aria-label="Supprimer cette pièce" style="border:0;background:none;color:#8a4d39;font-size:20px;cursor:pointer">×</button>';
-      row.querySelector('button').addEventListener('click', () => row.remove());
-      items.appendChild(row);
-    };
-    addItem();
-    node.querySelector('#residence-v1-add-item').addEventListener('click', addItem);
-    node.querySelectorAll('input[name="residence-route"]').forEach((input) => input.addEventListener('change', () => {
-      custom.hidden = input.value !== 'custom' || !input.checked;
-    }));
-    node.querySelector('#residence-v1-form').addEventListener('submit', (event) => {
-      event.preventDefault();
-      const selectedRoute = node.querySelector('input[name="residence-route"]:checked');
-      if (!selectedRoute) {
-        const error = node.querySelector('[data-error]');
-        error.textContent = 'Choisissez votre situation pour continuer.'; error.hidden = false; return;
-      }
-      const route = commonRoutes.find((item) => item.id === selectedRoute.value);
-      const customItems = Array.from(node.querySelectorAll('.residence-v1-item')).map((input) => input.value.trim()).filter(Boolean);
-      saveResidenceV1(node, route, customItems, existingJourney);
-    });
-  }
 
   document.addEventListener('DOMContentLoaded', () => {
     const original = showQualification;
