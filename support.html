@@ -4,24 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Support — Jamlio</title>
-  <meta name="description" content="Obtenir de l’aide pour utiliser Jamlio.">
-  <link rel="stylesheet" href="styles.css?v=legalbrand20260821">
+  <meta name="description" content="Obtenir de l’aide et partager un retour sur Jamlio.">
+  <link rel="stylesheet" href="styles.css?v=betafeedback20260824">
 </head>
 <body>
   <main class="legal-shell">
     <nav class="legal-nav" aria-label="Navigation"><a class="brand" href="./" aria-label="Jamlio, accueil"><span>j</span>amlio</a><a class="legal-back" href="./">← Retour à Jamlio</a></nav>
-    <header class="legal-hero"><p class="eyebrow">SUPPORT</p><h1>Une question sur votre coffre&nbsp;?</h1><p>Nous vous aidons à utiliser Jamlio. Pour votre sécurité, ne joignez jamais de document sensible à un e-mail.</p></header>
+    <header class="legal-hero"><p class="eyebrow">SUPPORT BÊTA</p><h1>Un problème ou une idée&nbsp;?</h1><p>Décrivez-nous simplement ce qui s’est passé. Jamlio vous aide à préparer vos documents : ne transmettez jamais de pièce d’identité, de mot de passe ou de document sensible dans un retour.</p></header>
     <article class="legal-content">
-      <div class="support-options">
-        <section class="support-option"><h2>Utilisation de Jamlio</h2><p>Connexion, document, corbeille, démarche ou checklist : décrivez simplement le problème rencontré.</p><a class="primary" href="mailto:bonjour@jamlio.app?subject=Support%20Jamlio">Contacter le support <span>→</span></a></section>
-        <section class="support-option"><h2>Vos données personnelles</h2><p>Pour une demande d’accès, de rectification ou de suppression, indiquez l’adresse liée à votre compte — sans transmettre vos documents.</p><a class="outline" href="mailto:bonjour@jamlio.app?subject=Demande%20relative%20%C3%A0%20mes%20donn%C3%A9es%20Jamlio">Écrire au support</a></section>
-      </div>
-      <h2>Avant de nous écrire</h2>
-      <ul><li>Ne communiquez jamais votre mot de passe.</li><li>Ne joignez pas de passeport, titre de séjour ou document d’identité par e-mail.</li><li>Indiquez votre navigateur, le message affiché et les étapes qui ont mené au problème.</li></ul>
-      <h2>Urgence de sécurité</h2>
-      <p>Si vous pensez qu’une personne a accédé à votre compte, modifiez votre mot de passe et écrivez-nous à <a href="mailto:bonjour@jamlio.app?subject=Urgent%20-%20s%C3%A9curit%C3%A9%20du%20compte%20Jamlio">bonjour@jamlio.app</a> en précisant l’adresse concernée, sans envoyer de pièce jointe.</p>
-      <p>Jamlio ne fournit pas de conseil administratif ou juridique. Pour une démarche officielle, utilisez toujours le lien de la source publique indiqué dans votre dossier.</p>
-    </article><footer class="site-footer"><span>Jamlio — vos documents, à votre main.</span><nav aria-label="Informations légales"><a href="confidentialite.html">Confidentialité</a><a href="mentions-legales.html">Mentions légales</a><a href="support.html">Support</a></nav></footer>
+      <section id="support-signed-out" class="support-login-callout" hidden>
+        <h2>Connectez-vous pour nous écrire</h2>
+        <p>Le formulaire est réservé aux bêta-testeurs connectés : cela nous permet de vous répondre sans vous demander de données inutiles.</p>
+        <a class="primary" href="./">Se connecter à Jamlio <span>→</span></a>
+      </section>
+
+      <section id="beta-feedback" hidden>
+        <div class="support-form-intro"><p class="eyebrow">VOTRE RETOUR</p><h2>Nous aider à améliorer Jamlio</h2><p>Quelques lignes suffisent. Aucun document ne peut être joint à ce formulaire.</p></div>
+        <form id="beta-feedback-form" class="support-feedback-form">
+          <label>Adresse de votre compte<input id="support-email" type="email" readonly aria-readonly="true"></label>
+          <label>Concernant<select id="support-category" required><option value="">Choisir un sujet</option><option value="connexion">Connexion ou compte</option><option value="coffre">Mon coffre</option><option value="demarche">Mes démarches</option><option value="suggestion">Une suggestion</option><option value="autre">Autre</option></select></label>
+          <label>En une phrase<input id="support-subject" maxlength="160" required placeholder="Ex. Je ne trouve pas comment ajouter une pièce"></label>
+          <label>Que s’est-il passé&nbsp;?<textarea id="support-message" rows="6" maxlength="5000" required placeholder="Décrivez ce que vous avez essayé, puis ce qui s’est affiché."></textarea></label>
+          <details class="support-steps"><summary>Ajouter les étapes pour reproduire le problème <span>(facultatif)</span></summary><textarea id="support-steps" rows="4" maxlength="3000" placeholder="1. Je vais dans…&#10;2. Je clique sur…&#10;3. …"></textarea></details>
+          <aside class="support-safety-note"><strong>Pour votre sécurité</strong><p>N’écrivez ni mot de passe, ni numéro de titre, ni document personnel. Nous ne vous demanderons jamais ces éléments par ce formulaire.</p></aside>
+          <p id="feedback-status" class="support-form-status" role="status" aria-live="polite" hidden></p>
+          <button class="primary" type="submit">Envoyer mon retour <span>→</span></button>
+        </form>
+        <section id="my-feedback-list" class="my-feedback-list" hidden></section>
+      </section>
+
+      <section class="support-contact-alt">
+        <h2>Demande liée à vos données</h2>
+        <p>Pour une demande d’accès, de rectification ou de suppression, écrivez à <a href="mailto:bonjour@jamlio.app?subject=Demande%20relative%20%C3%A0%20mes%20donn%C3%A9es%20Jamlio">bonjour@jamlio.app</a> avec l’adresse de votre compte, sans joindre de document.</p>
+        <h2>Urgence de sécurité</h2>
+        <p>Si vous pensez qu’une personne a accédé à votre compte, modifiez votre mot de passe puis écrivez à <a href="mailto:bonjour@jamlio.app?subject=Urgent%20-%20s%C3%A9curit%C3%A9%20du%20compte%20Jamlio">bonjour@jamlio.app</a>.</p>
+      </section>
+      <p class="support-legal-note">Jamlio ne fournit pas de conseil administratif ou juridique. Pour une démarche officielle, utilisez toujours le lien de la source publique indiqué dans votre dossier.</p>
+    </article>
+    <footer class="site-footer"><span>Jamlio — vos documents, à votre main.</span><nav aria-label="Informations légales"><a href="confidentialite.html">Confidentialité</a><a href="mentions-legales.html">Mentions légales</a><a href="support.html">Support</a></nav></footer>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="support.js?v=betafeedback20260824"></script>
 </body>
 </html>
