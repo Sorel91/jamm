@@ -625,7 +625,10 @@ function renderJourneys() {
     const situation = hasDetailedTitle ? '' : (profile?.permit_category ? escapeHtml(profile.permit_category) + ' · ' : 'Situation à préciser · ');
     const progressText = progress ? progress.ready + '/' + progress.total + ' pièces prêtes' : journeyStatusLabel(journey);
     const expanded = currentJourney?.id === journey.id;
-    return '<article class="resume-item' + (expanded ? ' is-open' : '') + '"><button class="resume-journey" data-resume-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="resume-icon">' + (expanded ? '⌃' : '→') + '</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + progressText + '</em></span><span class="resume-action">' + (expanded ? 'Réduire' : 'Reprendre') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button>' + (expanded ? '<div class="inline-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + '</article>';
+    const deletionAction = expanded
+      ? '<div class="inline-dossier-danger" style="padding:16px 0 2px;border-top:1px solid #e5ddd7;text-align:right"><button class="link-button journey-delete-link" data-trash-journey="' + journey.id + '" type="button" style="color:#9b3327;padding:8px 0">Supprimer ce dossier</button></div>'
+      : '';
+    return '<article class="resume-item' + (expanded ? ' is-open' : '') + '"><button class="resume-journey" data-resume-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="resume-icon">' + (expanded ? '⌃' : '→') + '</span><span class="resume-copy"><small>À REPRENDRE</small><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + progressText + '</em></span><span class="resume-action">' + (expanded ? 'Réduire' : 'Reprendre') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button>' + (expanded ? '<div class="inline-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + deletionAction + '</article>';
   };
   const completedCard = (journey) => {
     const profile = journeyProfiles[journey.id];
