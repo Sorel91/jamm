@@ -678,3 +678,49 @@ footer{text-align:center;color:#899089;font-size:12px;padding-top:48px}
 .hero-meta span:first-child{color:var(--green);font-weight:700}
 .hero-meta i{font-style:normal;color:#aebbb1;font-size:11px}
 @media(max-width:760px){.hero-meta{margin-top:13px;font-size:12px;gap:7px}}
+
+
+/* Parcours « autre démarche » : un seul formulaire, informations secondaires repliées */
+.custom-simple-form {
+  display: grid;
+  gap: 18px;
+}
+.custom-simple-form .custom-step-label {
+  margin: 0;
+  color: #68776f;
+  font: 700 12px/1.3 Arial, sans-serif;
+  letter-spacing: .12em;
+}
+.custom-requirements-field {
+  border: 1px solid #d8e1da;
+  border-radius: 16px;
+  padding: 18px;
+  background: #f8fbf8;
+}
+.custom-requirements-field > strong {
+  display: block;
+  color: #183c30;
+  font: 700 17px/1.3 Arial, sans-serif;
+}
+.custom-requirements-field > p {
+  margin: 5px 0 12px;
+  color: #5f7067;
+  font: 15px/1.45 Arial, sans-serif;
+}
+.custom-optional-details {
+  border-top: 1px solid #d8e1da;
+  padding-top: 14px;
+}
+.custom-optional-details summary {
+  color: #245f4b;
+  font: 700 15px/1.35 Arial, sans-serif;
+  cursor: pointer;
+}
+.custom-optional-content {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+@media (max-width: 640px) {
+  .custom-requirements-field { padding: 15px; border-radius: 14px; }
+}
