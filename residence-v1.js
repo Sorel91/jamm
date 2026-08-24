@@ -507,17 +507,23 @@
         '<p class="eyebrow">TROUVER MA SITUATION</p>' +
         '<h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">' + esc(question.title) + '</h2>' +
         '<p style="color:#647069;line-height:1.5">' + esc(question.help) + '</p>' +
-        '<div style="display:grid;gap:9px;margin-top:20px">' + question.choices.map((choice) =>
-          '<button class="outline orientation-choice" type="button" style="text-align:left;justify-content:flex-start;padding:14px 16px">' + esc(choice.label) + ' <span style="margin-left:auto">→</span></button>'
-        ).join('') + '</div>' +
-        '<button class="link-button" id="orientation-skip" type="button" style="margin-top:18px">Je préfère choisir ma situation moi-même</button>' +
+        '<label style="display:grid;gap:8px;margin-top:20px;font-weight:700">Votre réponse<select id="orientation-choice" style="width:100%;min-height:52px;padding:12px 14px;border:1px solid #b7c8bd;border-radius:12px;background:#fff;color:#203129;font:inherit"><option value="">Sélectionnez une réponse</option>' + question.choices.map((choice, index) => '<option value="' + index + '">' + esc(choice.label) + '</option>').join('') + '</select></label>' +
+        '<p data-error hidden style="margin:10px 0;color:#aa3425;font-size:13px"></p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="primary" id="orientation-next" type="button">Suivant <span>→</span></button><button class="link-button" id="orientation-skip" type="button">Je préfère choisir ma situation moi-même</button></div>' +
         disclaimer;
-      screen.querySelectorAll('.orientation-choice').forEach((button, index) => button.addEventListener('click', () => {
-        const choice = question.choices[index];
+      screen.querySelector('#orientation-next').addEventListener('click', () => {
+        const select = screen.querySelector('#orientation-choice');
+        const error = screen.querySelector('[data-error]');
+        if (select.value === '') {
+          error.textContent = 'Sélectionnez une réponse pour continuer.';
+          error.hidden = false;
+          return;
+        }
+        const choice = question.choices[Number(select.value)];
         if (choice.route) renderResult(choice.route);
         else if (choice.next === 'uncertain') renderUncertain();
         else renderQuestion(choice.next);
-      }));
+      });
       screen.querySelector('#orientation-skip').addEventListener('click', choose);
     };
     renderQuestion('incident');
