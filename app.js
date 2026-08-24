@@ -422,6 +422,19 @@ async function openChecklistDocument(id) {
   else window.location.assign(data.signedUrl);
 }
 
+function documentDownloadName(doc) {
+  const title = String(doc.display_name || documentLabels[doc.document_type] || 'Document').trim() || 'Document';
+  const sourceName = String(doc.storage_path || '').split('/').pop().split('?')[0];
+  const sourceExtension = sourceName.match(/\.[a-z0-9]{1,10}$/i)?.[0].toLowerCase();
+  const contentExtensions = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png' };
+  const extension = sourceExtension || contentExtensions[doc.content_type] || '';
+  const titleWithoutExtension = extension && title.toLowerCase().endsWith(extension)
+    ? title.slice(0, -extension.length)
+    : title;
+  const safeTitle = titleWithoutExtension.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() || 'Document';
+  return safeTitle + extension;
+}
+
 async function downloadChecklistDocument(id) {
   const documentToDownload = documents.find((doc) => doc.id === id && !doc.archived_at);
   if (!documentToDownload) return;
@@ -432,7 +445,7 @@ async function downloadChecklistDocument(id) {
   }
   const link = document.createElement('a');
   link.href = URL.createObjectURL(data);
-  link.download = documentToDownload.display_name || 'document-jamm';
+  link.download = documentDownloadName(documentToDownload);
   link.click();
   URL.revokeObjectURL(link.href);
 }
@@ -1528,7 +1541,7 @@ async function downloadChecklist() {
     for (const doc of relevantDocuments) {
       const { data, error } = await supabaseClient.storage.from('jamm-documents').download(doc.storage_path);
       if (error) { errors.push(doc.display_name); continue; }
-      zip.file('documents/' + doc.display_name.replace(/[^a-zA-Z0-9._-]/g, '_'), data);
+      zip.file('documents/' + documentDownloadName(doc), data);
     }
     if (errors.length) zip.file('lire-moi.txt', 'Les fichiers suivants n’ont pas pu être ajoutés : ' + errors.join(', ') + '.');
     const archive = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
