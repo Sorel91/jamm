@@ -802,9 +802,12 @@ function renderChecklist() {
     const sourceLink = !isPersonal && catalogEntry?.requirements_source_url ? '<a href="' + escapeHtml(catalogEntry.requirements_source_url) + '" target="_blank" rel="noopener">Voir la source des pièces ↗</a>' : '';
     const isNationalBase = !isPersonal && catalogEntry?.coverage_scope === 'national';
     const isHomePurchase = currentJourney.code === 'home_purchase';
-    const heading = isPersonal
-      ? (isHomePurchase ? '<strong>Votre checklist — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>Liste à compléter avec votre banque, votre notaire et les documents du bien.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>' : '<strong>Votre liste personnelle</strong><span>Les pièces que vous avez indiquées.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>')
-      : '<strong>' + (isNationalBase ? 'Checklist nationale' : 'Checklist officielle') + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>';
+    const isResidenceRenewal = currentJourney.code === 'residence_renewal';
+    const heading = isResidenceRenewal
+      ? '<strong>Votre situation actuelle : ' + escapeHtml(profile.permit_category || 'À préciser') + '</strong><span>Votre checklist s’adapte à cette situation. Vos documents restent dans votre coffre.</span><button class="link-button" id="edit-qualification" type="button">Ma situation a changé</button>'
+      : (isPersonal
+        ? (isHomePurchase ? '<strong>Votre checklist — ' + escapeHtml(profile.permit_category || 'Projet immobilier') + '</strong><span>Liste à compléter avec votre banque, votre notaire et les documents du bien.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>' : '<strong>Votre liste personnelle</strong><span>Les pièces que vous avez indiquées.</span><button class="link-button" id="edit-qualification" type="button">Modifier</button>')
+        : '<strong>' + (isNationalBase ? 'Checklist nationale' : 'Checklist officielle') + '</strong><span>Source vérifiée. ' + sourceLink + '</span><button class="link-button" id="edit-qualification" type="button">Changer de situation</button>');
     if (dossierContext) dossierContext.innerHTML = heading;
     const guidanceBlock = routeGuidance.length
       ? '<aside class="checklist-guidance" role="note" style="margin:0 0 16px;padding:16px 18px;border:1px solid #e2c67c;border-radius:18px;background:#fff7df;color:#58431e"><strong style="display:block;margin-bottom:8px;color:#765013">À vérifier selon votre situation</strong><ul style="margin:0;padding-left:20px;display:grid;gap:7px">' + routeGuidance.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></aside>'
@@ -841,7 +844,7 @@ function renderChecklist() {
       }
     }
     const edit = dossierContext?.querySelector('#edit-qualification');
-    if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney));
+    if (edit) edit.addEventListener('click', () => showQualification(currentJourney.code, currentJourney, currentJourney.code === 'residence_renewal'));
     checklist.querySelectorAll('.change-requirement').forEach((button) => button.addEventListener('click', () => showRequirementPicker(button.dataset.requirement, button.dataset.documentType)));
     checklist.querySelectorAll('.add-requirement').forEach((button) => button.addEventListener('click', () => showRequirementAddOptions(button.dataset.requirement, button.dataset.documentType)));
     checklist.querySelectorAll('.open-checklist-document').forEach((button) => button.addEventListener('click', () => openChecklistDocument(button.dataset.documentId)));
@@ -934,9 +937,12 @@ async function chooseJourney(code, startNew = false) {
   const existing = activeJourneyConflict(code);
   if (existing) {
     if (!startNew) { resumeJourney(existing); return; }
-    const action = await showDuplicateJourneyDialog(existing, { allowNew: code === 'custom_procedure' || code === 'home_purchase', changeLabel: code === 'residence_renewal' ? 'Changer de situation' : 'Préparer un autre dossier' });
+    const action = await showDuplicateJourneyDialog(existing, {
+      allowNew: code === 'custom_procedure' || code === 'home_purchase' || code === 'residence_renewal',
+      changeLabel: code === 'residence_renewal' ? 'Changer ma situation' : 'Préparer un autre dossier'
+    });
     if (action === 'resume') { resumeJourney(existing); return; }
-    if (action === 'change' && code === 'residence_renewal') { showQualification(code, existing); return; }
+    if (action === 'change' && code === 'residence_renewal') { showQualification(code, existing, true); return; }
     if (action !== 'new') return;
   }
   showQualification(code);
