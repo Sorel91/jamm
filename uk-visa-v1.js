@@ -188,6 +188,7 @@
     renderPicker();
   }
 
+  window.JamlioUkVisaRoutes = routes;
   window.showUkVisaFlow = showUkVisaFlow;
 
   document.addEventListener('DOMContentLoaded', () => {
