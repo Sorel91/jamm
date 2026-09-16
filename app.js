@@ -962,6 +962,7 @@ function activeJourneyConflict(code, passportCountry = '') {
     const country = passportCountry.toLocaleLowerCase('fr-FR');
     return active.find((journey) => String(journeyProfiles[journey.id]?.permit_category || '').toLocaleLowerCase('fr-FR').includes(country)) || null;
   }
+  if (code === 'uk_visa') return active.find((journey) => Boolean(journeyProfiles[journey.id])) || null;
   return null;
 }
 
