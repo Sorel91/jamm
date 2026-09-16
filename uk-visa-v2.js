@@ -93,13 +93,25 @@
     const renderResult = (nationality, routeId) => {
       const route = routes.find((item) => item.id === routeId);
       const status = nationalityStatus(nationality, routeId);
+      const etaRequirements = [
+        { label: 'Passeport utilisé pour le voyage au Royaume-Uni', document_type: 'passport' },
+        { label: 'Photo de la page d’identité du passeport', document_type: 'passport' },
+        { label: 'Photo récente du visage, conforme aux règles de GOV.UK', document_type: 'other' }
+      ];
+      const checklistRoute = status === 'eta'
+        ? { label: 'ETA — visiteur', description: 'Une autorisation électronique de voyage, et non un visa régulier.', sourceUrl: ETA_URL, requirements: etaRequirements }
+        : route;
+      const isChecklist = status === 'visa' || status === 'eta';
+      const checklistIntro = status === 'eta'
+        ? '<section style="margin:18px 0;padding:16px;border:1px solid #d6e3d9;border-radius:16px;background:#fbfdfb"><strong style="display:block;margin-bottom:6px;color:#245c48">La checklist ETA</strong><p style="margin:0;color:#4f605a;line-height:1.5">Préparez les trois éléments ci-dessous dans votre coffre. Pour la demande officielle, vous aurez aussi besoin d’une adresse e-mail et d’un moyen de paiement (20 £) : ce ne sont pas des documents à déposer ici.</p></section>'
+        : '<p style="color:#647069;line-height:1.5">La checklist rassemble les pièces principales et les pièces conditionnelles pour ce type de visa. Vous pourrez les retrouver dans votre coffre avant la demande officielle.</p>';
       screen.innerHTML =
-        '<p class="eyebrow">VOTRE ORIENTATION</p><h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">' + esc(route.label) + '</h2>' +
-        '<p style="color:#647069;line-height:1.5">' + esc(route.description) + '</p>' + statusCopy(status, routeId, nationality) +
-        (status === 'visa' ? '<p style="color:#647069;line-height:1.5">La checklist rassemble les pièces principales et les pièces conditionnelles pour ce type de visa. Vous pourrez les retrouver dans votre coffre avant la demande officielle.</p><p data-error hidden style="color:#aa3425;font-size:13px;margin:10px 0"></p><button class="primary" id="visa-create-checklist" type="button" style="width:100%;margin-top:10px;min-height:52px">Préparer cette checklist <span>→</span></button>' : status === 'eta' ? '<section style="margin:18px 0;padding:16px;border:1px solid #d6e3d9;border-radius:16px;background:#fbfdfb"><strong style="display:block;margin-bottom:8px;color:#245c48">À prévoir pour demander l’ETA</strong><ul style="margin:0;padding-left:20px;color:#4f605a;line-height:1.65"><li>Le passeport avec lequel vous voyagerez</li><li>Une adresse e-mail</li><li>Un moyen de paiement (20 £)</li><li>Une photo du passeport et une photo du visage si vous faites la demande en ligne</li></ul><p style="margin:12px 0 0;color:#647069;line-height:1.45">L’ETA est liée au passeport et peut durer jusqu’à 2 ans, ou jusqu’à son expiration. La décision arrive habituellement par e-mail sous un jour, mais peut prendre jusqu’à 3 jours ouvrés.</p></section><a class="primary" href="' + ETA_URL + '" target="_blank" rel="noopener" style="display:flex;margin-top:10px;min-height:52px;align-items:center;justify-content:center">Demander l’ETA sur GOV.UK <span>↗</span></a>' : '<a class="primary" href="' + CHECK_URL + '" target="_blank" rel="noopener" style="display:flex;margin-top:10px;min-height:52px;align-items:center;justify-content:center">Vérifier sur GOV.UK <span>↗</span></a>') +
+        '<p class="eyebrow">VOTRE ORIENTATION</p><h2 style="font:600 30px Georgia,serif;margin:8px 0 10px">' + esc(checklistRoute.label) + '</h2>' +
+        '<p style="color:#647069;line-height:1.5">' + esc(checklistRoute.description) + '</p>' + statusCopy(status, routeId, nationality) +
+        (isChecklist ? checklistIntro + '<p data-error hidden style="color:#aa3425;font-size:13px;margin:10px 0"></p><button class="primary" id="visa-create-checklist" type="button" style="width:100%;margin-top:10px;min-height:52px">' + (status === 'eta' ? 'Préparer la checklist ETA' : 'Préparer cette checklist') + ' <span>→</span></button>' : '<a class="primary" href="' + CHECK_URL + '" target="_blank" rel="noopener" style="display:flex;margin-top:10px;min-height:52px;align-items:center;justify-content:center">Vérifier sur GOV.UK <span>↗</span></a>') +
         '<button class="outline" id="visa-result-back" type="button" style="width:100%;margin-top:12px;min-height:52px">← Modifier mes réponses</button>' + disclaimer;
       screen.querySelector('#visa-result-back').addEventListener('click', () => renderPurpose(nationality));
-      if (status === 'visa') screen.querySelector('#visa-create-checklist').addEventListener('click', async () => {
+      if (isChecklist) screen.querySelector('#visa-create-checklist').addEventListener('click', async () => {
         const button = screen.querySelector('#visa-create-checklist');
         const error = screen.querySelector('[data-error]');
         button.disabled = true; error.hidden = true;
@@ -113,16 +125,20 @@
             journey = data;
           }
           const previous = journeyProfiles[journey.id]?.situation_answers || {};
-          const labels = new Set(route.requirements.map((item) => item.label));
+          const labels = new Set(checklistRoute.requirements.map((item) => item.label));
           const requirementLinks = Object.fromEntries(Object.entries(previous.requirement_links || {}).filter(([label]) => labels.has(label)));
+          const routeGuidance = status === 'eta'
+            ? ['Une ETA est une autorisation électronique de voyage : ce n’est pas un visa régulier.', 'La demande officielle se fait sur GOV.UK. Prévoyez aussi une adresse e-mail et un moyen de paiement (20 £).']
+            : ['Cette liste prépare vos pièces ; elle ne dépose pas la demande.', 'Vérifiez toujours les exigences finales affichées par GOV.UK.'];
+          const customTitle = status === 'eta' ? 'ETA Royaume-Uni — visiteur' : 'Visa Royaume-Uni — ' + checklistRoute.label;
           const { error: profileError } = await supabaseClient.from('journey_profiles').upsert({
-            journey_id:journey.id,owner_id:currentUser.id,department:'Royaume-Uni',permit_category:route.label,expiry_date:null,
-            situation_answers:{route:'uk_visa',uk_visa_route:route.id,destination:'Royaume-Uni',nationality,custom_title:'Visa Royaume-Uni — '+route.label,required_documents:route.requirements,requirement_links:requirementLinks,route_guidance:['Cette liste prépare vos pièces ; elle ne dépose pas la demande.','Vérifiez toujours les exigences finales affichées par GOV.UK.']},
-            source_status:'verified',official_source_url:route.sourceUrl,source_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()
+            journey_id:journey.id,owner_id:currentUser.id,department:'Royaume-Uni',permit_category:checklistRoute.label,expiry_date:null,
+            situation_answers:{route:'uk_visa',uk_visa_route:status === 'eta' ? 'eta_visitor' : checklistRoute.id,destination:'Royaume-Uni',nationality,custom_title:customTitle,required_documents:checklistRoute.requirements,requirement_links:requirementLinks,route_guidance:routeGuidance},
+            source_status:'verified',official_source_url:checklistRoute.sourceUrl,source_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()
           },{onConflict:'journey_id'});
           if (profileError) throw profileError;
           node.remove(); currentJourney=journey; await loadData(); showView('journeys'); $('#success').hidden=false;
-          $('#success').textContent='Votre checklist de préparation est prête. Vérifiez les exigences finales sur GOV.UK avant de déposer la demande.';
+          $('#success').textContent=status === 'eta' ? 'Votre checklist ETA est prête. Ouvrez ensuite GOV.UK pour faire la demande officielle.' : 'Votre checklist de préparation est prête. Vérifiez les exigences finales sur GOV.UK avant de déposer la demande.';
           $('#demarche').scrollIntoView({behavior:'smooth',block:'start'});
         } catch (err) { error.textContent='Impossible de créer cette checklist : '+(err?.message || 'réessayez dans un instant.');error.hidden=false;button.disabled=false; }
       });
