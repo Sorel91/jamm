@@ -116,7 +116,7 @@
           const labels = new Set(route.requirements.map((item) => item.label));
           const requirementLinks = Object.fromEntries(Object.entries(previous.requirement_links || {}).filter(([label]) => labels.has(label)));
           const { error: profileError } = await supabaseClient.from('journey_profiles').upsert({
-            journey_id:journey.id,owner_id:currentUser.id,department:'',permit_category:route.label,expiry_date:null,
+            journey_id:journey.id,owner_id:currentUser.id,department:'Royaume-Uni',permit_category:route.label,expiry_date:null,
             situation_answers:{route:'uk_visa',uk_visa_route:route.id,destination:'Royaume-Uni',nationality,custom_title:'Visa Royaume-Uni — '+route.label,required_documents:route.requirements,requirement_links,route_guidance:['Cette liste prépare vos pièces ; elle ne dépose pas la demande.','Vérifiez toujours les exigences finales affichées par GOV.UK.']},
             source_status:'verified',official_source_url:route.sourceUrl,source_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()
           },{onConflict:'journey_id'});
@@ -124,7 +124,7 @@
           node.remove(); currentJourney=journey; await loadData(); showView('journeys'); $('#success').hidden=false;
           $('#success').textContent='Votre checklist de préparation est prête. Vérifiez les exigences finales sur GOV.UK avant de déposer la demande.';
           $('#demarche').scrollIntoView({behavior:'smooth',block:'start'});
-        } catch (err) { error.textContent='Impossible de créer cette checklist. Réessayez dans un instant.';error.hidden=false;button.disabled=false; }
+        } catch (err) { error.textContent='Impossible de créer cette checklist : '+(err?.message || 'réessayez dans un instant.');error.hidden=false;button.disabled=false; }
       });
     };
     renderCountry();
