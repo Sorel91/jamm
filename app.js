@@ -7,6 +7,7 @@ const journeys = {
   passport_renewal: { title: 'Renouveler son passeport', short: 'Passeport', kind: 'passport', authorityLabel: 'Pays et ville de la démarche', authorityPlaceholder: 'Ex. France — mairie de Paris, ou consulat du Sénégal à Paris' },
   custom_procedure: { title: 'Faire une autre démarche', short: 'Démarche libre', kind: 'custom', authorityLabel: 'Lieu ou organisme concerné', authorityPlaceholder: 'Ex. Kinshasa, mairie, notaire, banque…' },
   home_purchase: { title: 'Acheter un logement', short: 'Projet immobilier', kind: 'home', authorityLabel: 'Ville où se situe le bien', authorityPlaceholder: 'Ex. Évry-Courcouronnes' },
+  uk_visa: { title: 'Demander un visa pour le Royaume-Uni', short: 'Visa Royaume-Uni', kind: 'uk_visa', authorityLabel: 'Pays depuis lequel vous déposez', authorityPlaceholder: 'Ex. France' },
   renewal_employee: { title: 'Renouvellement du titre — salarié', legacy: true },
   renewal_family: { title: 'Renouvellement du titre — vie privée et familiale', legacy: true },
   renewal_student: { title: 'Renouvellement du titre — étudiant', legacy: true },
@@ -342,7 +343,7 @@ function journeyTitle(journey) {
   const profile = journey && journeyProfiles[journey.id];
   const baseTitle = journey && journeys[journey.code] ? journeys[journey.code].title : 'Démarche';
   if (profile?.situation_answers?.custom_title) return profile.situation_answers.custom_title;
-  if (profile?.permit_category && ['home_purchase', 'residence_renewal', 'passport_renewal'].includes(journey?.code)) return baseTitle + ' — ' + profile.permit_category;
+  if (profile?.permit_category && ['home_purchase', 'residence_renewal', 'passport_renewal', 'uk_visa'].includes(journey?.code)) return baseTitle + ' — ' + profile.permit_category;
   return baseTitle;
 }
 
@@ -681,7 +682,7 @@ function renderJourneys() {
   const activeCard = (journey) => {
     const profile = journeyProfiles[journey.id];
     const progress = journeyProgress(journey);
-    const hasDetailedTitle = Boolean(profile?.permit_category && ['home_purchase', 'residence_renewal', 'passport_renewal'].includes(journey.code));
+    const hasDetailedTitle = Boolean(profile?.permit_category && ['home_purchase', 'residence_renewal', 'passport_renewal', 'uk_visa'].includes(journey.code));
     const situation = hasDetailedTitle ? '' : (profile?.permit_category ? escapeHtml(profile.permit_category) + ' · ' : 'Situation à préciser · ');
     const progressText = progress ? progress.ready + '/' + progress.total + ' pièces prêtes' : journeyStatusLabel(journey);
     const expanded = currentJourney?.id === journey.id;
@@ -693,7 +694,7 @@ function renderJourneys() {
   const completedCard = (journey) => {
     const profile = journeyProfiles[journey.id];
     const expanded = currentJourney?.id === journey.id;
-    const detailedTitle = Boolean(profile?.permit_category && ['home_purchase', 'residence_renewal', 'passport_renewal'].includes(journey.code));
+    const detailedTitle = Boolean(profile?.permit_category && ['home_purchase', 'residence_renewal', 'passport_renewal', 'uk_visa'].includes(journey.code));
     const situation = detailedTitle ? '' : (profile?.permit_category ? escapeHtml(profile.permit_category) + ' · ' : 'Dossier archivé · ');
     const completedAt = journey.updated_at ? new Date(journey.updated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     return '<article class="completed-item' + (expanded ? ' is-open' : '') + '"><button class="completed-journey" data-completed-id="' + journey.id + '" type="button" aria-expanded="' + expanded + '"><span class="completed-icon">✓</span><span class="completed-copy"><strong>' + escapeHtml(journeyTitle(journey)) + '</strong><em>' + situation + (completedAt ? 'Préparé le ' + completedAt : 'Dossier préparé') + '</em></span><span class="completed-action">' + (expanded ? 'Réduire' : 'Consulter') + ' <b>' + (expanded ? '⌃' : '→') + '</b></span></button><button class="journey-trash-button" data-trash-journey="' + journey.id + '" type="button">Supprimer</button>' + (expanded ? '<div class="inline-dossier-slot completed-dossier-slot" data-dossier-slot="' + journey.id + '"></div>' : '') + '</article>';
@@ -705,7 +706,7 @@ function renderJourneys() {
   };
   const suggestions = Object.entries(journeys)
     .filter(([, definition]) => !definition.legacy)
-    .map(([code, definition]) => '<button class="start-journey" data-start-journey="' + code + '" type="button"><span class="start-journey-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Choisir votre situation' : definition.kind === 'passport' ? 'Choisir le pays du passeport' : 'Créer votre liste de pièces') + '</em></span><b>→</b></button>').join('');
+    .map(([code, definition]) => '<button class="start-journey" data-start-journey="' + code + '" type="button"><span class="start-journey-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : definition.kind === 'uk_visa' ? '✈' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Choisir votre situation' : definition.kind === 'passport' ? 'Choisir le pays du passeport' : definition.kind === 'uk_visa' ? 'Visiteur, étudiant, travail ou famille' : 'Créer votre liste de pièces') + '</em></span><b>→</b></button>').join('');
   const resumeSection = activeJourneys.length
     ? '<section class="journey-group resume-group"><div class="journey-section-heading"><p class="journey-group-title">À REPRENDRE</p><span>' + activeJourneys.length + ' dossier' + (activeJourneys.length > 1 ? 's' : '') + ' en cours</span></div><div class="resume-list">' + activeJourneys.map(activeCard).join('') + '</div></section>'
     : '<section class="journey-group resume-group empty-resume"><div class="journey-section-heading"><p class="journey-group-title">À REPRENDRE</p></div><p>Vous n’avez pas de dossier en cours.</p></section>';
@@ -997,19 +998,27 @@ async function chooseJourney(code, startNew = false) {
   if (existing) {
     if (!startNew) { resumeJourney(existing); return; }
     const action = await showDuplicateJourneyDialog(existing, {
-      allowNew: code === 'custom_procedure' || code === 'home_purchase' || code === 'residence_renewal',
-      changeLabel: code === 'residence_renewal' ? 'Changer de situation' : 'Préparer un autre dossier'
+      allowNew: code === 'custom_procedure' || code === 'home_purchase' || code === 'residence_renewal' || code === 'uk_visa',
+      changeLabel: code === 'residence_renewal' ? 'Changer de situation' : code === 'uk_visa' ? 'Changer le type de visa' : 'Préparer un autre dossier'
     });
     if (action === 'resume') { resumeJourney(existing); return; }
-    if (action === 'change' && code === 'residence_renewal') { showQualification(code, existing, true); return; }
+    if (action === 'change' && (code === 'residence_renewal' || code === 'uk_visa')) { showQualification(code, existing, true); return; }
     if (action !== 'new') return;
     if (action === 'new' && code === 'residence_renewal' && typeof window.showResidenceOrientation === 'function') {
       window.showResidenceOrientation(null, true);
       return;
     }
+    if (action === 'new' && code === 'uk_visa' && typeof window.showUkVisaFlow === 'function') {
+      window.showUkVisaFlow(null, true);
+      return;
+    }
   }
   if (code === 'residence_renewal' && typeof window.showResidenceOrientation === 'function') {
     window.showResidenceOrientation();
+    return;
+  }
+  if (code === 'uk_visa' && typeof window.showUkVisaFlow === 'function') {
+    window.showUkVisaFlow();
     return;
   }
   showQualification(code);
@@ -1018,7 +1027,7 @@ async function chooseJourney(code, startNew = false) {
 function showNewJourneyChooser() {
   if (!currentUser) { showAuth(); return; }
   const available = Object.entries(journeys).filter(([, definition]) => !definition.legacy);
-  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">NOUVELLE DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Que voulez-vous préparer ?</h2><p style="color:#647069;line-height:1.45">Jamlio vous propose de reprendre une démarche déjà en cours afin d’éviter les doublons. Vous pourrez toujours créer un nouveau dossier dans les situations qui le justifient.</p><div class="new-journey-chooser">' + available.map(([code, definition]) => '<button class="journey-card" data-new-journey="' + code + '" type="button"><span class="journey-card-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Titre de séjour' : definition.kind === 'passport' ? 'Passeport' : definition.kind === 'home' ? 'Projet immobilier' : 'Liste personnelle') + '</em></span><b>→</b></button>').join('') + '</div>'); 
+  const node = modal('<button class="close" aria-label="Fermer">×</button><p class="eyebrow">NOUVELLE DÉMARCHE</p><h2 style="font:600 31px Georgia,serif;margin:8px 0 10px">Que voulez-vous préparer ?</h2><p style="color:#647069;line-height:1.45">Jamlio vous propose de reprendre une démarche déjà en cours afin d’éviter les doublons. Vous pourrez toujours créer un nouveau dossier dans les situations qui le justifient.</p><div class="new-journey-chooser">' + available.map(([code, definition]) => '<button class="journey-card" data-new-journey="' + code + '" type="button"><span class="journey-card-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : definition.kind === 'uk_visa' ? '✈' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Titre de séjour' : definition.kind === 'passport' ? 'Passeport' : definition.kind === 'uk_visa' ? 'Royaume-Uni' : definition.kind === 'home' ? 'Projet immobilier' : 'Liste personnelle') + '</em></span><b>→</b></button>').join('') + '</div>'); 
   styleModal(node);
   const chooser = node.querySelector('.new-journey-chooser');
   if (chooser) chooser.style.cssText = 'display:grid;gap:9px;margin-top:20px';
