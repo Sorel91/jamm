@@ -7,7 +7,7 @@ const journeys = {
   passport_renewal: { title: 'Renouveler son passeport', short: 'Passeport', kind: 'passport', authorityLabel: 'Pays et ville de la démarche', authorityPlaceholder: 'Ex. France — mairie de Paris, ou consulat du Sénégal à Paris' },
   custom_procedure: { title: 'Faire une autre démarche', short: 'Démarche libre', kind: 'custom', authorityLabel: 'Lieu ou organisme concerné', authorityPlaceholder: 'Ex. Kinshasa, mairie, notaire, banque…' },
   home_purchase: { title: 'Acheter un logement', short: 'Projet immobilier', kind: 'home', authorityLabel: 'Ville où se situe le bien', authorityPlaceholder: 'Ex. Évry-Courcouronnes' },
-  uk_visa: { title: 'Demander un visa pour le Royaume-Uni', short: 'Visa Royaume-Uni', kind: 'uk_visa', authorityLabel: 'Pays depuis lequel vous déposez', authorityPlaceholder: 'Ex. France' },
+  uk_visa: { title: 'Demander un visa', short: 'Visa', kind: 'uk_visa', authorityLabel: 'Pays de destination', authorityPlaceholder: 'Ex. Royaume-Uni' },
   renewal_employee: { title: 'Renouvellement du titre — salarié', legacy: true },
   renewal_family: { title: 'Renouvellement du titre — vie privée et familiale', legacy: true },
   renewal_student: { title: 'Renouvellement du titre — étudiant', legacy: true },
@@ -706,7 +706,7 @@ function renderJourneys() {
   };
   const suggestions = Object.entries(journeys)
     .filter(([, definition]) => !definition.legacy)
-    .map(([code, definition]) => '<button class="start-journey" data-start-journey="' + code + '" type="button"><span class="start-journey-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : definition.kind === 'uk_visa' ? '✈' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Choisir votre situation' : definition.kind === 'passport' ? 'Choisir le pays du passeport' : definition.kind === 'uk_visa' ? 'Visiteur, étudiant, travail ou famille' : 'Créer votre liste de pièces') + '</em></span><b>→</b></button>').join('');
+    .map(([code, definition]) => '<button class="start-journey" data-start-journey="' + code + '" type="button"><span class="start-journey-icon">' + (definition.kind === 'residence' ? '▣' : definition.kind === 'passport' ? '◫' : definition.kind === 'uk_visa' ? '✈' : '+') + '</span><span><strong>' + escapeHtml(definition.title) + '</strong><em>' + (definition.kind === 'residence' ? 'Choisir votre situation' : definition.kind === 'passport' ? 'Choisir le pays du passeport' : definition.kind === 'uk_visa' ? 'Choisir un pays et votre nationalité' : 'Créer votre liste de pièces') + '</em></span><b>→</b></button>').join('');
   const resumeSection = activeJourneys.length
     ? '<section class="journey-group resume-group"><div class="journey-section-heading"><p class="journey-group-title">À REPRENDRE</p><span>' + activeJourneys.length + ' dossier' + (activeJourneys.length > 1 ? 's' : '') + ' en cours</span></div><div class="resume-list">' + activeJourneys.map(activeCard).join('') + '</div></section>'
     : '<section class="journey-group resume-group empty-resume"><div class="journey-section-heading"><p class="journey-group-title">À REPRENDRE</p></div><p>Vous n’avez pas de dossier en cours.</p></section>';
